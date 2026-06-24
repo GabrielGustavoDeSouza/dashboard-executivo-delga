@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
 
-# ==================================================
-# CONFIGURAÇÃO DA PÁGINA
-# ==================================================
+# ==========================================
+# CONFIGURAÇÃO
+# ==========================================
 
 st.set_page_config(
     page_title="Dashboard Executivo Delga",
@@ -11,261 +11,129 @@ st.set_page_config(
     layout="wide"
 )
 
-# ==================================================
-# CSS DELGA
-# ==================================================
-
-st.markdown("""
-<style>
-
-.main {
-    background-color: #F4F6F9;
-}
-
-.metric-card {
-    background-color: white;
-    padding: 18px;
-    border-radius: 12px;
-    box-shadow: 0px 2px 8px rgba(0,0,0,0.08);
-    text-align:center;
-}
-
-.metric-title {
-    font-size:14px;
-    color:#666;
-    font-weight:600;
-}
-
-.metric-value {
-    font-size:34px;
-    font-weight:700;
-    color:#0F4C81;
-}
-
-.block-container{
-    padding-top:2rem;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-# ==================================================
-# CABEÇALHO
-# ==================================================
-
-st.title("📊 Dashboard Executivo — Grupo Delga")
+st.title("📊 Dashboard Executivo Delga")
 st.caption("Gestão Estratégica de Projetos e Retorno Financeiro")
 
-st.divider()
-
-# ==================================================
-# SIDEBAR
-# ==================================================
-
-st.sidebar.header("⚙ Administração")
+# ==========================================
+# UPLOAD
+# ==========================================
 
 arquivo = st.sidebar.file_uploader(
-    "Carregar Planilha Atualizada",
+    "Carregar Planilha",
     type=["xlsx"]
 )
 
-# ==================================================
-# SEM ARQUIVO
-# ==================================================
-
 if arquivo is None:
-
-    st.info("""
-    Faça upload da planilha Excel para visualizar os indicadores.
-    
-    Arquivo esperado:
-    Controle_Indicadores_Delga.xlsx
-    """)
-
+    st.info("Faça upload da planilha para iniciar.")
     st.stop()
 
-# ==================================================
-# LEITURA DAS ABAS
-# ==================================================
+# ==========================================
+# LER EXCEL
+# ==========================================
 
 try:
 
-    aba_unidades = pd.read_excel(
-        arquivo,
-        sheet_name="5 Unidades +"
-    )
+    excel = pd.ExcelFile(arquivo)
 
-    aba_pareto = pd.read_excel(
-        arquivo,
-        sheet_name="Pareto"
-    )
+    st.sidebar.success("Arquivo carregado")
+
+    # MOSTRA TODAS AS ABAS
+    abas = excel.sheet_names
+
+    # LOCALIZA ABA UNIDADES
+    aba_unidades_nome = None
+
+    for aba in abas:
+
+        nome = str(aba).lower().strip()
+
+        if "unidades" in nome:
+            aba_unidades_nome = aba
+            break
+
+    # LOCALIZA PARETO
+    aba_pareto_nome = None
+
+    for aba in abas:
+
+        nome = str(aba).lower().strip()
+
+        if "pareto" in nome:
+            aba_pareto_nome = aba
+            break
+
+    st.sidebar.write("Aba Unidades:", aba_unidades_nome)
+    st.sidebar.write("Aba Pareto:", aba_pareto_nome)
+
+    # LEITURA
+
+    if aba_unidades_nome:
+        df_unidades = pd.read_excel(
+            arquivo,
+            sheet_name=aba_unidades_nome
+        )
+    else:
+        st.error("Não encontrei a aba de Unidades.")
+        st.stop()
+
+    if aba_pareto_nome:
+        df_pareto = pd.read_excel(
+            arquivo,
+            sheet_name=aba_pareto_nome
+        )
+    else:
+        st.warning("Aba Pareto não encontrada.")
+        df_pareto = pd.DataFrame()
 
 except Exception as e:
 
-    st.error(f"Erro ao ler o arquivo: {e}")
+    st.error(f"Erro ao ler Excel: {e}")
     st.stop()
 
-# ==================================================
-# BIG NUMBERS (TEMPORÁRIOS)
-# ==================================================
-# Vamos substituir pelos cálculos reais depois
-
-meta_grupo = 50320000
-retorno_previsto = 48275349
-previsto_2026 = 21759477
-validado = 16843792
-realizado = 4978230
-projetos = 204
-
-# ==================================================
-# LINHA 1
-# ==================================================
+# ==========================================
+# BIG NUMBERS TEMPORÁRIOS
+# ==========================================
 
 c1,c2,c3,c4,c5,c6 = st.columns(6)
 
 with c1:
-    st.metric(
-        "Meta Grupo",
-        f"R$ {meta_grupo/1000000:.2f} Mi"
-    )
+    st.metric("Meta Grupo", "R$ --")
 
 with c2:
-    st.metric(
-        "Retorno Previsto",
-        f"R$ {retorno_previsto/1000000:.2f} Mi"
-    )
+    st.metric("Retorno Previsto", "R$ --")
 
 with c3:
-    st.metric(
-        "Previsto 2026",
-        f"R$ {previsto_2026/1000000:.2f} Mi"
-    )
+    st.metric("Previsto Ano", "R$ --")
 
 with c4:
-    st.metric(
-        "Validado Custos",
-        f"R$ {validado/1000000:.2f} Mi"
-    )
+    st.metric("Validado", "R$ --")
 
 with c5:
-    st.metric(
-        "Real DRE",
-        f"R$ {realizado/1000000:.2f} Mi"
-    )
+    st.metric("Real DRE", "R$ --")
 
 with c6:
-    st.metric(
-        "Projetos",
-        projetos
-    )
+    st.metric("Projetos", len(df_pareto))
+
+# ==========================================
+# DIAGNÓSTICO
+# ==========================================
 
 st.divider()
 
-# ==================================================
-# VISÃO GERAL
-# ==================================================
+st.subheader("Abas Encontradas")
 
-g1,g2 = st.columns(2)
-
-with g1:
-
-    st.subheader("📍 Representatividade das Unidades")
-
-    dados_unidades = pd.DataFrame({
-        "Unidade":[
-            "Diadema",
-            "Jarinu",
-            "Ferraz",
-            "São Leopoldo",
-            "Anchieta"
-        ],
-        "Valor":[
-            6.9,
-            5.3,
-            13.3,
-            2.1,
-            3.8
-        ]
-    })
-
-    st.bar_chart(
-        dados_unidades.set_index("Unidade")
-    )
-
-with g2:
-
-    st.subheader("🏢 Representatividade das Áreas")
-
-    dados_areas = pd.DataFrame({
-        "Área":[
-            "Compras",
-            "Vendas",
-            "Corporativo"
-        ],
-        "Valor":[
-            7,
-            10,
-            1.7
-        ]
-    })
-
-    st.bar_chart(
-        dados_areas.set_index("Área")
-    )
+st.write(abas)
 
 st.divider()
 
-# ==================================================
-# FUNIL
-# ==================================================
+st.subheader("Prévia Aba Unidades")
 
-st.subheader("📈 Funil Executivo")
+st.dataframe(df_unidades.head(20))
 
-funil = pd.DataFrame({
-    "Etapa":[
-        "Meta Grupo",
-        "Portfólio Previsto",
-        "Previsto 2026",
-        "Validado",
-        "Realizado"
-    ],
-    "Valor":[
-        meta_grupo,
-        retorno_previsto,
-        previsto_2026,
-        validado,
-        realizado
-    ]
-})
+if not df_pareto.empty:
 
-st.bar_chart(
-    funil.set_index("Etapa")
-)
+    st.divider()
 
-st.divider()
+    st.subheader("Prévia Pareto")
 
-# ==================================================
-# PROJETOS
-# ==================================================
-
-st.subheader("📋 Base de Projetos")
-
-st.caption(
-    "Prévia da aba Pareto"
-)
-
-st.dataframe(
-    aba_pareto,
-    use_container_width=True,
-    height=500
-)
-
-# ==================================================
-# RODAPÉ
-# ==================================================
-
-st.divider()
-
-st.caption(
-    "Dashboard Executivo Delga • Atualização automática via Excel"
-)
+    st.dataframe(df_pareto.head(20))
