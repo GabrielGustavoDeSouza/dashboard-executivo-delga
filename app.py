@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-import os
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -723,25 +722,23 @@ def render_gap_nao_validado(pareto_ranking):
 st.markdown('<p class="main-header">Dashboard Executivo — Grupo Delga 2026</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">Gestão Estratégica de Projetos e Redução de Custos | Atualizado: Jun/2026</p>', unsafe_allow_html=True)
 
-# Carregar dados
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-EXCEL_FILE = os.path.join(DATA_DIR, "Controle_Indicadores_Delga_2026_v360v1.xlsx")
+# Upload do arquivo Excel
+arquivo = st.file_uploader(
+    "📁 Carregar Planilha de Indicadores (.xlsx)",
+    type=["xlsx"],
+    help="Faça upload do arquivo Controle_Indicadores_Delga para atualizar o dashboard."
+)
 
-if not os.path.exists(EXCEL_FILE):
-    # Tentar caminho alternativo (raiz do projeto)
-    EXCEL_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Controle_Indicadores_Delga_2026_v360v1.xlsx")
-
-if not os.path.exists(EXCEL_FILE):
-    st.sidebar.header("📁 Carregar Planilha")
-    arquivo = st.sidebar.file_uploader("Carregar Planilha", type=["xlsx"])
-    if arquivo is None:
-        st.info("⚠️ Arquivo de dados não encontrado. Faça upload da planilha na barra lateral ou coloque o arquivo Excel na pasta `data/`.")
-        st.stop()
-    else:
-        EXCEL_FILE = arquivo
+if arquivo is None:
+    st.markdown("""<div style="text-align:center;padding:60px 20px;">
+        <p style="font-size:48px;margin-bottom:16px;">📊</p>
+        <p style="font-size:18px;font-weight:600;color:#1B3A5C;">Faça upload da planilha para visualizar o dashboard</p>
+        <p style="font-size:13px;color:#6C757D;margin-top:8px;">Arraste o arquivo Excel ou clique no botão acima.</p>
+    </div>""", unsafe_allow_html=True)
+    st.stop()
 
 try:
-    data = load_data(EXCEL_FILE)
+    data = load_data(arquivo)
 except Exception as e:
     st.error(f"Erro ao carregar dados: {e}")
     st.stop()
