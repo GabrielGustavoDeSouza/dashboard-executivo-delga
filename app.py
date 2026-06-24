@@ -386,6 +386,37 @@ def extract_pareto_ranking(data):
     return projetos
 
 
+def extract_evolucao_mensal(data):
+    """Extrai dados da tabela de evolução mensal (V53 em diante)."""
+    df = data["5_unidades"]
+    meses_labels = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+                    "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+    previsto = []
+    real = []
+    acum_previsto = []
+    acum_real = []
+    projecao_meta = []
+    for c in range(22, 34):
+        val_prev = df.iloc[53, c]
+        val_real = df.iloc[54, c]
+        val_acum_prev = df.iloc[56, c]
+        val_acum_real = df.iloc[57, c]
+        val_proj_meta = df.iloc[58, c]
+        previsto.append(float(val_prev) if pd.notna(val_prev) else 0)
+        real.append(float(val_real) if pd.notna(val_real) else 0)
+        acum_previsto.append(float(val_acum_prev) if pd.notna(val_acum_prev) else 0)
+        acum_real.append(float(val_acum_real) if pd.notna(val_acum_real) else 0)
+        projecao_meta.append(float(val_proj_meta) if pd.notna(val_proj_meta) else 0)
+    return {
+        "meses": meses_labels,
+        "previsto": previsto,
+        "real": real,
+        "acum_previsto": acum_previsto,
+        "acum_real": acum_real,
+        "projecao_meta": projecao_meta,
+    }
+
+
 # =============================================================================
 # GRÁFICOS
 # =============================================================================
@@ -453,50 +484,36 @@ def create_funnel_chart(kpis):
         float(kpis["validado_custos"]),
         float(kpis["retorno_real"]),
     ]
-    colors = ["#1B3A5C", "#E8A838", "#DC3545", "#2C5F8A", "#1A7A3A"]
+    colors = ["#1B3A5C", "#C87533", "#E8A838", "#2C5F8A", "#1A7A3A"]
     fig = go.Figure(go.Bar(
-        y=stages,
         x=values,
+        y=stages,
         orientation="h",
         marker=dict(color=colors),
         text=[format_currency(v) for v in values],
         textposition="outside",
-        textfont=dict(size=10),
+        textfont=dict(size=11),
     ))
     fig.update_layout(
-        xaxis=dict(
-            title="",
-            showgrid=True,
-            gridcolor="#E8E8E8",
-            range=[0, max(values) * 1.3],
-            tickvals=[0, 10_000_000, 20_000_000, 30_000_000, 40_000_000, 50_000_000, 60_000_000],
-            ticktext=["R$ 0.00 Mi", "R$ 10.00 Mi", "R$ 20.00 Mi", "R$ 30.00 Mi", "R$ 40.00 Mi", "R$ 50.00 Mi", "R$ 60.00 Mi"],
-        ),
+        xaxis=dict(title="", tickformat=",.0f", showgrid=True, gridcolor="#E8E8E8",
+                   tickprefix="R$ ", ticksuffix=" Mi", range=[0, max(values) * 1.2]),
         yaxis=dict(title="", autorange="reversed"),
-        margin=dict(l=120, r=100, t=10, b=40),
+        margin=dict(l=120, r=80, t=10, b=30),
         height=300,
         paper_bgcolor="white",
         plot_bgcolor="white",
-        bargap=0.4,
     )
     return fig
 
 
 def create_bar_tipo_iniciativa(pilares, kpis):
     """Gráfico de barras agrupadas por tipo de iniciativa."""
-    nome_map = {
-        "Kaizen": "Kaizen",
-        "Redução de Custo": "Redução de Custo",
-        "BSW": "BSW",
-        "Estratégia Comercial": "Outros",
-        "Você Resolve": "Você Resolve",
-    }
-    labels = [nome_map.get(p["pilar"], p["pilar"]) for p in pilares]
-    previsto = [float(p["previsto"]) for p in pilares]
-    validado = [float(p["validado"]) for p in pilares]
+    labels = [p["pilar"] for p in pilares]
+    previsto = [float(p["previsto"]) if pd.notna(p["previsto"]) else 0 for p in pilares]
+    validado = [float(p["validado"]) if pd.notna(p["validado"]) else 0 for p in pilares]
+    real_total = float(kpis["retorno_real"])
     total_validado = sum(validado)
-    total_real = float(kpis["retorno_real"])
-    real_estimado = [(v / total_validado * total_real) if total_validado > 0 else 0 for v in validado]
+    real_estimado = [v / total_validado * real_total if total_validado > 0 else 0 for v in validado]
     fig = go.Figure()
     fig.add_trace(go.Bar(name="Previsto", x=labels, y=previsto, marker_color="#B8D4E8"))
     fig.add_trace(go.Bar(name="Validado", x=labels, y=validado, marker_color="#2C5F8A"))
@@ -511,6 +528,61 @@ def create_bar_tipo_iniciativa(pilares, kpis):
         paper_bgcolor="white",
         plot_bgcolor="white",
         bargap=0.3,
+    )
+    return fig
+
+
+def create_evolucao_mensal_chart(evolucao, series_selecionadas):
+    """Gráfico de linhas - evolução mensal com filtros."""
+    meses = evolucao["meses"]
+    fig = go.Figure()
+    config_series = {
+        "Acumulado Previsto": {
+            "data": evolucao["acum_previsto"],
+            "color": "#2C5F8A",
+            "dash": "solid",
+        },
+        "Acumulado Real": {
+            "data": evolucao["acum_real"],
+            "color": "#1A7A3A",
+            "dash": "solid",
+        },
+        "Projeção da Meta": {
+            "data": evolucao["projecao_meta"],
+            "color": "#E8A838",
+            "dash": "dash",
+        },
+        "Previsto Mensal": {
+            "data": evolucao["previsto"],
+            "color": "#4A90D9",
+            "dash": "dot",
+        },
+        "Real Mensal": {
+            "data": evolucao["real"],
+            "color": "#28A745",
+            "dash": "dot",
+        },
+    }
+    for nome_serie in series_selecionadas:
+        cfg = config_series[nome_serie]
+        fig.add_trace(go.Scatter(
+            x=meses,
+            y=cfg["data"],
+            mode="lines+markers",
+            name=nome_serie,
+            line=dict(color=cfg["color"], width=2.5, dash=cfg["dash"]),
+            marker=dict(size=6),
+            hovertemplate=f"<b>{nome_serie}</b><br>%{{x}}: R$ %{{y:,.0f}}<extra></extra>",
+        ))
+    fig.update_layout(
+        xaxis=dict(title="", showgrid=True, gridcolor="#F0F0F0"),
+        yaxis=dict(title="R$", tickformat=",.0f", showgrid=True, gridcolor="#E8E8E8"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, font=dict(size=11)),
+        margin=dict(l=70, r=20, t=50, b=40),
+        height=400,
+        paper_bgcolor="white",
+        plot_bgcolor="white",
+        hovermode="x unified",
     )
     return fig
 
@@ -749,6 +821,7 @@ areas_data = extract_areas_data(data)
 pilares = extract_pilares(data)
 projetos_validados = extract_projetos_validados(data)
 pareto_ranking = extract_pareto_ranking(data)
+evolucao = extract_evolucao_mensal(data)
 
 # =============================================================================
 # KPI CARDS
@@ -808,6 +881,33 @@ st.markdown("""<div class="nota-metodologica">
     <b>Capital de Giro</b> (redução de estoque, melhora o caixa mas não o DRE de forma tangível).
     Kaizens de Custo Evitado e Capital de Giro geram valor, mas não reduzem GGF de forma tangível.
 </div>""", unsafe_allow_html=True)
+
+# =============================================================================
+# GRÁFICO DE EVOLUÇÃO MENSAL (NOVO)
+# =============================================================================
+st.markdown('<div class="section-box">', unsafe_allow_html=True)
+st.markdown('<p class="section-title">EVOLUÇÃO MENSAL — ACUMULADO PREVISTO vs REAL vs META</p>', unsafe_allow_html=True)
+
+series_opcoes = ["Acumulado Previsto", "Acumulado Real", "Projeção da Meta", "Previsto Mensal", "Real Mensal"]
+series_default = ["Acumulado Previsto", "Acumulado Real", "Projeção da Meta"]
+
+series_selecionadas = st.multiselect(
+    "Selecione as séries para exibir:",
+    options=series_opcoes,
+    default=series_default,
+    key="filtro_evolucao"
+)
+
+if series_selecionadas:
+    st.plotly_chart(
+        create_evolucao_mensal_chart(evolucao, series_selecionadas),
+        use_container_width=True,
+        config={"displayModeBar": False}
+    )
+else:
+    st.info("Selecione ao menos uma série para exibir o gráfico.")
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 # =============================================================================
 # GRÁFICOS DE DONUT
