@@ -287,71 +287,128 @@ def extract_evolucao(d):
                 acum_prev=row(56),acum_real=row(57),proj_meta=row(58))
 
 def extract_proj_planta(d, sheet_key):
-    """Extrai projetos de planta — para antes de '3. Adesão SPD' ou padrão inválido."""
-    df=d.get(sheet_key)
+    """
+    Extrai projetos de planta industrial.
+    Cada projeto ocupa 2 linhas consecutivas:
+      Linha Previsto (col0=tipo, col2=nome, col5=resp, col7=termino,
+                      col8=previsto_total, col12=valid_custos, col13=saving_validado,
+                      col14=status, col34=Total Ano Previsto)
+      Linha Real     (col16='Real', col34=Total Ano Real acumulado)
+    Para antes de '3. Adesão SPD' ou qualquer tipo inválido.
+    """
+    df = d.get(sheet_key)
     if df is None: return []
-    res=[]
-    # col0=tipo, col2=nome, col5=resp, col7=termino, col8=previsto,
-    # col12=valid_custos_str, col13=saving_validado, col14=status
-    for i in range(54, min(54+300, df.shape[0])):
-        tipo=str(df.iloc[i,0]).strip()
-        nome=str(df.iloc[i,2]).strip()
-        if tipo in VALID_TIPOS and nome not in ("","nan"):
+    res = []
+    i = 54
+    max_row = min(54 + 300, df.shape[0] - 1)
+    while i <= max_row:
+        tipo = str(df.iloc[i, 0]).strip()
+        nome = str(df.iloc[i, 2]).strip()
+        # Linha de projeto válida
+        if tipo in VALID_TIPOS and nome not in ("", "nan"):
+            # Total Ano Previsto na linha atual (col34)
+            tot_prev = safe_float(df.iloc[i, 34])
+            # Total Ano Real na próxima linha (col16='Real', col34)
+            tot_real = 0.0
+            if i + 1 <= max_row:
+                next_col16 = str(df.iloc[i+1, 16]).strip()
+                if next_col16 == "Real":
+                    tot_real = safe_float(df.iloc[i+1, 34])
             res.append(dict(
                 tipo=tipo, nome=nome,
-                resp=str(df.iloc[i,5]).strip() if pd.notna(df.iloc[i,5]) else "—",
-                termino=fmt_date(df.iloc[i,7]),
-                previsto=safe_float(df.iloc[i,8]),
-                val_custos=str(df.iloc[i,12]).strip() if pd.notna(df.iloc[i,12]) else "",
-                val_saving=safe_float(df.iloc[i,13]),
-                status=str(df.iloc[i,14]).strip() if pd.notna(df.iloc[i,14]) else "",
+                resp=str(df.iloc[i, 5]).strip() if pd.notna(df.iloc[i, 5]) else "—",
+                termino=fmt_date(df.iloc[i, 7]),
+                previsto=tot_prev,          # Total Ano Previsto (col34 linha Previsto)
+                real_ano=tot_real,          # Total Ano Real acumulado (col34 linha Real)
+                val_custos=str(df.iloc[i, 12]).strip() if pd.notna(df.iloc[i, 12]) else "",
+                val_saving=safe_float(df.iloc[i, 13]),
+                status=str(df.iloc[i, 14]).strip() if pd.notna(df.iloc[i, 14]) else "",
             ))
-        elif pd.notna(df.iloc[i,0]) and tipo not in ("","nan") and tipo not in VALID_TIPOS:
-            break   # parou no padrão diferente
+            i += 2  # pula as 2 linhas (Previsto + Real)
+        elif pd.notna(df.iloc[i, 0]) and tipo not in ("", "nan") and tipo not in VALID_TIPOS:
+            break   # mudou o padrão — para aqui
+        else:
+            i += 1
     return res
 
 def extract_proj_compras(d):
-    df=d.get("Compras ")
+    """
+    Compras: cada projeto em 2 linhas.
+      Linha Previsto (col0=tipo, col3=nome, col5=resp, col7=term,
+                      col8=previsto_total, col12=val_custos, col13=saving, col14=status,
+                      col35=Total Ano Previsto)
+      Linha Real     (col17='Real', col35=Total Ano Real)
+    """
+    df = d.get("Compras ")
     if df is None: return []
-    res=[]
-    # col0=tipo, col1=nome_cod, col3=nome_proj, col5=resp, col7=term, col8=prev, col12=val_cus, col13=saving, col14=status
-    for i in range(30, min(30+200, df.shape[0])):
-        tipo=str(df.iloc[i,0]).strip()
-        nome=str(df.iloc[i,3]).strip()   # col3 = DESCRIÇÃO = nome real
-        if tipo in VALID_TIPOS and nome not in ("","nan"):
+    res = []
+    i = 30
+    max_row = min(30 + 300, df.shape[0] - 1)
+    while i <= max_row:
+        tipo = str(df.iloc[i, 0]).strip()
+        nome = str(df.iloc[i, 3]).strip()
+        if tipo in VALID_TIPOS and nome not in ("", "nan"):
+            tot_prev = safe_float(df.iloc[i, 35])
+            tot_real = 0.0
+            if i + 1 <= max_row:
+                next_col17 = str(df.iloc[i+1, 17]).strip()
+                if next_col17 == "Real":
+                    tot_real = safe_float(df.iloc[i+1, 35])
             res.append(dict(
                 tipo=tipo, nome=nome,
-                resp=str(df.iloc[i,5]).strip() if pd.notna(df.iloc[i,5]) else "—",
-                termino=fmt_date(df.iloc[i,7]),
-                previsto=safe_float(df.iloc[i,8]),
-                val_custos=str(df.iloc[i,12]).strip() if pd.notna(df.iloc[i,12]) else "",
-                val_saving=safe_float(df.iloc[i,13]),
-                status=str(df.iloc[i,14]).strip() if pd.notna(df.iloc[i,14]) else "",
+                resp=str(df.iloc[i, 5]).strip() if pd.notna(df.iloc[i, 5]) else "—",
+                termino=fmt_date(df.iloc[i, 7]),
+                previsto=tot_prev,
+                real_ano=tot_real,
+                val_custos=str(df.iloc[i, 12]).strip() if pd.notna(df.iloc[i, 12]) else "",
+                val_saving=safe_float(df.iloc[i, 13]),
+                status=str(df.iloc[i, 14]).strip() if pd.notna(df.iloc[i, 14]) else "",
             ))
-        elif pd.notna(df.iloc[i,0]) and tipo not in ("","nan") and tipo not in VALID_TIPOS:
+            i += 2
+        elif pd.notna(df.iloc[i, 0]) and tipo not in ("", "nan") and tipo not in VALID_TIPOS:
             break
+        else:
+            i += 1
     return res
 
 def extract_proj_vendas(d):
-    df=d.get("Vendas")
+    """
+    Vendas: cada projeto em 2 linhas.
+      Linha Previsto (col0=tipo, col1=nome, col4=resp, col7=previsto,
+                      col11=val_custos, col12=saving, col13=status,
+                      col15='Previsto', col33=Total Ano Previsto)
+      Linha Real     (col15='Real', col33=Total Ano Real)
+    """
+    df = d.get("Vendas")
     if df is None: return []
-    res=[]
-    # col0=tipo, col1=nome, col4=resp, col7=prev, col13=status
-    for i in range(40, min(40+100, df.shape[0])):
-        tipo=str(df.iloc[i,0]).strip()
-        nome=str(df.iloc[i,1]).strip()
-        if tipo in VALID_TIPOS and nome not in ("","nan"):
+    res = []
+    i = 36
+    max_row = min(36 + 100, df.shape[0] - 1)
+    while i <= max_row:
+        tipo = str(df.iloc[i, 0]).strip()
+        nome = str(df.iloc[i, 1]).strip()
+        if tipo in VALID_TIPOS and nome not in ("", "nan"):
+            tot_prev = safe_float(df.iloc[i, 33])
+            tot_real = 0.0
+            if i + 1 <= max_row:
+                next_col15 = str(df.iloc[i+1, 15]).strip()
+                if next_col15 == "Real":
+                    tot_real = safe_float(df.iloc[i+1, 33])
             res.append(dict(
                 tipo=tipo, nome=nome,
-                resp=str(df.iloc[i,4]).strip() if pd.notna(df.iloc[i,4]) else "—",
-                termino="—",
-                previsto=safe_float(df.iloc[i,7]),
-                val_custos="",
-                val_saving=0,
-                status=str(df.iloc[i,13]).strip() if pd.notna(df.iloc[i,13]) else "",
+                resp=str(df.iloc[i, 4]).strip() if pd.notna(df.iloc[i, 4]) else "—",
+                termino=fmt_date(df.iloc[i, 6]),
+                previsto=tot_prev,
+                real_ano=tot_real,
+                val_custos=str(df.iloc[i, 11]).strip() if pd.notna(df.iloc[i, 11]) else "",
+                val_saving=safe_float(df.iloc[i, 12]),
+                status=str(df.iloc[i, 13]).strip() if pd.notna(df.iloc[i, 13]) else "",
             ))
-        elif pd.notna(df.iloc[i,0]) and tipo not in ("","nan") and tipo not in VALID_TIPOS:
+            i += 2
+        elif pd.notna(df.iloc[i, 0]) and tipo not in ("", "nan") and tipo not in VALID_TIPOS:
             break
+        else:
+            i += 1
     return res
 
 def extract_ranking(d):
@@ -473,6 +530,9 @@ def proj_detail_html(projetos):
         return "<p style='color:#999;font-size:12px;padding:6px 0;'>Nenhum projeto encontrado.</p>"
     rows=""
     for p in projetos:
+        real_ano = p.get("real_ano", 0)
+        real_str = fmt_brl(real_ano) if real_ano and real_ano != 0 else "—"
+        real_color = DELGA_GREEN if real_ano and real_ano > 0 else "#999"
         rows+=f"""<tr>
           <td>{bdg_tipo(p['tipo'])}</td>
           <td style="max-width:260px;font-size:11px;">{p['nome']}</td>
@@ -480,11 +540,11 @@ def proj_detail_html(projetos):
           <td style="font-size:11px;">{p['termino']}</td>
           <td style="text-align:right;font-size:11px;">{fmt_brl(p['previsto'])}</td>
           <td style="text-align:right;font-size:11px;color:{DELGA_TEAL};">{fmt_brl(p['val_saving'])}</td>
-          <td style="text-align:right;font-size:11px;color:{DELGA_GREEN};font-weight:600;">—</td>
+          <td style="text-align:right;font-size:11px;color:{real_color};font-weight:600;">{real_str}</td>
           <td>{bdg_custos(p['val_custos'])}</td>
           <td>{bdg_st(p['status'])}</td>
         </tr>"""
-    return th("Tipo","Projeto","Responsável","Término","V. Previsto","V. Validado","V. Real","Custos","Status")+rows+"</tbody></table>"
+    return th("Tipo","Projeto","Responsável","Término","V. Previsto (Ano)","V. Validado","V. Real (Acum.)","Custos","Status")+rows+"</tbody></table>"
 
 # Cabeçalho compartilhado da macro-tabela
 MACRO_COLS = ["Unidade / Área","Meta 2026","Previsto Total",
