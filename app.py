@@ -598,42 +598,34 @@ def proj_table_html(projetos):
             + rows + "</tbody></table>")
 
 def pilar_resumo_html(projetos):
-    """Tabela de resumo de pilares local — compacta, sem quebra de palavra."""
+    """Tabela local de pilares — nome completo conforme planilha, com indicador DRE."""
     pilares = extract_pilares_local(projetos)
     if not pilares: return ""
-    ABREV = {
-        "Kaizen - Ganho Recorrente": "Kaizen GR",
-        "Kaizen - Custo Evitado":    "K. C. Evitado",
-        "Kaizen - Capital de Giro":  "K. Cap. Giro",
-        "Redução de Custo":          "Red. Custo",
-        "Estratégia Comercial":      "Est. Comercial",
-        "Meta Executiva":            "Meta Exec.",
-    }
     rows = ""
     for p in pilares:
-        nome_abrev = ABREV.get(p["nome"], p["nome"])
         dot_color = GREEN if p["dre"] else SILVER
-        dot = f'<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:{dot_color};margin-right:4px;vertical-align:middle;"></span>'
+        dre_txt   = "✓ DRE" if p["dre"] else "↷ N/DRE"
+        dre_style = f"color:{GREEN};font-size:9px;" if p["dre"] else f"color:{SILVER};font-size:9px;"
         real_c = GREEN if p["real"] > 0 else SILVER
         rows += f"""<tr>
-          <td style="font-size:10px;white-space:nowrap;">{dot}<b>{nome_abrev}</b></td>
+          <td style="font-size:11px;max-width:120px;">
+            <b>{p['nome']}</b><br>
+            <span style="{dre_style}">{dre_txt}</span>
+          </td>
           <td style="text-align:center;font-size:11px;font-weight:700;color:{NAVY};">{p['qtd']}</td>
-          <td style="text-align:right;font-size:10px;">{fmt_mi(p['prev'])}</td>
-          <td style="text-align:right;font-size:10px;color:{real_c};font-weight:600;">{fmt_mi(p['real'])}</td>
+          <td style="text-align:right;font-size:11px;">{fmt_mi(p['prev'])}</td>
+          <td style="text-align:right;font-size:11px;color:{real_c};font-weight:600;">{fmt_mi(p['real'])}</td>
         </tr>"""
     tot_qtd  = sum(p["qtd"]  for p in pilares)
     tot_prev = sum(p["prev"] for p in pilares)
     tot_real = sum(p["real"] for p in pilares)
     rows += f"""<tr class="tr-tot">
-      <td style="font-size:10px;">TOTAL</td>
+      <td style="font-size:11px;">TOTAL</td>
       <td style="text-align:center;font-size:11px;">{tot_qtd}</td>
-      <td style="text-align:right;font-size:10px;">{fmt_mi(tot_prev)}</td>
-      <td style="text-align:right;font-size:10px;color:{GREEN};">{fmt_mi(tot_real)}</td>
+      <td style="text-align:right;font-size:11px;">{fmt_mi(tot_prev)}</td>
+      <td style="text-align:right;font-size:11px;color:{GREEN};">{fmt_mi(tot_real)}</td>
     </tr>"""
-    legend = (f'<p style="font-size:9px;color:{SILVER};margin-top:5px;">'
-              f'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:{GREEN};margin-right:3px;vertical-align:middle;"></span>DRE&nbsp;&nbsp;'
-              f'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:{SILVER};margin-right:3px;vertical-align:middle;"></span>Não DRE</p>')
-    return (th("Pilar","Qtd","Previsto","Real Acum.") + rows + "</tbody></table>" + legend)
+    return (th("Pilar","Qtd","Previsto","Real Acum.") + rows + "</tbody></table>")
 
 # Cabeçalho macro-tabela
 MC_COLS = ["Unidade / Área","Meta 2026","Previsto Total",
@@ -852,50 +844,93 @@ with cp1:
 with cp2:
     st.markdown('<span class="st">Resumo por Pilar — Grupo</span>', unsafe_allow_html=True)
 
-    # Totais globais
-    tot_qtd_g  = sum(p["qtd"]  for p in p_glob)
-    tot_prev_g = sum(p["prev"] for p in p_glob)
-    tot_val_g  = sum(p["val"]  for p in p_glob)
-    tv_g = tot_val_g
-    real_total_g = real
-    real_est_g = {p["nome"]: p["val"] / tv_g * real_total_g if tv_g > 0 else 0 for p in p_glob}
+    # Agrupa TODOS os projetos de plantas + áreas para ter subtipos de Kaizen corretos
+    @st.cache_data(show_spinner=False)
+    def build_pilares_grupo(fb_key):
+        """Constrói resumo de pilares do grupo com todos os subtipos de Kaizen."""
+        from collections import defaultdict
+        qtd_g  = defaultdict(int)
+        prev_g = defaultdict(float)
+        val_g  = defaultdict(float)   # saving validado (col13)
+        real_g = defaultdict(float)   # real acumulado (Total Ano Real)
+        dre_g  = {}
+        sheets_plantas = ["Diadema","Ferraz","São Leopoldo","Jarinu","Anchieta"]
+        for sh in sheets_plantas:
+            for p in get_proj_planta(D, sh):
+                nome = PILARES_EXIBE.get(p["tipo"], p["tipo"])
+                qtd_g[nome]  += 1
+                prev_g[nome] += p["previsto"]
+                val_g[nome]  += p["val_saving"]
+                real_g[nome] += p["real_ano"]
+                dre_g[nome]   = is_dre(p["tipo"])
+        for p in get_proj_compras(D):
+            nome = PILARES_EXIBE.get(p["tipo"], p["tipo"])
+            qtd_g[nome]  += 1
+            prev_g[nome] += p["previsto"]
+            val_g[nome]  += p["val_saving"]
+            real_g[nome] += p["real_ano"]
+            dre_g[nome]   = is_dre(p["tipo"])
+        for p in get_proj_vendas(D):
+            nome = PILARES_EXIBE.get(p["tipo"], p["tipo"])
+            qtd_g[nome]  += 1
+            prev_g[nome] += p["previsto"]
+            val_g[nome]  += p["val_saving"]
+            real_g[nome] += p["real_ano"]
+            dre_g[nome]   = is_dre(p["tipo"])
+        ORDER = ["BSW","Kaizen","Kaizen - Ganho Recorrente",
+                 "Kaizen - Custo Evitado","Kaizen - Capital de Giro",
+                 "Redução de Custo","Você Resolve","Meta Executiva","Estratégia Comercial"]
+        res = []
+        for k in ORDER:
+            if k in qtd_g:
+                res.append(dict(nome=k, qtd=qtd_g[k], prev=prev_g[k],
+                                val=val_g[k], real=real_g[k], dre=dre_g.get(k, True)))
+        for k in sorted(qtd_g):
+            if k not in ORDER:
+                res.append(dict(nome=k, qtd=qtd_g[k], prev=prev_g[k],
+                                val=val_g[k], real=real_g[k], dre=dre_g.get(k, True)))
+        return res
+
+    p_grupo = build_pilares_grupo(hash(fb))
+
+    def bar_progress(pct_val):
+        bar_w = min(pct_val, 100)
+        bar_c = GREEN if pct_val >= 60 else (AMBER if pct_val >= 30 else RED)
+        return (f'<div style="display:flex;align-items:center;gap:5px;">'
+                f'<div style="width:52px;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden;">'
+                f'<div style="width:{bar_w:.0f}%;height:100%;background:{bar_c};border-radius:3px;"></div></div>'
+                f'<span style="font-size:10px;color:{SILVER};">{pct_val:.0f}%</span></div>')
 
     rows_p = ""
-    for p in p_glob:
-        re = real_est_g.get(p["nome"], 0)
+    for p in p_grupo:
         pct_val = p["val"] / p["prev"] * 100 if p["prev"] > 0 else 0
-        # mini progress bar validado vs previsto
-        bar_w = min(pct_val, 100)
-        bar_color = GREEN if pct_val >= 60 else (AMBER if pct_val >= 30 else RED)
-        bar_html = (f'<div style="display:flex;align-items:center;gap:5px;">'
-                    f'<div style="width:50px;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden;">'
-                    f'<div style="width:{bar_w:.0f}%;height:100%;background:{bar_color};border-radius:3px;"></div></div>'
-                    f'<span style="font-size:10px;color:{SILVER};">{pct_val:.0f}%</span></div>')
+        dre_txt   = "✓ DRE" if p["dre"] else "↷ N/DRE"
+        dre_style = f"color:{GREEN};font-size:9px;font-weight:600;" if p["dre"] else f"color:{SILVER};font-size:9px;"
         rows_p += f"""<tr>
-          <td style="font-size:11px;font-weight:600;">{p['nome']}</td>
+          <td style="font-size:11px;font-weight:600;">
+            {p['nome']}<br><span style="{dre_style}">{dre_txt}</span>
+          </td>
           <td style="text-align:center;font-size:11px;font-weight:700;">{p['qtd']}</td>
           <td style="text-align:right;font-size:11px;">{fmt_mi(p['prev'])}</td>
           <td style="text-align:right;font-size:11px;color:{TEAL};font-weight:600;">{fmt_mi(p['val'])}</td>
-          <td style="text-align:right;font-size:11px;color:{GREEN};font-weight:600;">{fmt_mi(re)}</td>
-          <td>{bar_html}</td>
+          <td style="text-align:right;font-size:11px;color:{GREEN};font-weight:600;">{fmt_mi(p['real'])}</td>
+          <td>{bar_progress(pct_val)}</td>
         </tr>"""
-    # linha total
-    tot_real_est = sum(real_est_g.values())
-    pct_tot = tot_val_g / tot_prev_g * 100 if tot_prev_g > 0 else 0
-    bar_w_t = min(pct_tot, 100)
-    bar_t = (f'<div style="display:flex;align-items:center;gap:5px;">'
-             f'<div style="width:50px;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden;">'
-             f'<div style="width:{bar_w_t:.0f}%;height:100%;background:{NAVY};border-radius:3px;"></div></div>'
-             f'<span style="font-size:10px;color:{SILVER};">{pct_tot:.0f}%</span></div>')
+    # Total
+    tot_qtd_g  = sum(p["qtd"]  for p in p_grupo)
+    tot_prev_g = sum(p["prev"] for p in p_grupo)
+    tot_val_g  = sum(p["val"]  for p in p_grupo)
+    tot_real_g = sum(p["real"] for p in p_grupo)
+    pct_tot    = tot_val_g / tot_prev_g * 100 if tot_prev_g > 0 else 0
     rows_p += f"""<tr class="tr-tot">
       <td style="font-size:11px;">TOTAL</td>
       <td style="text-align:center;font-size:11px;">{tot_qtd_g}</td>
       <td style="text-align:right;font-size:11px;">{fmt_mi(tot_prev_g)}</td>
       <td style="text-align:right;font-size:11px;color:{TEAL};">{fmt_mi(tot_val_g)}</td>
-      <td style="text-align:right;font-size:11px;color:{GREEN};">{fmt_mi(tot_real_est)}</td>
-      <td>{bar_t}</td>
+      <td style="text-align:right;font-size:11px;color:{GREEN};">{fmt_mi(tot_real_g)}</td>
+      <td>{bar_progress(pct_tot)}</td>
     </tr>"""
-    st.markdown(th("Pilar","Qtd","Previsto","Validado","Real DRE (est.)","Val/Prev") +
+    st.markdown(th("Pilar","Qtd","Previsto","Validado","Real (Acum.)","Val/Prev") +
                 rows_p + "</tbody></table>", unsafe_allow_html=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
