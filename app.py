@@ -58,95 +58,114 @@ st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 html,body,[class*="css"]{{font-family:'Inter',sans-serif;}}
-.block-container{{padding-top:0!important;padding-bottom:1rem;max-width:1440px;}}
+.block-container{{padding-top:0!important;padding-bottom:2rem;max-width:1440px;}}
 
-/* HEADER */
-.dh{{background:{NAVY};padding:16px 28px;border-radius:0 0 8px 8px;
-     display:flex;align-items:center;gap:16px;margin-bottom:18px;}}
-.dh img{{height:42px;border-radius:4px;}}
-.dh-t h1{{color:white;font-size:19px;font-weight:700;margin:0;}}
-.dh-t p{{color:{SILVER};font-size:11px;margin:2px 0 0;}}
+/* ── HEADER ── */
+.dh{{background:linear-gradient(135deg,{NAVY} 0%,#243B55 100%);
+     padding:18px 32px;border-radius:0 0 12px 12px;
+     display:flex;align-items:center;gap:18px;margin-bottom:20px;
+     box-shadow:0 2px 12px rgba(28,43,74,.18);}}
+.dh img{{height:44px;border-radius:6px;}}
+.dh-t h1{{color:white;font-size:20px;font-weight:700;margin:0;letter-spacing:-.2px;}}
+.dh-t p{{color:rgba(255,255,255,.55);font-size:11px;margin:2px 0 0;}}
 .dh-b{{margin-left:auto;background:{RED};color:white;font-size:11px;
-       font-weight:600;padding:4px 14px;border-radius:20px;white-space:nowrap;}}
+       font-weight:600;padding:5px 14px;border-radius:20px;white-space:nowrap;
+       letter-spacing:.3px;}}
 
-/* KPI */
-.kpi-wrap{{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px;}}
-.kpi-card{{background:white;border-radius:10px;padding:16px 18px;
-           border-left:4px solid {NAVY};box-shadow:0 1px 5px rgba(28,43,74,.08);}}
+/* ── KPI CARDS ── */
+.kpi-wrap{{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px;}}
+.kpi-card{{background:white;border-radius:12px;padding:18px 20px;
+           border-left:4px solid {NAVY};
+           box-shadow:0 1px 4px rgba(28,43,74,.06),0 4px 16px rgba(28,43,74,.04);
+           transition:box-shadow .2s;}}
+.kpi-card:hover{{box-shadow:0 2px 8px rgba(28,43,74,.1),0 8px 24px rgba(28,43,74,.06);}}
 .kpi-card.cr{{border-left-color:{RED};}}
 .kpi-card.cg{{border-left-color:{GREEN};}}
 .kpi-card.ca{{border-left-color:{AMBER};}}
 .kpi-card.cs{{border-left-color:{SILVER};}}
 .kpi-l{{font-size:9px;font-weight:600;color:{SILVER};text-transform:uppercase;
-        letter-spacing:.8px;margin-bottom:5px;}}
-.kpi-v{{font-size:23px;font-weight:700;color:{NAVY};line-height:1.1;margin-bottom:3px;}}
+        letter-spacing:.9px;margin-bottom:6px;}}
+.kpi-v{{font-size:24px;font-weight:700;color:{NAVY};line-height:1.1;margin-bottom:3px;}}
 .kpi-s{{font-size:11px;color:#555;margin-bottom:2px;}}
 .kpi-d{{font-size:10px;color:{SILVER};}}
 
-/* SECTION */
-.sc{{background:white;border-radius:10px;padding:18px 20px;
-     box-shadow:0 1px 5px rgba(28,43,74,.07);margin-bottom:14px;}}
+/* ── SECTION CARD ── */
+.sc{{background:white;border-radius:12px;padding:20px 22px;
+     box-shadow:0 1px 4px rgba(28,43,74,.06),0 4px 16px rgba(28,43,74,.04);
+     margin-bottom:16px;}}
 .st{{font-size:11px;font-weight:700;color:{NAVY};text-transform:uppercase;
-     letter-spacing:.6px;border-bottom:2px solid {RED};
-     padding-bottom:6px;margin-bottom:12px;display:inline-block;}}
+     letter-spacing:.7px;border-bottom:2px solid {RED};
+     padding-bottom:7px;margin-bottom:14px;display:inline-block;}}
 
-/* NOTA */
-.nota{{background:#FFF8E1;border-left:3px solid {AMBER};border-radius:4px;
-       padding:10px 14px;font-size:11px;color:#444;line-height:1.6;margin:14px 0;}}
+/* ── NOTA ── */
+.nota{{background:#FFFBF0;border-left:3px solid {AMBER};border-radius:6px;
+       padding:11px 16px;font-size:11px;color:#444;line-height:1.7;margin:14px 0;}}
 
-/* TABELA */
+/* ── TABELA ── */
 .dt{{width:100%;border-collapse:collapse;font-size:12px;}}
 .dt thead tr{{background:{NAVY};}}
-.dt thead th{{color:white;padding:9px 11px;text-align:left;font-weight:600;
+.dt thead th{{color:white;padding:10px 12px;text-align:left;font-weight:600;
               font-size:11px;white-space:nowrap;}}
+.dt thead th:first-child{{border-radius:6px 0 0 0;}}
+.dt thead th:last-child{{border-radius:0 6px 0 0;}}
 .dt tbody tr:nth-child(even){{background:#FAFBFC;}}
-.dt tbody tr:hover{{background:{LIGHT};}}
-.dt tbody td{{padding:7px 11px;border-bottom:1px solid #EEF0F3;vertical-align:middle;}}
-.dt tbody tr.tr-tot td{{background:{LIGHT};font-weight:700;border-top:2px solid {NAVY};border-bottom:none;}}
+.dt tbody tr:hover{{background:#F0F4FA;transition:background .1s;}}
+.dt tbody td{{padding:8px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle;}}
+.dt tbody tr.tr-tot td{{background:{LIGHT};font-weight:700;
+                         border-top:2px solid {NAVY};border-bottom:none;}}
 
-/* MACRO ROW */
+/* ── MACRO TABLE ── */
 .mct{{width:100%;border-collapse:collapse;font-size:12px;}}
-.mct td{{padding:9px 11px;border-bottom:1px solid #EEF0F3;vertical-align:middle;}}
-.mct tr:hover{{background:{LIGHT};}}
-.mch{{background:{NAVY};}}
-.mch th{{color:white;padding:9px 11px;font-weight:600;font-size:11px;
+.mct td{{padding:10px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle;}}
+.mct tr:hover{{background:#F7F9FC;}}
+.mch th{{color:white;padding:10px 12px;font-weight:600;font-size:11px;
          text-align:left;white-space:nowrap;}}
 .mc-tot td{{background:{LIGHT};font-weight:700;border-top:2px solid {NAVY};}}
 
-/* PROGRESS */
-.pb{{display:flex;align-items:center;gap:7px;}}
+/* ── PROGRESS ── */
+.pb{{display:flex;align-items:center;gap:8px;}}
 .pb-bg{{height:7px;background:#E2E8F0;border-radius:4px;overflow:hidden;display:inline-block;}}
 .pb-f{{height:100%;border-radius:4px;}}
 
-/* BADGES */
-.bdg{{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;}}
-.bg{{background:#E8F5E9;color:{GREEN};}}
+/* ── BADGES ── */
+.bdg{{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;}}
+.bg{{background:#E6F4EC;color:{GREEN};}}
 .ba{{background:#FFF3E0;color:{AMBER};}}
-.br{{background:#FFEBEE;color:{RED};}}
-.bk{{background:#F0F0F0;color:#666;}}
+.br{{background:#FDECEA;color:{RED};}}
+.bk{{background:#F2F3F5;color:#555;}}
 .bn{{background:#E8EDF5;color:{NAVY};}}
 
-/* IMPEDIMENTO */
-.imp{{background:#FFF3E0;border-left:3px solid {AMBER};border-radius:4px;
-      padding:4px 8px;font-size:10px;color:#555;margin-top:2px;line-height:1.4;}}
+/* ── IMPEDIMENTO ── */
+.imp{{background:#FFF8E1;border-left:3px solid {AMBER};border-radius:4px;
+      padding:3px 7px;font-size:10px;color:#555;margin-top:3px;line-height:1.5;}}
 
-/* SECTION TOGGLE — botão +/- pequeno e discreto */
-.toggle-btn{{
-  font-size:10px;font-weight:600;color:#8A9BB0;
-  background:transparent;border:1px solid #E2E8F0;
-  border-radius:50%;width:24px;height:24px;
-  padding:0;display:inline-flex;align-items:center;justify-content:center;
+/* ── SECTION TOGGLE — botão + / - discreto ── */
+.toggle-btn{{font-size:14px;color:{SILVER};background:transparent;
+             border:1px solid #DDE2EA;border-radius:50%;width:26px;height:26px;
+             padding:0;display:inline-flex;align-items:center;justify-content:center;}}
+/* Override Streamlit default button inside toggle col */
+[data-testid="stColumn"]:last-child button[kind="secondary"]{{
+  font-size:16px!important;font-weight:300!important;
+  color:{SILVER}!important;background:transparent!important;
+  border:1px solid #DDE2EA!important;border-radius:50%!important;
+  width:28px!important;height:28px!important;
+  padding:0!important;min-width:unset!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  margin-top:2px;
+}}
+[data-testid="stColumn"]:last-child button[kind="secondary"]:hover{{
+  border-color:{NAVY}!important;color:{NAVY}!important;
 }}
 
-/* LOGIN */
+/* ── LOGIN ── */
 .lw{{max-width:360px;margin:80px auto;padding:40px;background:white;
-     border-radius:12px;box-shadow:0 4px 24px rgba(28,43,74,.12);text-align:center;}}
+     border-radius:14px;box-shadow:0 8px 32px rgba(28,43,74,.14);text-align:center;}}
 
 #MainMenu{{visibility:hidden;}}footer{{visibility:hidden;}}
 .stDeployButton{{display:none;}}header[data-testid="stHeader"]{{display:none;}}
 div[data-testid="stExpander"]>div:first-child{{
   background:{LIGHT}!important;border:1px solid #E2E8F0!important;
-  border-radius:8px!important;padding:2px 8px!important;}}
+  border-radius:8px!important;padding:4px 10px!important;}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -762,6 +781,7 @@ meta=kpis["meta"]; portfolio=kpis["portfolio"]; prev2026=kpis["prev2026"]
 validado=kpis["validado"]; real=kpis["real"]; pct_ating=kpis["pct_ating"]
 
 # ── KPI CARDS ──────────────────────────────────────────────────────────────────
+# ── KPI CARDS ──────────────────────────────────────────────────────────────────
 cob = portfolio/meta*100 if meta>0 else 0
 pp  = prev2026/portfolio*100 if portfolio>0 else 0
 pv  = validado/prev2026*100 if prev2026>0 else 0
@@ -779,13 +799,10 @@ st.markdown(f"""<div class="kpi-wrap">
   {kpi("cg","Retorno Real (DRE)",fmt_mi(real),fmt_brl(real),f"{pct_ating*100:.1f}% de atingimento")}
 </div>""", unsafe_allow_html=True)
 
-# NOTA
 st.markdown(f"""<div class="nota">
-  <b>Metodologia — Tipos de Ganho:</b>&nbsp;
-  <b style="color:{GREEN};">✓ DRE</b>: BSW, Kaizen, Kaizen Ganho Recorrente, Redução de Custo, Você Resolve —
-  impacto direto e mensurável no DRE.&nbsp;
-  <b style="color:{SILVER};">↷ Não DRE</b>: Kaizen Custo Evitado, Kaizen Capital de Giro —
-  geram valor (MO realocada / melhora de caixa) mas não reduzem GGF de forma tangível no DRE.
+  <b>Metodologia:</b>&nbsp;
+  <b style="color:{GREEN};">✓ DRE</b>: BSW · Kaizen · Kaizen GR · Redução de Custo · Você Resolve — impacto direto e mensurável no DRE.&nbsp;
+  <b style="color:{SILVER};">↷ Não DRE</b>: Kaizen Custo Evitado · Kaizen Capital de Giro — geram valor operacional mas não reduzem GGF no DRE.
 </div>""", unsafe_allow_html=True)
 
 # ── EVOLUÇÃO ───────────────────────────────────────────────────────────────────
@@ -794,85 +811,77 @@ is_ev = section_open("evolucao", "Evolução Mensal — Acumulado Previsto vs Re
 if is_ev:
     series_all = ["Acumulado Previsto","Acumulado Real","Projeção da Meta","Previsto Mensal","Real Mensal"]
     sel = st.multiselect("Séries:", series_all, default=series_all[:3], key="ev_sel")
-    if sel: st.plotly_chart(chart_evolucao(ev,sel), use_container_width=True, config={"displayModeBar":False})
+    if sel:
+        st.plotly_chart(chart_evolucao(ev,sel), use_container_width=True, config={"displayModeBar":False})
 st.markdown('</div>', unsafe_allow_html=True)
 
-# ── FUNIL + GAUGE ──────────────────────────────────────────────────────────────
-cfu, cga = st.columns([3,2])
+# ── FUNIL + GAUGE — botão único para o par ─────────────────────────────────────
+is_fg = paired_section_open("funil_gauge",
+                             "Funil de Conversão — Portfólio → DRE",
+                             "Atingimento da Meta")
+cfu, cga = st.columns([3, 2])
 with cfu:
-    st.markdown('<div class="sc">', unsafe_allow_html=True)
-    is_funil = section_open("funil", "Funil de Conversão — Portfólio → DRE")
-    if is_funil:
+    st.markdown('<div class="sc" style="min-height:60px;">', unsafe_allow_html=True)
+    if is_fg:
         st.markdown(f'<p style="font-size:11px;color:{SILVER};margin-bottom:8px;">Quanto do portfólio mapeado converte em resultado no DRE?</p>', unsafe_allow_html=True)
         st.plotly_chart(chart_funnel(kpis), use_container_width=True, config={"displayModeBar":False})
     st.markdown('</div>', unsafe_allow_html=True)
-
 with cga:
-    st.markdown('<div class="sc">', unsafe_allow_html=True)
-    is_gauge = section_open("gauge", "Atingimento da Meta")
-    if is_gauge:
+    st.markdown('<div class="sc" style="min-height:60px;">', unsafe_allow_html=True)
+    if is_fg:
         st.plotly_chart(chart_gauge(pct_ating), use_container_width=True, config={"displayModeBar":False})
-    if is_gauge:
-        gap_val = meta-real
-        st.markdown(f"""<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
-      <div style="background:{LIGHT};border-radius:6px;padding:10px;text-align:center;">
-        <div style="font-size:9px;font-weight:600;color:{SILVER};text-transform:uppercase;letter-spacing:.6px;">GAP para Meta</div>
-        <div style="font-size:15px;font-weight:700;color:{RED};">{fmt_mi(gap_val)}</div>
-      </div>
-      <div style="background:{LIGHT};border-radius:6px;padding:10px;text-align:center;">
-        <div style="font-size:9px;font-weight:600;color:{SILVER};text-transform:uppercase;letter-spacing:.6px;">Validado / Meta</div>
-        <div style="font-size:15px;font-weight:700;color:{NAVY};">{validado/meta*100:.1f}%</div>
-      </div>
-    </div>""", unsafe_allow_html=True)
+        gap_val = meta - real
+        st.markdown(f"""<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
+          <div style="background:{LIGHT};border-radius:8px;padding:12px;text-align:center;">
+            <div style="font-size:9px;font-weight:600;color:{SILVER};text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">GAP para Meta</div>
+            <div style="font-size:16px;font-weight:700;color:{RED};">{fmt_mi(gap_val)}</div>
+          </div>
+          <div style="background:{LIGHT};border-radius:8px;padding:12px;text-align:center;">
+            <div style="font-size:9px;font-weight:600;color:{SILVER};text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Validado / Meta</div>
+            <div style="font-size:16px;font-weight:700;color:{NAVY};">{validado/meta*100:.1f}%</div>
+          </div>
+        </div>""", unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ── DONUTS ──────────────────────────────────────────────────────────────────────
-cd1,cd2 = st.columns(2)
+# ── DONUTS — botão único para o par ────────────────────────────────────────────
+is_dn = paired_section_open("donuts",
+                             "Representatividade — Plantas",
+                             "Representatividade — Áreas Funcionais")
+cd1, cd2 = st.columns(2)
 with cd1:
-    st.markdown('<div class="sc">', unsafe_allow_html=True)
-    is_dp = section_open("donut_plantas", "Representatividade — Plantas Industriais")
-    if is_dp:
+    st.markdown('<div class="sc" style="min-height:60px;">', unsafe_allow_html=True)
+    if is_dn:
         st.plotly_chart(chart_donut([p["nome"] for p in plantas],[p["meta"] for p in plantas],PAL),
-                        use_container_width=True,config={"displayModeBar":False})
+                        use_container_width=True, config={"displayModeBar":False})
     st.markdown('</div>', unsafe_allow_html=True)
 with cd2:
-    st.markdown('<div class="sc">', unsafe_allow_html=True)
-    is_da = section_open("donut_areas", "Representatividade — Áreas Funcionais")
-    if is_da:
+    st.markdown('<div class="sc" style="min-height:60px;">', unsafe_allow_html=True)
+    if is_dn:
         st.plotly_chart(chart_donut([a["nome"] for a in areas],[a["meta"] for a in areas],
                                     [NAVY,GREEN,"#20C997"]),
-                        use_container_width=True,config={"displayModeBar":False})
+                        use_container_width=True, config={"displayModeBar":False})
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ── PILARES ────────────────────────────────────────────────────────────────────
 st.markdown('<div class="sc">', unsafe_allow_html=True)
 is_pil = section_open("pilares", "Distribuição por Tipo de Iniciativa — Grupo")
 
-# --- Gráfico gerencial com botões toggle por série ---
+# Gráfico gerencial com toggles
 def chart_pilares_gerencial(pilares_global, real_total, show_prev, show_val, show_real):
-    """Barras horizontais com séries controláveis por toggle."""
     labels   = [p["nome"] for p in pilares_global]
     previsto = [p["prev"] for p in pilares_global]
-    validado = [p["val"]  for p in pilares_global]
-    tv = sum(validado)
-    real_est = [v / tv * real_total if tv > 0 else 0 for v in validado]
-
+    validado_l = [p["val"] for p in pilares_global]
+    tv = sum(validado_l)
+    real_est = [v/tv*real_total if tv>0 else 0 for v in validado_l]
     series = []
-    if show_prev:
-        series.append(dict(name="Previsto", x=previsto, color="#C8D8EE"))
-    if show_val:
-        series.append(dict(name="Validado", x=validado, color=NAVY))
-    if show_real:
-        series.append(dict(name="Real DRE", x=real_est,  color=GREEN))
-
-    if not series:
-        return None  # nada selecionado
-
+    if show_prev: series.append(dict(name="Previsto",  x=previsto,    color="#C8D8EE"))
+    if show_val:  series.append(dict(name="Validado",  x=validado_l,  color=NAVY))
+    if show_real: series.append(dict(name="Real DRE",  x=real_est,    color=GREEN))
+    if not series: return None
     fig = go.Figure()
     for s in series:
         fig.add_trace(go.Bar(
-            name=s["name"], y=labels, x=s["x"],
-            orientation="h",
+            name=s["name"], y=labels, x=s["x"], orientation="h",
             marker=dict(color=s["color"], line=dict(width=0)),
             text=[fmt_mi(v) for v in s["x"]],
             textposition="outside", textfont=dict(size=10),
@@ -880,117 +889,121 @@ def chart_pilares_gerencial(pilares_global, real_total, show_prev, show_val, sho
         ))
     fig.update_layout(
         barmode="group",
-        xaxis=dict(tickformat=",.0f", showgrid=True, gridcolor="#F0F4F8",
-                   title="R$", tickprefix="R$ "),
+        xaxis=dict(tickformat=",.0f", showgrid=True, gridcolor="#F0F4F8", tickprefix="R$ "),
         yaxis=dict(autorange="reversed", tickfont=dict(size=11)),
         legend=dict(orientation="h", y=1.05, x=0.5, xanchor="center", font=dict(size=11)),
-        margin=dict(l=130, r=120, t=40, b=30),
-        height=max(220, len(labels) * (48 if len(series)==1 else 55)),
+        margin=dict(l=140, r=110, t=40, b=20),
+        height=max(200, len(labels)*52),
         paper_bgcolor="white", plot_bgcolor="white",
-        bargap=0.3, bargroupgap=0.1,
-        font=dict(family="Inter"),
+        bargap=0.28, bargroupgap=0.08, font=dict(family="Inter"),
     )
     return fig
+
+# build_pilares_grupo — agrupa projetos reais com subtipos Kaizen
+@st.cache_data(show_spinner=False)
+def build_pilares_grupo(fb_key):
+    from collections import defaultdict
+    qtd_g=defaultdict(int); prev_g=defaultdict(float)
+    val_g=defaultdict(float); real_g=defaultdict(float); dre_g={}
+    for sh in ["Diadema","Ferraz","São Leopoldo","Jarinu","Anchieta"]:
+        for p in get_proj_planta(D, sh):
+            k=PILARES_EXIBE.get(p["tipo"],p["tipo"])
+            qtd_g[k]+=1; prev_g[k]+=p["previsto"]; val_g[k]+=p["val_saving"]
+            real_g[k]+=p["real_ano"]; dre_g[k]=is_dre(p["tipo"])
+    for p in get_proj_compras(D):
+        k=PILARES_EXIBE.get(p["tipo"],p["tipo"])
+        qtd_g[k]+=1; prev_g[k]+=p["previsto"]; val_g[k]+=p["val_saving"]
+        real_g[k]+=p["real_ano"]; dre_g[k]=is_dre(p["tipo"])
+    for p in get_proj_vendas(D):
+        k=PILARES_EXIBE.get(p["tipo"],p["tipo"])
+        qtd_g[k]+=1; prev_g[k]+=p["previsto"]; val_g[k]+=p["val_saving"]
+        real_g[k]+=p["real_ano"]; dre_g[k]=is_dre(p["tipo"])
+    ORDER=["BSW","Kaizen","Kaizen - Ganho Recorrente","Kaizen - Custo Evitado",
+           "Kaizen - Capital de Giro","Redução de Custo","Você Resolve",
+           "Meta Executiva","Estratégia Comercial"]
+    res=[]
+    for k in ORDER:
+        if k in qtd_g:
+            res.append(dict(nome=k,qtd=qtd_g[k],prev=prev_g[k],
+                            val=val_g[k],real=real_g[k],dre=dre_g.get(k,True)))
+    for k in sorted(qtd_g):
+        if k not in ORDER:
+            res.append(dict(nome=k,qtd=qtd_g[k],prev=prev_g[k],
+                            val=val_g[k],real=real_g[k],dre=dre_g.get(k,True)))
+    return res
 
 if is_pil:
     cp1, cp2 = st.columns([3, 2])
     with cp1:
-        # ── Botões toggle para as 3 séries ──
-        t1, t2, t3, _ = st.columns([1,1,1,4])
-        with t1:
-            show_prev = st.toggle("Previsto",  value=True,  key="tog_prev")
-        with t2:
-            show_val  = st.toggle("Validado",  value=True,  key="tog_val")
-        with t3:
-            show_real = st.toggle("Real DRE",  value=True,  key="tog_real")
-
+        t1, t2, t3, _ = st.columns([1,1,1,3])
+        with t1: show_prev = st.toggle("Previsto", value=True,  key="tog_prev")
+        with t2: show_val  = st.toggle("Validado", value=True,  key="tog_val")
+        with t3: show_real = st.toggle("Real DRE", value=True,  key="tog_real")
         fig_pil = chart_pilares_gerencial(p_glob, real, show_prev, show_val, show_real)
         if fig_pil:
-            st.plotly_chart(fig_pil, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(fig_pil, use_container_width=True, config={"displayModeBar":False})
         else:
-            st.info("Selecione ao menos uma série para exibir o gráfico.")
-
+            st.info("Selecione ao menos uma série.")
     with cp2:
-        st.markdown('<span class="st">Resumo por Pilar — Grupo</span>', unsafe_allow_html=True)
-
-    # Agrupa TODOS os projetos de plantas + áreas para ter subtipos de Kaizen corretos
-    @st.cache_data(show_spinner=False)
-    def build_pilares_grupo(fb_key):
-        """Constrói resumo de pilares do grupo com todos os subtipos de Kaizen."""
-        from collections import defaultdict
-        qtd_g  = defaultdict(int)
-        prev_g = defaultdict(float)
-        val_g  = defaultdict(float)   # saving validado (col13)
-        real_g = defaultdict(float)   # real acumulado (Total Ano Real)
-        dre_g  = {}
-        sheets_plantas = ["Diadema","Ferraz","São Leopoldo","Jarinu","Anchieta"]
-        for sh in sheets_plantas:
-            for p in get_proj_planta(D, sh):
-                nome = PILARES_EXIBE.get(p["tipo"], p["tipo"])
-                qtd_g[nome]  += 1
-                prev_g[nome] += p["previsto"]
-                val_g[nome]  += p["val_saving"]
-                real_g[nome] += p["real_ano"]
-                dre_g[nome]   = is_dre(p["tipo"])
-        for p in get_proj_compras(D):
-            nome = PILARES_EXIBE.get(p["tipo"], p["tipo"])
-            qtd_g[nome]  += 1
-            prev_g[nome] += p["previsto"]
-            val_g[nome]  += p["val_saving"]
-            real_g[nome] += p["real_ano"]
-            dre_g[nome]   = is_dre(p["tipo"])
-        for p in get_proj_vendas(D):
-            nome = PILARES_EXIBE.get(p["tipo"], p["tipo"])
-            qtd_g[nome]  += 1
-            prev_g[nome] += p["previsto"]
-            val_g[nome]  += p["val_saving"]
-            real_g[nome] += p["real_ano"]
-            dre_g[nome]   = is_dre(p["tipo"])
-        ORDER = ["BSW","Kaizen","Kaizen - Ganho Recorrente",
-                 "Kaizen - Custo Evitado","Kaizen - Capital de Giro",
-                 "Redução de Custo","Você Resolve","Meta Executiva","Estratégia Comercial"]
-        res = []
-        for k in ORDER:
-            if k in qtd_g:
-                res.append(dict(nome=k, qtd=qtd_g[k], prev=prev_g[k],
-                                val=val_g[k], real=real_g[k], dre=dre_g.get(k, True)))
-        for k in sorted(qtd_g):
-            if k not in ORDER:
-                res.append(dict(nome=k, qtd=qtd_g[k], prev=prev_g[k],
-                                val=val_g[k], real=real_g[k], dre=dre_g.get(k, True)))
-        return res
-
+        st.markdown(f'<p class="st" style="border-bottom-color:{RED};">Resumo por Pilar — Grupo</p>',
+                    unsafe_allow_html=True)
+        p_grupo = build_pilares_grupo(hash(fb))
+        rows_p = ""
+        for p in p_grupo:
+            dre_s = f"color:{GREEN};font-size:9px;font-weight:600;" if p["dre"] else f"color:{SILVER};font-size:9px;"
+            dre_t = "✓ DRE" if p["dre"] else "↷ N/DRE"
+            rows_p += f"""<tr>
+              <td style="font-size:11px;font-weight:600;">{p['nome']}<br>
+                <span style="{dre_s}">{dre_t}</span></td>
+              <td style="text-align:center;font-size:11px;font-weight:700;">{p['qtd']}</td>
+              <td style="text-align:right;font-size:11px;">{fmt_mi(p['prev'])}</td>
+              <td style="text-align:right;font-size:11px;color:{TEAL};font-weight:600;">{fmt_mi(p['val'])}</td>
+              <td style="text-align:right;font-size:11px;color:{GREEN};font-weight:600;">{fmt_mi(p['real'])}</td>
+            </tr>"""
+        tot_qtd_g=sum(p["qtd"] for p in p_grupo)
+        tot_prev_g=sum(p["prev"] for p in p_grupo)
+        tot_val_g=sum(p["val"] for p in p_grupo)
+        tot_real_g=sum(p["real"] for p in p_grupo)
+        rows_p += f"""<tr class="tr-tot">
+          <td style="font-size:11px;">TOTAL</td>
+          <td style="text-align:center;font-size:11px;">{tot_qtd_g}</td>
+          <td style="text-align:right;font-size:11px;">{fmt_mi(tot_prev_g)}</td>
+          <td style="text-align:right;font-size:11px;color:{TEAL};">{fmt_mi(tot_val_g)}</td>
+          <td style="text-align:right;font-size:11px;color:{GREEN};">{fmt_mi(tot_real_g)}</td>
+        </tr>"""
+        st.markdown(th("Pilar","Qtd","Previsto","Validado","Real Acum.")+rows_p+"</tbody></table>",
+                    unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PLANTAS INDUSTRIAIS — macro sempre visível + micro expandível
+# PLANTAS INDUSTRIAIS
 # ═══════════════════════════════════════════════════════════════════════════════
 st.markdown('<div class="sc">', unsafe_allow_html=True)
-st.markdown('<span class="st">Plantas Industriais — Performance Consolidada</span>', unsafe_allow_html=True)
+st.markdown(f'<span class="st">Plantas Industriais — Performance Consolidada</span>',
+            unsafe_allow_html=True)
 st.markdown(mc_header(), unsafe_allow_html=True)
 
 for p in plantas:
     st.markdown(mc_row(p), unsafe_allow_html=True)
     with st.expander(f"＋  Ver projetos de {p['nome']}", expanded=False):
-        with st.spinner(f"Carregando projetos de {p['nome']}..."):
-            proj = get_proj_planta(D, p["sheet"])
+        proj = get_proj_planta(D, p["sheet"])
         n = len(proj)
         if proj:
             status_opts = sorted({pp["status"] for pp in proj if pp["status"]})
-            sf = st.multiselect("Filtrar por Status:",options=status_opts,default=[],
-                                placeholder="Todos os status",key=f"fst_{p['nome']}")
+            sf = st.multiselect("Status:", options=status_opts, default=[],
+                                placeholder="Todos", key=f"fst_{p['nome']}")
             proj_v = [pp for pp in proj if pp["status"] in sf] if sf else proj
-            col_tab, col_pil = st.columns([3,1])
+            st.markdown(f"<p style='font-size:11px;color:{SILVER};margin:6px 0;'>"
+                        f"<b>{len(proj_v)}</b> de {n} projetos</p>", unsafe_allow_html=True)
+            col_tab, col_pil = st.columns([3, 1])
             with col_tab:
-                st.markdown(f"<p style='font-size:11px;color:{SILVER};margin-bottom:6px;'>"
-                            f"<b>{len(proj_v)}</b> de {n} projetos em {p['nome']}</p>", unsafe_allow_html=True)
                 st.markdown(proj_table_html(proj_v), unsafe_allow_html=True)
             with col_pil:
-                st.markdown(f"<p style='font-size:10px;font-weight:700;color:{NAVY};'>"
-                            f"Pilares — {p['nome']}</p>", unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size:10px;font-weight:700;color:{NAVY};">Pilares</p>',
+                            unsafe_allow_html=True)
                 st.markdown(pilar_resumo_html(proj), unsafe_allow_html=True)
         else:
-            st.markdown("<p style='color:#999;font-size:12px;'>Sem projetos encontrados.</p>",
+            st.markdown("<p style='color:#999;font-size:12px;'>Sem projetos.</p>",
                         unsafe_allow_html=True)
 
 st.markdown(mc_total(plantas), unsafe_allow_html=True)
@@ -1000,7 +1013,8 @@ st.markdown('</div>', unsafe_allow_html=True)
 # ÁREAS FUNCIONAIS
 # ═══════════════════════════════════════════════════════════════════════════════
 st.markdown('<div class="sc">', unsafe_allow_html=True)
-st.markdown('<span class="st">Áreas Funcionais — Performance Consolidada</span>', unsafe_allow_html=True)
+st.markdown(f'<span class="st">Áreas Funcionais — Performance Consolidada</span>',
+            unsafe_allow_html=True)
 st.markdown(mc_header(), unsafe_allow_html=True)
 
 area_fn = {"Compras": get_proj_compras, "Vendas": get_proj_vendas}
@@ -1013,20 +1027,20 @@ for a in areas:
         n = len(proj)
         if proj:
             status_opts_a = sorted({pp["status"] for pp in proj if pp["status"]})
-            sf_a = st.multiselect("Filtrar por Status:",options=status_opts_a,default=[],
-                                  placeholder="Todos os status",key=f"fst_{a['nome']}")
+            sf_a = st.multiselect("Status:", options=status_opts_a, default=[],
+                                  placeholder="Todos", key=f"fst_{a['nome']}")
             proj_va = [pp for pp in proj if pp["status"] in sf_a] if sf_a else proj
-            col_tab, col_pil = st.columns([3,1])
+            st.markdown(f"<p style='font-size:11px;color:{SILVER};margin:6px 0;'>"
+                        f"<b>{len(proj_va)}</b> de {n} projetos</p>", unsafe_allow_html=True)
+            col_tab, col_pil = st.columns([3, 1])
             with col_tab:
-                st.markdown(f"<p style='font-size:11px;color:{SILVER};margin-bottom:6px;'>"
-                            f"<b>{len(proj_va)}</b> de {n} projetos em {a['nome']}</p>", unsafe_allow_html=True)
                 st.markdown(proj_table_html(proj_va), unsafe_allow_html=True)
             with col_pil:
-                st.markdown(f"<p style='font-size:10px;font-weight:700;color:{NAVY};'>"
-                            f"Pilares — {a['nome']}</p>", unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size:10px;font-weight:700;color:{NAVY};">Pilares</p>',
+                            unsafe_allow_html=True)
                 st.markdown(pilar_resumo_html(proj), unsafe_allow_html=True)
         else:
-            st.markdown("<p style='color:#999;font-size:12px;'>Sem projetos encontrados.</p>",
+            st.markdown("<p style='color:#999;font-size:12px;'>Sem projetos.</p>",
                         unsafe_allow_html=True)
 
 st.markdown(mc_total(areas), unsafe_allow_html=True)
@@ -1038,12 +1052,12 @@ is_class = section_open("classificacao","Classificação de Ganhos — Impacto n
 if is_class:
     cc1,cc2,cc3,cc4,cc5 = st.columns(5)
     ganhos = [
-    (cc1,NAVY,   "🔵","BSW","Benchmark de peso bruto. Redução de MP — impacto direto e mensurável no DRE.","✓ DRE",GREEN),
-    (cc2,GREEN,  "🔥","Redução de Custo","Elimina custo direto na operação. Reduz GGF no DRE de forma tangível.","✓ DRE",GREEN),
-    (cc3,AMBER,  "⚡","Kaizen / Ganho Recorrente","Produtividade recorrente apurada. Entra no DRE quando validado por Custos.","✓ DRE",GREEN),
-    (cc4,"#512DA8","↷","Kaizen – Custo Evitado","MO realocada internamente — não reduz GGF no DRE. Gera valor operacional.","↷ Não DRE",SILVER),
-    (cc5,"#0D47A1","🏦","Kaizen – Capital de Giro","Reduz estoque / melhora fluxo de caixa. Impacto no balanço, não no DRE.","↷ Não DRE",SILVER),
-]
+        (cc1,NAVY,   "🔵","BSW","Benchmark de peso bruto. Redução de MP — impacto direto no DRE.","✓ DRE",GREEN),
+        (cc2,GREEN,  "🔥","Redução de Custo","Elimina custo direto na operação. Reduz GGF no DRE.","✓ DRE",GREEN),
+        (cc3,AMBER,  "⚡","Kaizen / GR","Produtividade recorrente apurada. Entra no DRE quando validado.","✓ DRE",GREEN),
+        (cc4,"#512DA8","↷","C. Evitado","MO realocada internamente — não reduz GGF no DRE.","↷ Não DRE",SILVER),
+        (cc5,"#0D47A1","🏦","Cap. de Giro","Reduz estoque / melhora caixa. Impacto no balanço, não no DRE.","↷ Não DRE",SILVER),
+    ]
     for col,cor,icon,titulo,texto,dre,dcor in ganhos:
         with col:
             st.markdown(f"""<div style="border:2px solid {cor};border-radius:8px;padding:12px 14px;height:100%;">
@@ -1068,36 +1082,37 @@ if is_rank:
         n_lin = st.number_input("Linhas:", 5, 200, 25, 5)
     pf = ranking
     if f_uni: pf = [r for r in pf if r["uni"] in f_uni]
-    if f_st:  pf = [r for r in pf if r["status"] in f_st]
+    if f_st:  pf  = [r for r in pf if r["status"] in f_st]
     st.markdown(f"<p style='font-size:11px;color:{SILVER};margin-bottom:6px;'>"
                 f"Exibindo {min(int(n_lin),len(pf))} de {len(pf)} projetos</p>",
                 unsafe_allow_html=True)
-rows_rk = "".join(f"""<tr>
-  <td style="text-align:center;color:{SILVER};font-weight:700;font-size:11px;">{r['pos']}</td>
-  <td style="font-weight:600;font-size:11px;">{r['uni']}</td>
-  <td style="font-size:11px;">{r['nome']}</td>
-  <td>{bdg_st(r['status'])}</td>
-  <td>{bdg_custos(r['custos'])}</td>
-  <td style="text-align:right;font-size:11px;">{fmt_brl(r['prev26'])}</td>
-  <td style="text-align:right;font-size:11px;">{fmt_brl(r['prev_mo'])}</td>
-  <td style="text-align:right;font-weight:700;color:{GREEN};font-size:11px;">{fmt_brl(r['real'])}</td>
-</tr>""" for r in pf[:int(n_lin)])
-st.markdown(th("#","Unidade","Projeto","Status","Custos",
-               "Previsto 2026","Previsto Momento","Real DRE")+rows_rk+"</tbody></table>",
-            unsafe_allow_html=True)
+    rows_rk = "".join(f"""<tr>
+      <td style="text-align:center;color:{SILVER};font-weight:700;font-size:11px;">{r['pos']}</td>
+      <td style="font-weight:600;font-size:11px;">{r['uni']}</td>
+      <td style="font-size:11px;">{r['nome']}</td>
+      <td>{bdg_st(r['status'])}</td>
+      <td>{bdg_custos(r['custos'])}</td>
+      <td style="text-align:right;font-size:11px;">{fmt_brl(r['prev26'])}</td>
+      <td style="text-align:right;font-size:11px;">{fmt_brl(r['prev_mo'])}</td>
+      <td style="text-align:right;font-weight:700;color:{GREEN};font-size:11px;">{fmt_brl(r['real'])}</td>
+    </tr>""" for r in pf[:int(n_lin)])
+    st.markdown(th("#","Unidade","Projeto","Status","Custos",
+                   "Previsto 2026","Previsto Momento","Real DRE")+rows_rk+"</tbody></table>",
+                unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── GAP ────────────────────────────────────────────────────────────────────────
 st.markdown('<div class="sc">', unsafe_allow_html=True)
-is_gap = section_open("gap","GAP — Projetos Aguardando Validação de Custos",default_open=False,accent_color=AMBER)
+is_gap = section_open("gap","GAP — Projetos Aguardando Validação de Custos",
+                      default_open=False, accent_color=AMBER)
 if is_gap:
-    st.markdown(f'<p style="font-size:11px;color:{SILVER};margin-bottom:10px;">Projetos com valor projetado mas ainda sem validação do depto de Custos.</p>',
+    st.markdown(f'<p style="font-size:11px;color:{SILVER};margin-bottom:10px;">'
+                f'Projetos com valor projetado mas ainda sem validação do depto de Custos.</p>',
                 unsafe_allow_html=True)
     gap = [r for r in ranking if r["custos"] not in ("OK","Não Ok","NOK","Não OK") and r["prev26"]>0]
     by_uni = {}
     for r in gap: by_uni[r["uni"]] = by_uni.get(r["uni"],0)+r["prev26"]
     tot_gap = sum(by_uni.values()) if by_uni else 0
-
     rows_gap = "".join(f"""<tr>
       <td style="font-weight:600;">{u}</td>
       <td style="text-align:right;color:{AMBER};font-weight:600;">{fmt_brl(v)}</td>
@@ -1116,7 +1131,7 @@ if is_gap:
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── FOOTER ─────────────────────────────────────────────────────────────────────
-st.markdown(f"""<div style="text-align:center;padding:14px 0;border-top:1px solid #EEF0F3;margin-top:4px;">
+st.markdown(f"""<div style="text-align:center;padding:16px 0;border-top:1px solid #EEF0F3;margin-top:8px;">
   <span style="font-size:11px;color:{SILVER};">
     Dashboard Executivo · Grupo Delga 2026 · Gestão Estratégica de Projetos e Redução de Custos
   </span>
