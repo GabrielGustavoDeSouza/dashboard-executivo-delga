@@ -598,23 +598,42 @@ def proj_table_html(projetos):
             + rows + "</tbody></table>")
 
 def pilar_resumo_html(projetos):
-    """Tabela de resumo de pilares local (por unidade/área) incluindo subtipos Kaizen."""
+    """Tabela de resumo de pilares local — compacta, sem quebra de palavra."""
     pilares = extract_pilares_local(projetos)
     if not pilares: return ""
+    ABREV = {
+        "Kaizen - Ganho Recorrente": "Kaizen GR",
+        "Kaizen - Custo Evitado":    "K. C. Evitado",
+        "Kaizen - Capital de Giro":  "K. Cap. Giro",
+        "Redução de Custo":          "Red. Custo",
+        "Estratégia Comercial":      "Est. Comercial",
+        "Meta Executiva":            "Meta Exec.",
+    }
     rows = ""
     for p in pilares:
-        dre_flag = (f'<span style="color:{GREEN};font-size:10px;font-weight:600;">✓ DRE</span>'
-                    if p["dre"] else
-                    f'<span style="color:{SILVER};font-size:10px;">↷ Não DRE</span>')
+        nome_abrev = ABREV.get(p["nome"], p["nome"])
+        dot_color = GREEN if p["dre"] else SILVER
+        dot = f'<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:{dot_color};margin-right:4px;vertical-align:middle;"></span>'
+        real_c = GREEN if p["real"] > 0 else SILVER
         rows += f"""<tr>
-          <td style="font-size:11px;">{p['nome']}</td>
-          <td style="text-align:center;font-size:11px;font-weight:600;">{p['qtd']}</td>
-          <td style="text-align:right;font-size:11px;">{fmt_mi(p['prev'])}</td>
-          <td style="text-align:right;font-size:11px;color:{GREEN};font-weight:600;">{fmt_mi(p['real'])}</td>
-          <td style="text-align:center;">{dre_flag}</td>
+          <td style="font-size:10px;white-space:nowrap;">{dot}<b>{nome_abrev}</b></td>
+          <td style="text-align:center;font-size:11px;font-weight:700;color:{NAVY};">{p['qtd']}</td>
+          <td style="text-align:right;font-size:10px;">{fmt_mi(p['prev'])}</td>
+          <td style="text-align:right;font-size:10px;color:{real_c};font-weight:600;">{fmt_mi(p['real'])}</td>
         </tr>"""
-    return (th("Pilar","Qtd","V.Previsto (Ano)","V.Real (Acum.)","DRE?")
-            + rows + "</tbody></table>")
+    tot_qtd  = sum(p["qtd"]  for p in pilares)
+    tot_prev = sum(p["prev"] for p in pilares)
+    tot_real = sum(p["real"] for p in pilares)
+    rows += f"""<tr class="tr-tot">
+      <td style="font-size:10px;">TOTAL</td>
+      <td style="text-align:center;font-size:11px;">{tot_qtd}</td>
+      <td style="text-align:right;font-size:10px;">{fmt_mi(tot_prev)}</td>
+      <td style="text-align:right;font-size:10px;color:{GREEN};">{fmt_mi(tot_real)}</td>
+    </tr>"""
+    legend = (f'<p style="font-size:9px;color:{SILVER};margin-top:5px;">'
+              f'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:{GREEN};margin-right:3px;vertical-align:middle;"></span>DRE&nbsp;&nbsp;'
+              f'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:{SILVER};margin-right:3px;vertical-align:middle;"></span>Não DRE</p>')
+    return (th("Pilar","Qtd","Previsto","Real Acum.") + rows + "</tbody></table>" + legend)
 
 # Cabeçalho macro-tabela
 MC_COLS = ["Unidade / Área","Meta 2026","Previsto Total",
@@ -776,24 +795,110 @@ with cd2:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ── PILARES ────────────────────────────────────────────────────────────────────
-cp1,cp2 = st.columns([3,2])
+st.markdown('<div class="sc">', unsafe_allow_html=True)
+st.markdown('<span class="st">Distribuição por Tipo de Iniciativa — Grupo</span>', unsafe_allow_html=True)
+
+# --- Gráfico gerencial de barras horizontais por pilar ---
+def chart_pilares_gerencial(pilares_global, real_total):
+    """Barras horizontais — Previsto / Validado / Real por pilar. Mais leitura gerencial."""
+    labels   = [p["nome"] for p in pilares_global]
+    previsto = [p["prev"] for p in pilares_global]
+    validado = [p["val"]  for p in pilares_global]
+    tv = sum(validado)
+    real_est = [v / tv * real_total if tv > 0 else 0 for v in validado]
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        name="Previsto", y=labels, x=previsto,
+        orientation="h", marker_color="#C8D8EE",
+        text=[fmt_mi(v) for v in previsto],
+        textposition="outside", textfont=dict(size=10),
+        hovertemplate="<b>%{y}</b><br>Previsto: R$ %{x:,.0f}<extra></extra>",
+    ))
+    fig.add_trace(go.Bar(
+        name="Validado", y=labels, x=validado,
+        orientation="h", marker_color=NAVY,
+        text=[fmt_mi(v) for v in validado],
+        textposition="outside", textfont=dict(size=10),
+        hovertemplate="<b>%{y}</b><br>Validado: R$ %{x:,.0f}<extra></extra>",
+    ))
+    fig.add_trace(go.Bar(
+        name="Real DRE", y=labels, x=real_est,
+        orientation="h", marker_color=GREEN,
+        text=[fmt_mi(v) for v in real_est],
+        textposition="outside", textfont=dict(size=10),
+        hovertemplate="<b>%{y}</b><br>Real est.: R$ %{x:,.0f}<extra></extra>",
+    ))
+    fig.update_layout(
+        barmode="group",
+        xaxis=dict(tickformat=",.0f", showgrid=True, gridcolor="#F0F4F8",
+                   title="R$", tickprefix="R$ "),
+        yaxis=dict(autorange="reversed", tickfont=dict(size=11)),
+        legend=dict(orientation="h", y=1.05, x=0.5, xanchor="center",
+                    font=dict(size=11)),
+        margin=dict(l=130, r=120, t=40, b=30),
+        height=max(220, len(labels) * 55),
+        paper_bgcolor="white", plot_bgcolor="white",
+        bargap=0.25, bargroupgap=0.08,
+        font=dict(family="Inter"),
+    )
+    return fig
+
+cp1, cp2 = st.columns([3, 2])
 with cp1:
-    st.markdown('<div class="sc">', unsafe_allow_html=True)
-    st.markdown('<span class="st">Distribuição por Tipo de Iniciativa — Grupo</span>', unsafe_allow_html=True)
-    st.plotly_chart(chart_pilares(p_glob,real), use_container_width=True,config={"displayModeBar":False})
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.plotly_chart(chart_pilares_gerencial(p_glob, real),
+                    use_container_width=True, config={"displayModeBar": False})
+
 with cp2:
-    st.markdown('<div class="sc">', unsafe_allow_html=True)
     st.markdown('<span class="st">Resumo por Pilar — Grupo</span>', unsafe_allow_html=True)
-    rows_p = "".join(f"""<tr>
-      <td style="font-size:11px;">{p['nome']}</td>
-      <td style="text-align:center;font-size:11px;font-weight:600;">{p['qtd']}</td>
-      <td style="text-align:right;font-size:11px;">{fmt_mi(p['prev'])}</td>
-      <td style="text-align:right;font-size:11px;color:{TEAL};">{fmt_mi(p['val'])}</td>
-    </tr>""" for p in p_glob)
-    st.markdown(th("Pilar","Qtd","Previsto","Validado")+rows_p+"</tbody></table>",
-                unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Totais globais
+    tot_qtd_g  = sum(p["qtd"]  for p in p_glob)
+    tot_prev_g = sum(p["prev"] for p in p_glob)
+    tot_val_g  = sum(p["val"]  for p in p_glob)
+    tv_g = tot_val_g
+    real_total_g = real
+    real_est_g = {p["nome"]: p["val"] / tv_g * real_total_g if tv_g > 0 else 0 for p in p_glob}
+
+    rows_p = ""
+    for p in p_glob:
+        re = real_est_g.get(p["nome"], 0)
+        pct_val = p["val"] / p["prev"] * 100 if p["prev"] > 0 else 0
+        # mini progress bar validado vs previsto
+        bar_w = min(pct_val, 100)
+        bar_color = GREEN if pct_val >= 60 else (AMBER if pct_val >= 30 else RED)
+        bar_html = (f'<div style="display:flex;align-items:center;gap:5px;">'
+                    f'<div style="width:50px;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden;">'
+                    f'<div style="width:{bar_w:.0f}%;height:100%;background:{bar_color};border-radius:3px;"></div></div>'
+                    f'<span style="font-size:10px;color:{SILVER};">{pct_val:.0f}%</span></div>')
+        rows_p += f"""<tr>
+          <td style="font-size:11px;font-weight:600;">{p['nome']}</td>
+          <td style="text-align:center;font-size:11px;font-weight:700;">{p['qtd']}</td>
+          <td style="text-align:right;font-size:11px;">{fmt_mi(p['prev'])}</td>
+          <td style="text-align:right;font-size:11px;color:{TEAL};font-weight:600;">{fmt_mi(p['val'])}</td>
+          <td style="text-align:right;font-size:11px;color:{GREEN};font-weight:600;">{fmt_mi(re)}</td>
+          <td>{bar_html}</td>
+        </tr>"""
+    # linha total
+    tot_real_est = sum(real_est_g.values())
+    pct_tot = tot_val_g / tot_prev_g * 100 if tot_prev_g > 0 else 0
+    bar_w_t = min(pct_tot, 100)
+    bar_t = (f'<div style="display:flex;align-items:center;gap:5px;">'
+             f'<div style="width:50px;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden;">'
+             f'<div style="width:{bar_w_t:.0f}%;height:100%;background:{NAVY};border-radius:3px;"></div></div>'
+             f'<span style="font-size:10px;color:{SILVER};">{pct_tot:.0f}%</span></div>')
+    rows_p += f"""<tr class="tr-tot">
+      <td style="font-size:11px;">TOTAL</td>
+      <td style="text-align:center;font-size:11px;">{tot_qtd_g}</td>
+      <td style="text-align:right;font-size:11px;">{fmt_mi(tot_prev_g)}</td>
+      <td style="text-align:right;font-size:11px;color:{TEAL};">{fmt_mi(tot_val_g)}</td>
+      <td style="text-align:right;font-size:11px;color:{GREEN};">{fmt_mi(tot_real_est)}</td>
+      <td>{bar_t}</td>
+    </tr>"""
+    st.markdown(th("Pilar","Qtd","Previsto","Validado","Real DRE (est.)","Val/Prev") +
+                rows_p + "</tbody></table>", unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PLANTAS INDUSTRIAIS — macro sempre visível + micro expandível
