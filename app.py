@@ -139,22 +139,22 @@ html,body,[class*="css"]{{font-family:'Inter',sans-serif;}}
 .imp{{background:#FFF8E1;border-left:3px solid {AMBER};border-radius:4px;
       padding:3px 7px;font-size:10px;color:#555;margin-top:3px;line-height:1.5;}}
 
-/* ── SECTION TOGGLE — botão + / - discreto ── */
-.toggle-btn{{font-size:14px;color:{SILVER};background:transparent;
-             border:1px solid #DDE2EA;border-radius:50%;width:26px;height:26px;
-             padding:0;display:inline-flex;align-items:center;justify-content:center;}}
-/* Override Streamlit default button inside toggle col */
+/* ── SECTION TOGGLE — botão − / + minimalista (sem círculo) ── */
 [data-testid="stColumn"]:last-child button[kind="secondary"]{{
-  font-size:16px!important;font-weight:300!important;
-  color:{SILVER}!important;background:transparent!important;
-  border:1px solid #DDE2EA!important;border-radius:50%!important;
-  width:28px!important;height:28px!important;
+  font-size:18px!important;font-weight:200!important;
+  color:{SILVER}!important;
+  background:transparent!important;
+  border:none!important;
+  border-bottom:1.5px solid #DDE2EA!important;
+  border-radius:0!important;
+  width:24px!important;height:24px!important;
   padding:0!important;min-width:unset!important;
+  line-height:1!important;
   display:flex!important;align-items:center!important;justify-content:center!important;
-  margin-top:2px;
+  margin-top:4px;transition:color .15s,border-color .15s;
 }}
 [data-testid="stColumn"]:last-child button[kind="secondary"]:hover{{
-  border-color:{NAVY}!important;color:{NAVY}!important;
+  color:{NAVY}!important;border-bottom-color:{NAVY}!important;
 }}
 
 /* ── LOGIN ── */
@@ -954,12 +954,12 @@ def build_pilares_grupo(fb_key):
     return res
 
 if is_pil:
-    cp1, cp2 = st.columns([3, 2])
+    cp1, cp2 = st.columns([5, 4])
     with cp1:
-        t1, t2, t3, _ = st.columns([1,1,1,3])
+        t1, t2, t3, _ = st.columns([1,1,1,4])
         with t1: show_prev = st.toggle("Previsto", value=True,  key="tog_prev")
         with t2: show_val  = st.toggle("Validado", value=True,  key="tog_val")
-        with t3: show_real = st.toggle("Real DRE", value=True,  key="tog_real")
+        with t3: show_real = st.toggle("Real DRE", value=False, key="tog_real")
         fig_pil = chart_pilares_gerencial(p_glob, real, show_prev, show_val, show_real)
         if fig_pil:
             st.plotly_chart(fig_pil, use_container_width=True, config={"displayModeBar":False})
@@ -979,20 +979,17 @@ if is_pil:
               <td style="text-align:center;font-size:11px;font-weight:700;">{p['qtd']}</td>
               <td style="text-align:right;font-size:11px;">{fmt_mi(p['prev'])}</td>
               <td style="text-align:right;font-size:11px;color:{TEAL};font-weight:600;">{fmt_mi(p['val'])}</td>
-              <td style="text-align:right;font-size:11px;color:{GREEN};font-weight:600;">{fmt_mi(p['real'])}</td>
             </tr>"""
         tot_qtd_g=sum(p["qtd"] for p in p_grupo)
         tot_prev_g=sum(p["prev"] for p in p_grupo)
         tot_val_g=sum(p["val"] for p in p_grupo)
-        tot_real_g=sum(p["real"] for p in p_grupo)
         rows_p += f"""<tr class="tr-tot">
           <td style="font-size:11px;">TOTAL</td>
           <td style="text-align:center;font-size:11px;">{tot_qtd_g}</td>
           <td style="text-align:right;font-size:11px;">{fmt_mi(tot_prev_g)}</td>
           <td style="text-align:right;font-size:11px;color:{TEAL};">{fmt_mi(tot_val_g)}</td>
-          <td style="text-align:right;font-size:11px;color:{GREEN};">{fmt_mi(tot_real_g)}</td>
         </tr>"""
-        st.markdown(th("Pilar","Qtd","V. Previsto (Ano)","V. Validado (Custos)","V. Real (Acum.)")+rows_p+"</tbody></table>",
+        st.markdown(th("Pilar","Qtd","V. Previsto (Ano)","V. Validado (Custos)")+rows_p+"</tbody></table>",
                     unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
