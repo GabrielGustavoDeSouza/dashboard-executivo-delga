@@ -718,20 +718,41 @@ def mc_total(items):
     </tr></tbody></table>"""
 
 # ── HELPERS DE SEÇÃO MINIMIZÁVEL ─────────────────────────────────────────────
-def section_open(key, title, subtitle="", default_open=True, accent_color=None):
+def section_open(key, title, default_open=True, accent_color=None):
+    """Toggle simples — botão + / − discreto."""
     sk = f"sec_{key}"
     if sk not in st.session_state:
         st.session_state[sk] = default_open
     is_open = st.session_state[sk]
-    btn_txt = "▲ Minimizar" if is_open else "▼ Expandir"
+    icon = "−" if is_open else "+"
     ac = accent_color or RED
-    col_t, col_b = st.columns([9,1])
+    col_t, col_b = st.columns([11, 1])
     with col_t:
-        sub = f'<span style="font-size:10px;color:{SILVER};margin-left:8px;">{subtitle}</span>' if subtitle else ""
-        st.markdown(f'<span class="st" style="border-bottom-color:{ac};">{title}</span>{sub}',
+        st.markdown(f'<span class="st" style="border-bottom-color:{ac};">{title}</span>',
                     unsafe_allow_html=True)
     with col_b:
-        if st.button(btn_txt, key=f"btn_{key}"):
+        if st.button(icon, key=f"btn_{key}", help="Expandir / Minimizar"):
+            st.session_state[sk] = not is_open
+            st.rerun()
+    return st.session_state[sk]
+
+def paired_section_open(key, title_left, title_right, default_open=True, accent_color=None):
+    """Toggle único para dois painéis lado a lado."""
+    sk = f"sec_{key}"
+    if sk not in st.session_state:
+        st.session_state[sk] = default_open
+    is_open = st.session_state[sk]
+    icon = "−" if is_open else "+"
+    ac = accent_color or RED
+    c1, c2, c3 = st.columns([5, 5, 1])
+    with c1:
+        st.markdown(f'<span class="st" style="border-bottom-color:{ac};">{title_left}</span>',
+                    unsafe_allow_html=True)
+    with c2:
+        st.markdown(f'<span class="st" style="border-bottom-color:{ac};">{title_right}</span>',
+                    unsafe_allow_html=True)
+    with c3:
+        if st.button(icon, key=f"btn_{key}", help="Expandir / Minimizar"):
             st.session_state[sk] = not is_open
             st.rerun()
     return st.session_state[sk]
