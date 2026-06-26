@@ -417,11 +417,15 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
 def get_proj_planta(d, sheet_key):
     df = d.get(sheet_key)
     if df is None: return []
-    # Plantas: col0=tipo,col2=nome,col5=resp,col7=term,col12=custos,col13=saving,col14=status,col15=impede,col17=Prev/Real,col35=TotalAno
+    # Plantas v9: col0=tipo, col2=nome, col5=resp, col7=term,
+    #             col12=custos, col13=saving, col14=status,
+    #             col15=onde_parado, col16=data_lib,
+    #             col18=Previsto/Real, col36=Total Ano
     return extract_projetos(df, start_row=54,
         col_tipo=0, col_nome=2, col_resp=5, col_termino=7,
-        col_custos=12, col_saving=13, col_status=14, col_impede=15,
-        col_prev_real=17, col_total_ano=35)
+        col_custos=12, col_saving=13, col_status=14,
+        col_onde=15, col_data_lib=16,
+        col_prev_real=18, col_total_ano=36)
 
 def get_proj_compras(d):
     df = d.get("Compras ")
@@ -843,48 +847,46 @@ with cd2:
 st.markdown('<div class="sc">', unsafe_allow_html=True)
 is_pil = section_open("pilares", "Distribuição por Tipo de Iniciativa — Grupo")
 
-# --- Gráfico gerencial de barras horizontais por pilar ---
-def chart_pilares_gerencial(pilares_global, real_total):
-    """Barras horizontais — Previsto / Validado / Real por pilar. Mais leitura gerencial."""
+# --- Gráfico gerencial com botões toggle por série ---
+def chart_pilares_gerencial(pilares_global, real_total, show_prev, show_val, show_real):
+    """Barras horizontais com séries controláveis por toggle."""
     labels   = [p["nome"] for p in pilares_global]
     previsto = [p["prev"] for p in pilares_global]
     validado = [p["val"]  for p in pilares_global]
     tv = sum(validado)
     real_est = [v / tv * real_total if tv > 0 else 0 for v in validado]
 
+    series = []
+    if show_prev:
+        series.append(dict(name="Previsto", x=previsto, color="#C8D8EE"))
+    if show_val:
+        series.append(dict(name="Validado", x=validado, color=NAVY))
+    if show_real:
+        series.append(dict(name="Real DRE", x=real_est,  color=GREEN))
+
+    if not series:
+        return None  # nada selecionado
+
     fig = go.Figure()
-    fig.add_trace(go.Bar(
-        name="Previsto", y=labels, x=previsto,
-        orientation="h", marker_color="#C8D8EE",
-        text=[fmt_mi(v) for v in previsto],
-        textposition="outside", textfont=dict(size=10),
-        hovertemplate="<b>%{y}</b><br>Previsto: R$ %{x:,.0f}<extra></extra>",
-    ))
-    fig.add_trace(go.Bar(
-        name="Validado", y=labels, x=validado,
-        orientation="h", marker_color=NAVY,
-        text=[fmt_mi(v) for v in validado],
-        textposition="outside", textfont=dict(size=10),
-        hovertemplate="<b>%{y}</b><br>Validado: R$ %{x:,.0f}<extra></extra>",
-    ))
-    fig.add_trace(go.Bar(
-        name="Real DRE", y=labels, x=real_est,
-        orientation="h", marker_color=GREEN,
-        text=[fmt_mi(v) for v in real_est],
-        textposition="outside", textfont=dict(size=10),
-        hovertemplate="<b>%{y}</b><br>Real est.: R$ %{x:,.0f}<extra></extra>",
-    ))
+    for s in series:
+        fig.add_trace(go.Bar(
+            name=s["name"], y=labels, x=s["x"],
+            orientation="h",
+            marker=dict(color=s["color"], line=dict(width=0)),
+            text=[fmt_mi(v) for v in s["x"]],
+            textposition="outside", textfont=dict(size=10),
+            hovertemplate=f"<b>%{{y}}</b><br>{s['name']}: R$ %{{x:,.0f}}<extra></extra>",
+        ))
     fig.update_layout(
         barmode="group",
         xaxis=dict(tickformat=",.0f", showgrid=True, gridcolor="#F0F4F8",
                    title="R$", tickprefix="R$ "),
         yaxis=dict(autorange="reversed", tickfont=dict(size=11)),
-        legend=dict(orientation="h", y=1.05, x=0.5, xanchor="center",
-                    font=dict(size=11)),
+        legend=dict(orientation="h", y=1.05, x=0.5, xanchor="center", font=dict(size=11)),
         margin=dict(l=130, r=120, t=40, b=30),
-        height=max(220, len(labels) * 55),
+        height=max(220, len(labels) * (48 if len(series)==1 else 55)),
         paper_bgcolor="white", plot_bgcolor="white",
-        bargap=0.25, bargroupgap=0.08,
+        bargap=0.3, bargroupgap=0.1,
         font=dict(family="Inter"),
     )
     return fig
@@ -892,8 +894,20 @@ def chart_pilares_gerencial(pilares_global, real_total):
 if is_pil:
     cp1, cp2 = st.columns([3, 2])
     with cp1:
-        st.plotly_chart(chart_pilares_gerencial(p_glob, real),
-                        use_container_width=True, config={"displayModeBar": False})
+        # ── Botões toggle para as 3 séries ──
+        t1, t2, t3, _ = st.columns([1,1,1,4])
+        with t1:
+            show_prev = st.toggle("Previsto",  value=True,  key="tog_prev")
+        with t2:
+            show_val  = st.toggle("Validado",  value=True,  key="tog_val")
+        with t3:
+            show_real = st.toggle("Real DRE",  value=True,  key="tog_real")
+
+        fig_pil = chart_pilares_gerencial(p_glob, real, show_prev, show_val, show_real)
+        if fig_pil:
+            st.plotly_chart(fig_pil, use_container_width=True, config={"displayModeBar": False})
+        else:
+            st.info("Selecione ao menos uma série para exibir o gráfico.")
 
     with cp2:
         st.markdown('<span class="st">Resumo por Pilar — Grupo</span>', unsafe_allow_html=True)
