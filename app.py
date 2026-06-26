@@ -456,14 +456,15 @@ def get_proj_compras(d):
         col_tipo=0, col_nome=3, col_resp=5, col_termino=7,
         col_custos=12, col_saving=13, col_status=14,
         col_onde=15, col_data_lib=16,
-        col_prev_real=19, col_total_ano=36)
+        col_prev_real=19, col_total_ano=37)
 
 def get_proj_vendas(d):
     df = d.get("Vendas")
     if df is None: return []
     # Vendas v9: col0=tipo,col1=nome,col4=resp,col6=term,col11=custos,col12=saving,
-    #            col13=status,col17=Prev/Real,col35=TotalAno (sem onde/data_lib)
-    return extract_projetos(df, start_row=36,
+    #            col13=status,col17=Prev/Real,col35=TotalAno
+    # start_row=32 (projetos começam na row32, não 36)
+    return extract_projetos(df, start_row=32,
         col_tipo=0, col_nome=1, col_resp=4, col_termino=6,
         col_custos=11, col_saving=12, col_status=13,
         col_onde=None, col_data_lib=None,
@@ -910,38 +911,45 @@ def chart_pilares_gerencial(pilares_global, real_total, show_prev, show_val, sho
         ))
     fig.update_layout(
         barmode="group",
-        xaxis=dict(tickformat=",.0f", showgrid=True, gridcolor="#F0F4F8", tickprefix="R$ "),
-        yaxis=dict(autorange="reversed", tickfont=dict(size=11)),
-        legend=dict(orientation="h", y=1.05, x=0.5, xanchor="center", font=dict(size=11)),
-        margin=dict(l=140, r=110, t=40, b=20),
-        height=max(200, len(labels)*52),
+        xaxis=dict(tickformat=",.0f", showgrid=True, gridcolor="#F0F4F8",
+                   tickprefix="R$ ", zeroline=False),
+        yaxis=dict(autorange="reversed", tickfont=dict(size=12, color="#333"),
+                   gridcolor="#F0F4F8"),
+        legend=dict(orientation="h", y=1.06, x=0.5, xanchor="center",
+                    font=dict(size=12), bgcolor="rgba(0,0,0,0)"),
+        margin=dict(l=160, r=100, t=44, b=20),
+        height=max(220, len(labels)*62),
         paper_bgcolor="white", plot_bgcolor="white",
-        bargap=0.28, bargroupgap=0.08, font=dict(family="Inter"),
+        bargap=0.35, bargroupgap=0.06,
+        font=dict(family="Inter"),
     )
     return fig
 
 # build_pilares_grupo — agrupa projetos reais com subtipos Kaizen
 @st.cache_data(show_spinner=False)
 def build_pilares_grupo(fb_key):
+    """
+    Constrói resumo de pilares agregando todas as abas com colunas corretas.
+    Valores batem com os KPIs globais da planilha 5 Unidades.
+    """
     from collections import defaultdict
     qtd_g=defaultdict(int); prev_g=defaultdict(float)
     val_g=defaultdict(float); real_g=defaultdict(float); dre_g={}
-    for sh in ["Diadema","Ferraz","São Leopoldo","Jarinu","Anchieta"]:
-        for p in get_proj_planta(D, sh):
+    def _add(proj_list):
+        for p in proj_list:
             k=PILARES_EXIBE.get(p["tipo"],p["tipo"])
-            qtd_g[k]+=1; prev_g[k]+=p["previsto"]; val_g[k]+=p["val_saving"]
-            real_g[k]+=p["real_ano"]; dre_g[k]=is_dre(p["tipo"])
-    for p in get_proj_compras(D):
-        k=PILARES_EXIBE.get(p["tipo"],p["tipo"])
-        qtd_g[k]+=1; prev_g[k]+=p["previsto"]; val_g[k]+=p["val_saving"]
-        real_g[k]+=p["real_ano"]; dre_g[k]=is_dre(p["tipo"])
-    for p in get_proj_vendas(D):
-        k=PILARES_EXIBE.get(p["tipo"],p["tipo"])
-        qtd_g[k]+=1; prev_g[k]+=p["previsto"]; val_g[k]+=p["val_saving"]
-        real_g[k]+=p["real_ano"]; dre_g[k]=is_dre(p["tipo"])
+            qtd_g[k]+=1
+            prev_g[k]+=p["previsto"]    # Total Ano Previsto
+            val_g[k] +=p["val_saving"]  # Saving Validado (col13/col12)
+            real_g[k]+=p["real_ano"]    # Total Ano Real (linha Real)
+            dre_g[k]  =is_dre(p["tipo"])
+    for sh in ["Diadema","Ferraz","São Leopoldo","Jarinu","Anchieta"]:
+        _add(get_proj_planta(D, sh))
+    _add(get_proj_compras(D))   # col_total_ano=37 corrigido
+    _add(get_proj_vendas(D))    # start_row=32 corrigido
     ORDER=["BSW","Kaizen","Kaizen - Ganho Recorrente","Kaizen - Custo Evitado",
            "Kaizen - Capital de Giro","Redução de Custo","Você Resolve",
-           "Meta Executiva","Estratégia Comercial"]
+           "Estratégia Comercial","Meta Executiva"]
     res=[]
     for k in ORDER:
         if k in qtd_g:
@@ -979,17 +987,20 @@ if is_pil:
               <td style="text-align:center;font-size:11px;font-weight:700;">{p['qtd']}</td>
               <td style="text-align:right;font-size:11px;">{fmt_mi(p['prev'])}</td>
               <td style="text-align:right;font-size:11px;color:{TEAL};font-weight:600;">{fmt_mi(p['val'])}</td>
+              <td style="text-align:right;font-size:11px;color:{GREEN};font-weight:600;">{fmt_mi(p['real'])}</td>
             </tr>"""
         tot_qtd_g=sum(p["qtd"] for p in p_grupo)
         tot_prev_g=sum(p["prev"] for p in p_grupo)
         tot_val_g=sum(p["val"] for p in p_grupo)
+        tot_real_g=sum(p["real"] for p in p_grupo)
         rows_p += f"""<tr class="tr-tot">
           <td style="font-size:11px;">TOTAL</td>
           <td style="text-align:center;font-size:11px;">{tot_qtd_g}</td>
           <td style="text-align:right;font-size:11px;">{fmt_mi(tot_prev_g)}</td>
           <td style="text-align:right;font-size:11px;color:{TEAL};">{fmt_mi(tot_val_g)}</td>
+          <td style="text-align:right;font-size:11px;color:{GREEN};">{fmt_mi(tot_real_g)}</td>
         </tr>"""
-        st.markdown(th("Pilar","Qtd","V. Previsto (Ano)","V. Validado (Custos)")+rows_p+"</tbody></table>",
+        st.markdown(th("Pilar","Qtd","V. Previsto (Ano)","V. Validado","V. Real (DRE)")+rows_p+"</tbody></table>",
                     unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
