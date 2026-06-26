@@ -130,11 +130,12 @@ html,body,[class*="css"]{{font-family:'Inter',sans-serif;}}
 .imp{{background:#FFF3E0;border-left:3px solid {AMBER};border-radius:4px;
       padding:4px 8px;font-size:10px;color:#555;margin-top:2px;line-height:1.4;}}
 
-/* SECTION TOGGLE */
+/* SECTION TOGGLE — botão +/- pequeno e discreto */
 .toggle-btn{{
   font-size:10px;font-weight:600;color:#8A9BB0;
-  background:#F4F6F9;border:1px solid #E2E8F0;
-  border-radius:12px;padding:2px 10px;letter-spacing:.4px;
+  background:transparent;border:1px solid #E2E8F0;
+  border-radius:50%;width:24px;height:24px;
+  padding:0;display:inline-flex;align-items:center;justify-content:center;
 }}
 
 /* LOGIN */
@@ -958,36 +959,6 @@ if is_pil:
                 res.append(dict(nome=k, qtd=qtd_g[k], prev=prev_g[k],
                                 val=val_g[k], real=real_g[k], dre=dre_g.get(k, True)))
         return res
-
-        p_grupo = build_pilares_grupo(hash(fb))
-
-        rows_p = ""
-        for p in p_grupo:
-            dre_txt   = "✓ DRE" if p["dre"] else "↷ N/DRE"
-            dre_style = f"color:{GREEN};font-size:9px;font-weight:600;" if p["dre"] else f"color:{SILVER};font-size:9px;"
-            rows_p += f"""<tr>
-              <td style="font-size:11px;font-weight:600;">
-                {p['nome']}<br><span style="{dre_style}">{dre_txt}</span>
-              </td>
-              <td style="text-align:center;font-size:11px;font-weight:700;">{p['qtd']}</td>
-              <td style="text-align:right;font-size:11px;">{fmt_mi(p['prev'])}</td>
-              <td style="text-align:right;font-size:11px;color:{TEAL};font-weight:600;">{fmt_mi(p['val'])}</td>
-              <td style="text-align:right;font-size:11px;color:{GREEN};font-weight:600;">{fmt_mi(p['real'])}</td>
-            </tr>"""
-        # Total
-        tot_qtd_g  = sum(p["qtd"]  for p in p_grupo)
-        tot_prev_g = sum(p["prev"] for p in p_grupo)
-        tot_val_g  = sum(p["val"]  for p in p_grupo)
-        tot_real_g = sum(p["real"] for p in p_grupo)
-        rows_p += f"""<tr class="tr-tot">
-          <td style="font-size:11px;">TOTAL</td>
-          <td style="text-align:center;font-size:11px;">{tot_qtd_g}</td>
-          <td style="text-align:right;font-size:11px;">{fmt_mi(tot_prev_g)}</td>
-          <td style="text-align:right;font-size:11px;color:{TEAL};">{fmt_mi(tot_val_g)}</td>
-          <td style="text-align:right;font-size:11px;color:{GREEN};">{fmt_mi(tot_real_g)}</td>
-        </tr>"""
-        st.markdown(th("Pilar","Qtd","Previsto","Validado","Real (Acum.)") +
-                    rows_p + "</tbody></table>", unsafe_allow_html=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
 
