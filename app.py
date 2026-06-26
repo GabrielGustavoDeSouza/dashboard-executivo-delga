@@ -489,7 +489,7 @@ def extract_ranking(d):
 PAL = [NAVY,"#2C4F7C","#4A7AB5",SILVER,"#A8C8E8"]
 
 def chart_funnel(kpis):
-    stages = ["Meta do Grupo","Portfólio Previsto","Previsto 2026","Validado Custos","Real DRE"]
+    stages = ["Meta do Grupo","Portfólio Previsto (Anual)","Previsto 2026","Validado Custos","Real DRE"]
     values = [kpis["meta"],kpis["portfolio"],kpis["prev2026"],kpis["validado"],kpis["real"]]
     pcts   = [f"{v/kpis['meta']*100:.1f}%" for v in values]
     colors = [NAVY,"#2C5F8A","#4A90D9",AMBER,GREEN]
@@ -814,11 +814,11 @@ def kpi(cls,lbl,vb,sub,det):
             f'<div class="kpi-d">{det}</div></div>')
 
 st.markdown(f"""<div class="kpi-wrap">
-  {kpi("","Meta Anual do Grupo",fmt_mi(meta),fmt_brl(meta),"Objetivo 2026 — 100%")}
+  {kpi("","Meta Anual do Grupo (2026)",fmt_mi(meta),fmt_brl(meta),"Objetivo 2026 — 100%")}
   {kpi("cs","Portfólio Previsto",fmt_mi(portfolio),fmt_brl(portfolio),f"{cob:.1f}% da meta coberta")}
   {kpi("ca","Previsto 2026",fmt_mi(prev2026),fmt_brl(prev2026),f"{pp:.1f}% do portfólio total")}
-  {kpi("","Validado por Custos",fmt_mi(validado),fmt_brl(validado),f"{pv:.1f}% do Previsto 2026")}
-  {kpi("cg","Retorno Real (DRE)",fmt_mi(real),fmt_brl(real),f"{pct_ating*100:.1f}% de atingimento")}
+  {kpi("","Validado por Custos (2026)",fmt_mi(validado),fmt_brl(validado),f"{pv:.1f}% do Previsto 2026")}
+  {kpi("cg","Retorno Real (DRE) (2026)",fmt_mi(real),fmt_brl(real),f"{pct_ating*100:.1f}% de atingimento")}
 </div>""", unsafe_allow_html=True)
 
 st.markdown(f"""<div class="nota">
