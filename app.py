@@ -677,7 +677,7 @@ def pilar_resumo_html(projetos):
       <td style="text-align:right;font-size:11px;">{fmt_mi(tot_prev)}</td>
       <td style="text-align:right;font-size:11px;color:{GREEN};">{fmt_mi(tot_real)}</td>
     </tr>"""
-    return (th("Pilar","Qtd","Previsto","Real Acum.") + rows + "</tbody></table>")
+    return (th("Pilar","Qtd","V. Previsto","V. Real (Acum.)") + rows + "</tbody></table>")
 
 # Cabeçalho macro-tabela
 MC_COLS = ["Unidade / Área","Meta 2026","Previsto Total",
@@ -992,7 +992,7 @@ if is_pil:
           <td style="text-align:right;font-size:11px;color:{TEAL};">{fmt_mi(tot_val_g)}</td>
           <td style="text-align:right;font-size:11px;color:{GREEN};">{fmt_mi(tot_real_g)}</td>
         </tr>"""
-        st.markdown(th("Pilar","Qtd","Previsto","Validado","Real Acum.")+rows_p+"</tbody></table>",
+        st.markdown(th("Pilar","Qtd","V. Previsto (Ano)","V. Validado (Custos)","V. Real (Acum.)")+rows_p+"</tbody></table>",
                     unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1016,13 +1016,13 @@ for p in plantas:
             proj_v = [pp for pp in proj if pp["status"] in sf] if sf else proj
             st.markdown(f"<p style='font-size:11px;color:{SILVER};margin:6px 0;'>"
                         f"<b>{len(proj_v)}</b> de {n} projetos</p>", unsafe_allow_html=True)
-            col_tab, col_pil = st.columns([3, 1])
-            with col_tab:
-                st.markdown(proj_table_html(proj_v), unsafe_allow_html=True)
-            with col_pil:
-                st.markdown(f'<p style="font-size:10px;font-weight:700;color:{NAVY};">Pilares</p>',
-                            unsafe_allow_html=True)
-                st.markdown(pilar_resumo_html(proj), unsafe_allow_html=True)
+            # Tabela de projetos — ocupa toda a largura
+            st.markdown(proj_table_html(proj_v), unsafe_allow_html=True)
+            # Resumo por pilar abaixo, sem sobrepor
+            st.markdown(f"<hr style='margin:12px 0;border-color:#EEF0F3;'>", unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size:10px;font-weight:700;color:{NAVY};margin-bottom:6px;">Resumo por Pilar — {p['nome']}</p>',
+                        unsafe_allow_html=True)
+            st.markdown(pilar_resumo_html(proj), unsafe_allow_html=True)
         else:
             st.markdown("<p style='color:#999;font-size:12px;'>Sem projetos.</p>",
                         unsafe_allow_html=True)
@@ -1053,13 +1053,11 @@ for a in areas:
             proj_va = [pp for pp in proj if pp["status"] in sf_a] if sf_a else proj
             st.markdown(f"<p style='font-size:11px;color:{SILVER};margin:6px 0;'>"
                         f"<b>{len(proj_va)}</b> de {n} projetos</p>", unsafe_allow_html=True)
-            col_tab, col_pil = st.columns([3, 1])
-            with col_tab:
-                st.markdown(proj_table_html(proj_va), unsafe_allow_html=True)
-            with col_pil:
-                st.markdown(f'<p style="font-size:10px;font-weight:700;color:{NAVY};">Pilares</p>',
-                            unsafe_allow_html=True)
-                st.markdown(pilar_resumo_html(proj), unsafe_allow_html=True)
+            st.markdown(proj_table_html(proj_va), unsafe_allow_html=True)
+            st.markdown(f"<hr style='margin:12px 0;border-color:#EEF0F3;'>", unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size:10px;font-weight:700;color:{NAVY};margin-bottom:6px;">Resumo por Pilar — {a['nome']}</p>',
+                        unsafe_allow_html=True)
+            st.markdown(pilar_resumo_html(proj), unsafe_allow_html=True)
         else:
             st.markdown("<p style='color:#999;font-size:12px;'>Sem projetos.</p>",
                         unsafe_allow_html=True)
