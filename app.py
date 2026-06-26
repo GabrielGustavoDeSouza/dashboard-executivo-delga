@@ -130,6 +130,13 @@ html,body,[class*="css"]{{font-family:'Inter',sans-serif;}}
 .imp{{background:#FFF3E0;border-left:3px solid {AMBER};border-radius:4px;
       padding:4px 8px;font-size:10px;color:#555;margin-top:2px;line-height:1.4;}}
 
+/* SECTION TOGGLE */
+.toggle-btn{{
+  font-size:10px;font-weight:600;color:#8A9BB0;
+  background:#F4F6F9;border:1px solid #E2E8F0;
+  border-radius:12px;padding:2px 10px;letter-spacing:.4px;
+}}
+
 /* LOGIN */
 .lw{{max-width:360px;margin:80px auto;padding:40px;background:white;
      border-radius:12px;box-shadow:0 4px 24px rgba(28,43,74,.12);text-align:center;}}
@@ -345,9 +352,9 @@ def extract_evolucao(d):
 # ── EXTRAÇÃO DE PROJETOS — FUNÇÃO CENTRAL ─────────────────────────────────────
 def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
                      col_termino=7, col_custos=12, col_saving=13,
-                     col_status=14, col_impede=15,
-                     col_prev_real=17,  # col com 'Previsto'/'Real'
-                     col_total_ano=35): # col com Total Ano
+                     col_status=14, col_onde=15, col_data_lib=16,
+                     col_prev_real=18,  # col com 'Previsto'/'Real'
+                     col_total_ano=36): # col com Total Ano
     """
     Extrai projetos de uma aba usando a lógica:
       - Linha Previsto: col_tipo in VALID_TIPOS + col_nome preenchido + col_prev_real='Previsto'
@@ -374,24 +381,31 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
                 if c_pr_next == "Real":
                     tot_real = safe(df.iloc[i+1, col_total_ano])
 
-            # O que impede (col15 da linha Previsto)
-            if col_impede is not None and df.shape[1] > col_impede:
-                v_imp = df.iloc[i, col_impede]
-                if pd.notna(v_imp) and str(v_imp).strip() not in ("", "nan"):
-                    impede = str(v_imp).strip()
+            # Onde está parado (col15) e Data de liberação (col16)
+            onde_parado = ""
+            data_lib    = ""
+            if col_onde is not None and df.shape[1] > col_onde:
+                v_onde = df.iloc[i, col_onde]
+                if pd.notna(v_onde) and str(v_onde).strip() not in ("", "nan"):
+                    onde_parado = str(v_onde).strip()
+            if col_data_lib is not None and df.shape[1] > col_data_lib:
+                v_dl = df.iloc[i, col_data_lib]
+                if pd.notna(v_dl) and str(v_dl).strip() not in ("", "nan"):
+                    data_lib = fmt_date(v_dl)
 
             res.append(dict(
-                tipo     = tipo,
-                nome     = nome,
-                resp     = str(df.iloc[i, col_resp]).strip() if pd.notna(df.iloc[i, col_resp]) else "—",
-                termino  = fmt_date(df.iloc[i, col_termino]),
-                previsto = tot_prev,
-                real_ano = tot_real,
+                tipo       = tipo,
+                nome       = nome,
+                resp       = str(df.iloc[i, col_resp]).strip() if pd.notna(df.iloc[i, col_resp]) else "—",
+                termino    = fmt_date(df.iloc[i, col_termino]),
+                previsto   = tot_prev,
+                real_ano   = tot_real,
                 val_custos = str(df.iloc[i, col_custos]).strip() if pd.notna(df.iloc[i, col_custos]) else "",
                 val_saving = safe(df.iloc[i, col_saving]),
-                status   = str(df.iloc[i, col_status]).strip() if pd.notna(df.iloc[i, col_status]) else "",
-                impede   = impede,
-                entra_dre= is_dre(tipo),
+                status     = str(df.iloc[i, col_status]).strip() if pd.notna(df.iloc[i, col_status]) else "",
+                onde_parado= onde_parado,
+                data_lib   = data_lib,
+                entra_dre  = is_dre(tipo),
             ))
             i += 2  # pula Previsto + Real
         elif tipo not in ("", "nan") and tipo not in VALID_TIPOS:
@@ -412,21 +426,24 @@ def get_proj_planta(d, sheet_key):
 def get_proj_compras(d):
     df = d.get("Compras ")
     if df is None: return []
-    # Compras: col0=tipo,col3=nome,col5=resp,col7=term,col12=custos,col13=saving,col14=status,col17=Prev/Real,col35=TotalAno
-    # col_impede: verificar se existe col15 ou col16
+    # Compras v9: col0=tipo,col3=nome,col5=resp,col7=term,col12=custos,col13=saving,
+    #             col14=status,col15=onde,col16=data_lib,col19=Prev/Real,col36=TotalAno
     return extract_projetos(df, start_row=30,
         col_tipo=0, col_nome=3, col_resp=5, col_termino=7,
-        col_custos=12, col_saving=13, col_status=14, col_impede=None,
-        col_prev_real=17, col_total_ano=35)
+        col_custos=12, col_saving=13, col_status=14,
+        col_onde=15, col_data_lib=16,
+        col_prev_real=19, col_total_ano=36)
 
 def get_proj_vendas(d):
     df = d.get("Vendas")
     if df is None: return []
-    # Vendas: col0=tipo,col1=nome,col4=resp,col6=term,col11=custos,col12=saving,col13=status,col15=Prev/Real,col33=TotalAno
+    # Vendas v9: col0=tipo,col1=nome,col4=resp,col6=term,col11=custos,col12=saving,
+    #            col13=status,col17=Prev/Real,col35=TotalAno (sem onde/data_lib)
     return extract_projetos(df, start_row=36,
         col_tipo=0, col_nome=1, col_resp=4, col_termino=6,
-        col_custos=11, col_saving=12, col_status=13, col_impede=None,
-        col_prev_real=15, col_total_ano=33)
+        col_custos=11, col_saving=12, col_status=13,
+        col_onde=None, col_data_lib=None,
+        col_prev_real=17, col_total_ano=35)
 
 def extract_ranking(d):
     df = d["u5"]
@@ -564,7 +581,7 @@ def th(*cols):
     return f"<table class='dt'><thead><tr>{ths}</tr></thead><tbody>"
 
 def proj_table_html(projetos):
-    """Tabela de projetos com coluna 'O que impede'."""
+    """Tabela de projetos com colunas Onde Parado e Data Liberação."""
     if not projetos:
         return "<p style='color:#999;font-size:12px;padding:6px 0;'>Nenhum projeto encontrado.</p>"
     rows = ""
@@ -573,28 +590,39 @@ def proj_table_html(projetos):
         real_s = fmt_brl(real_v) if real_v and real_v != 0 else "—"
         real_c = GREEN if real_v and real_v > 0 else "#999"
 
-        impede_html = ""
-        if p.get("impede"):
-            impede_html = f'<div class="imp">⚠️ {p["impede"]}</div>'
-
-        # Indicador de DRE
-        dre_icon = (f'<span title="Entra no DRE" style="color:{GREEN};font-size:10px;">✓ DRE</span>'
+        dre_icon = (f'<span title="Entra no DRE" style="color:{GREEN};font-size:9px;">✓ DRE</span>'
                     if p["entra_dre"] else
-                    f'<span title="Não entra no DRE" style="color:{SILVER};font-size:10px;">↷ N/DRE</span>')
+                    f'<span title="Não entra no DRE" style="color:{SILVER};font-size:9px;">↷ N/DRE</span>')
+
+        # Onde parado + Data lib — só mostra se não concluído
+        concluido = "Concluído" in str(p.get("status",""))
+        onde = p.get("onde_parado","")
+        data_lib = p.get("data_lib","")
+        if concluido:
+            onde_html = '<span style="color:#ccc;font-size:10px;">—</span>'
+            data_html = '<span style="color:#ccc;font-size:10px;">—</span>'
+        else:
+            onde_html = (f'<span style="font-size:10px;color:#555;">{onde}</span>' if onde
+                         else '<span style="color:#ccc;font-size:10px;">—</span>')
+            data_html = (f'<span style="font-size:10px;color:{AMBER};font-weight:600;">{data_lib}</span>' if data_lib
+                         else '<span style="color:#ccc;font-size:10px;">—</span>')
 
         rows += f"""<tr>
-          <td>{bdg_tipo(p['tipo'])}<br>{dre_icon}</td>
-          <td style="max-width:240px;font-size:11px;">{p['nome']}{impede_html}</td>
-          <td style="font-size:11px;">{p['resp']}</td>
+          <td style="white-space:nowrap;">{bdg_tipo(p['tipo'])}<br>{dre_icon}</td>
+          <td style="max-width:220px;font-size:11px;"><b>{p['nome']}</b></td>
+          <td style="font-size:11px;white-space:nowrap;">{p['resp']}</td>
           <td style="font-size:11px;white-space:nowrap;">{p['termino']}</td>
           <td style="text-align:right;font-size:11px;">{fmt_brl(p['previsto'])}</td>
           <td style="text-align:right;font-size:11px;color:{TEAL};">{fmt_brl(p['val_saving'])}</td>
           <td style="text-align:right;font-size:11px;color:{real_c};font-weight:600;">{real_s}</td>
           <td>{bdg_custos(p['val_custos'])}</td>
-          <td>{bdg_st(p['status'])}</td>
+          <td style="white-space:nowrap;">{bdg_st(p['status'])}</td>
+          <td style="max-width:160px;">{onde_html}</td>
+          <td style="white-space:nowrap;">{data_html}</td>
         </tr>"""
-    return (th("Tipo","Projeto / Impedimento","Responsável","Término",
-               "V.Previsto (Ano)","V.Validado","V.Real (Acum.)","Custos","Status")
+    return (th("Tipo","Projeto","Responsável","Término",
+               "V.Previsto","V.Validado","V.Real","Custos","Status",
+               "Onde Parado","Previsão Lib.")
             + rows + "</tbody></table>")
 
 def pilar_resumo_html(projetos):
@@ -664,6 +692,25 @@ def mc_total(items):
       <td style="color:{GREEN};font-weight:700;"><b>{fmt_brl(tr)}</b></td>
       <td>{pbar_html(pt)}</td><td></td>
     </tr></tbody></table>"""
+
+# ── HELPERS DE SEÇÃO MINIMIZÁVEL ─────────────────────────────────────────────
+def section_open(key, title, subtitle="", default_open=True, accent_color=None):
+    sk = f"sec_{key}"
+    if sk not in st.session_state:
+        st.session_state[sk] = default_open
+    is_open = st.session_state[sk]
+    btn_txt = "▲ Minimizar" if is_open else "▼ Expandir"
+    ac = accent_color or RED
+    col_t, col_b = st.columns([9,1])
+    with col_t:
+        sub = f'<span style="font-size:10px;color:{SILVER};margin-left:8px;">{subtitle}</span>' if subtitle else ""
+        st.markdown(f'<span class="st" style="border-bottom-color:{ac};">{title}</span>{sub}',
+                    unsafe_allow_html=True)
+    with col_b:
+        if st.button(btn_txt, key=f"btn_{key}"):
+            st.session_state[sk] = not is_open
+            st.rerun()
+    return st.session_state[sk]
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # INTERFACE PRINCIPAL
@@ -738,27 +785,31 @@ st.markdown(f"""<div class="nota">
 
 # ── EVOLUÇÃO ───────────────────────────────────────────────────────────────────
 st.markdown('<div class="sc">', unsafe_allow_html=True)
-st.markdown('<span class="st">Evolução Mensal — Acumulado Previsto vs Real vs Meta</span>', unsafe_allow_html=True)
-series_all = ["Acumulado Previsto","Acumulado Real","Projeção da Meta","Previsto Mensal","Real Mensal"]
-sel = st.multiselect("Séries:", series_all, default=series_all[:3], key="ev_sel")
-if sel: st.plotly_chart(chart_evolucao(ev,sel), use_container_width=True, config={"displayModeBar":False})
+is_ev = section_open("evolucao", "Evolução Mensal — Acumulado Previsto vs Real vs Meta")
+if is_ev:
+    series_all = ["Acumulado Previsto","Acumulado Real","Projeção da Meta","Previsto Mensal","Real Mensal"]
+    sel = st.multiselect("Séries:", series_all, default=series_all[:3], key="ev_sel")
+    if sel: st.plotly_chart(chart_evolucao(ev,sel), use_container_width=True, config={"displayModeBar":False})
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── FUNIL + GAUGE ──────────────────────────────────────────────────────────────
 cfu, cga = st.columns([3,2])
 with cfu:
     st.markdown('<div class="sc">', unsafe_allow_html=True)
-    st.markdown('<span class="st">Funil de Conversão — Portfólio → DRE</span>', unsafe_allow_html=True)
-    st.markdown(f'<p style="font-size:11px;color:{SILVER};margin-bottom:8px;">Quanto do portfólio mapeado converte em resultado no DRE?</p>', unsafe_allow_html=True)
-    st.plotly_chart(chart_funnel(kpis), use_container_width=True, config={"displayModeBar":False})
+    is_funil = section_open("funil", "Funil de Conversão — Portfólio → DRE")
+    if is_funil:
+        st.markdown(f'<p style="font-size:11px;color:{SILVER};margin-bottom:8px;">Quanto do portfólio mapeado converte em resultado no DRE?</p>', unsafe_allow_html=True)
+        st.plotly_chart(chart_funnel(kpis), use_container_width=True, config={"displayModeBar":False})
     st.markdown('</div>', unsafe_allow_html=True)
 
 with cga:
     st.markdown('<div class="sc">', unsafe_allow_html=True)
-    st.markdown('<span class="st">Atingimento da Meta</span>', unsafe_allow_html=True)
-    st.plotly_chart(chart_gauge(pct_ating), use_container_width=True, config={"displayModeBar":False})
-    gap_val = meta-real
-    st.markdown(f"""<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+    is_gauge = section_open("gauge", "Atingimento da Meta")
+    if is_gauge:
+        st.plotly_chart(chart_gauge(pct_ating), use_container_width=True, config={"displayModeBar":False})
+    if is_gauge:
+        gap_val = meta-real
+        st.markdown(f"""<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
       <div style="background:{LIGHT};border-radius:6px;padding:10px;text-align:center;">
         <div style="font-size:9px;font-weight:600;color:{SILVER};text-transform:uppercase;letter-spacing:.6px;">GAP para Meta</div>
         <div style="font-size:15px;font-weight:700;color:{RED};">{fmt_mi(gap_val)}</div>
@@ -774,21 +825,23 @@ with cga:
 cd1,cd2 = st.columns(2)
 with cd1:
     st.markdown('<div class="sc">', unsafe_allow_html=True)
-    st.markdown('<span class="st">Representatividade — Plantas Industriais</span>', unsafe_allow_html=True)
-    st.plotly_chart(chart_donut([p["nome"] for p in plantas],[p["meta"] for p in plantas],PAL),
-                    use_container_width=True,config={"displayModeBar":False})
+    is_dp = section_open("donut_plantas", "Representatividade — Plantas Industriais")
+    if is_dp:
+        st.plotly_chart(chart_donut([p["nome"] for p in plantas],[p["meta"] for p in plantas],PAL),
+                        use_container_width=True,config={"displayModeBar":False})
     st.markdown('</div>', unsafe_allow_html=True)
 with cd2:
     st.markdown('<div class="sc">', unsafe_allow_html=True)
-    st.markdown('<span class="st">Representatividade — Áreas Funcionais</span>', unsafe_allow_html=True)
-    st.plotly_chart(chart_donut([a["nome"] for a in areas],[a["meta"] for a in areas],
-                                [NAVY,GREEN,"#20C997"]),
-                    use_container_width=True,config={"displayModeBar":False})
+    is_da = section_open("donut_areas", "Representatividade — Áreas Funcionais")
+    if is_da:
+        st.plotly_chart(chart_donut([a["nome"] for a in areas],[a["meta"] for a in areas],
+                                    [NAVY,GREEN,"#20C997"]),
+                        use_container_width=True,config={"displayModeBar":False})
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ── PILARES ────────────────────────────────────────────────────────────────────
 st.markdown('<div class="sc">', unsafe_allow_html=True)
-st.markdown('<span class="st">Distribuição por Tipo de Iniciativa — Grupo</span>', unsafe_allow_html=True)
+is_pil = section_open("pilares", "Distribuição por Tipo de Iniciativa — Grupo")
 
 # --- Gráfico gerencial de barras horizontais por pilar ---
 def chart_pilares_gerencial(pilares_global, real_total):
@@ -836,13 +889,14 @@ def chart_pilares_gerencial(pilares_global, real_total):
     )
     return fig
 
-cp1, cp2 = st.columns([3, 2])
-with cp1:
-    st.plotly_chart(chart_pilares_gerencial(p_glob, real),
-                    use_container_width=True, config={"displayModeBar": False})
+if is_pil:
+    cp1, cp2 = st.columns([3, 2])
+    with cp1:
+        st.plotly_chart(chart_pilares_gerencial(p_glob, real),
+                        use_container_width=True, config={"displayModeBar": False})
 
-with cp2:
-    st.markdown('<span class="st">Resumo por Pilar — Grupo</span>', unsafe_allow_html=True)
+    with cp2:
+        st.markdown('<span class="st">Resumo por Pilar — Grupo</span>', unsafe_allow_html=True)
 
     # Agrupa TODOS os projetos de plantas + áreas para ter subtipos de Kaizen corretos
     @st.cache_data(show_spinner=False)
@@ -891,47 +945,35 @@ with cp2:
                                 val=val_g[k], real=real_g[k], dre=dre_g.get(k, True)))
         return res
 
-    p_grupo = build_pilares_grupo(hash(fb))
+        p_grupo = build_pilares_grupo(hash(fb))
 
-    def bar_progress(pct_val):
-        bar_w = min(pct_val, 100)
-        bar_c = GREEN if pct_val >= 60 else (AMBER if pct_val >= 30 else RED)
-        return (f'<div style="display:flex;align-items:center;gap:5px;">'
-                f'<div style="width:52px;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden;">'
-                f'<div style="width:{bar_w:.0f}%;height:100%;background:{bar_c};border-radius:3px;"></div></div>'
-                f'<span style="font-size:10px;color:{SILVER};">{pct_val:.0f}%</span></div>')
-
-    rows_p = ""
-    for p in p_grupo:
-        pct_val = p["val"] / p["prev"] * 100 if p["prev"] > 0 else 0
-        dre_txt   = "✓ DRE" if p["dre"] else "↷ N/DRE"
-        dre_style = f"color:{GREEN};font-size:9px;font-weight:600;" if p["dre"] else f"color:{SILVER};font-size:9px;"
-        rows_p += f"""<tr>
-          <td style="font-size:11px;font-weight:600;">
-            {p['nome']}<br><span style="{dre_style}">{dre_txt}</span>
-          </td>
-          <td style="text-align:center;font-size:11px;font-weight:700;">{p['qtd']}</td>
-          <td style="text-align:right;font-size:11px;">{fmt_mi(p['prev'])}</td>
-          <td style="text-align:right;font-size:11px;color:{TEAL};font-weight:600;">{fmt_mi(p['val'])}</td>
-          <td style="text-align:right;font-size:11px;color:{GREEN};font-weight:600;">{fmt_mi(p['real'])}</td>
-          <td>{bar_progress(pct_val)}</td>
+        rows_p = ""
+        for p in p_grupo:
+            dre_txt   = "✓ DRE" if p["dre"] else "↷ N/DRE"
+            dre_style = f"color:{GREEN};font-size:9px;font-weight:600;" if p["dre"] else f"color:{SILVER};font-size:9px;"
+            rows_p += f"""<tr>
+              <td style="font-size:11px;font-weight:600;">
+                {p['nome']}<br><span style="{dre_style}">{dre_txt}</span>
+              </td>
+              <td style="text-align:center;font-size:11px;font-weight:700;">{p['qtd']}</td>
+              <td style="text-align:right;font-size:11px;">{fmt_mi(p['prev'])}</td>
+              <td style="text-align:right;font-size:11px;color:{TEAL};font-weight:600;">{fmt_mi(p['val'])}</td>
+              <td style="text-align:right;font-size:11px;color:{GREEN};font-weight:600;">{fmt_mi(p['real'])}</td>
+            </tr>"""
+        # Total
+        tot_qtd_g  = sum(p["qtd"]  for p in p_grupo)
+        tot_prev_g = sum(p["prev"] for p in p_grupo)
+        tot_val_g  = sum(p["val"]  for p in p_grupo)
+        tot_real_g = sum(p["real"] for p in p_grupo)
+        rows_p += f"""<tr class="tr-tot">
+          <td style="font-size:11px;">TOTAL</td>
+          <td style="text-align:center;font-size:11px;">{tot_qtd_g}</td>
+          <td style="text-align:right;font-size:11px;">{fmt_mi(tot_prev_g)}</td>
+          <td style="text-align:right;font-size:11px;color:{TEAL};">{fmt_mi(tot_val_g)}</td>
+          <td style="text-align:right;font-size:11px;color:{GREEN};">{fmt_mi(tot_real_g)}</td>
         </tr>"""
-    # Total
-    tot_qtd_g  = sum(p["qtd"]  for p in p_grupo)
-    tot_prev_g = sum(p["prev"] for p in p_grupo)
-    tot_val_g  = sum(p["val"]  for p in p_grupo)
-    tot_real_g = sum(p["real"] for p in p_grupo)
-    pct_tot    = tot_val_g / tot_prev_g * 100 if tot_prev_g > 0 else 0
-    rows_p += f"""<tr class="tr-tot">
-      <td style="font-size:11px;">TOTAL</td>
-      <td style="text-align:center;font-size:11px;">{tot_qtd_g}</td>
-      <td style="text-align:right;font-size:11px;">{fmt_mi(tot_prev_g)}</td>
-      <td style="text-align:right;font-size:11px;color:{TEAL};">{fmt_mi(tot_val_g)}</td>
-      <td style="text-align:right;font-size:11px;color:{GREEN};">{fmt_mi(tot_real_g)}</td>
-      <td>{bar_progress(pct_tot)}</td>
-    </tr>"""
-    st.markdown(th("Pilar","Qtd","Previsto","Validado","Real (Acum.)","Val/Prev") +
-                rows_p + "</tbody></table>", unsafe_allow_html=True)
+        st.markdown(th("Pilar","Qtd","Previsto","Validado","Real (Acum.)") +
+                    rows_p + "</tbody></table>", unsafe_allow_html=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -948,13 +990,16 @@ for p in plantas:
         with st.spinner(f"Carregando projetos de {p['nome']}..."):
             proj = get_proj_planta(D, p["sheet"])
         n = len(proj)
-        # Resumo por pilar LOCAL
         if proj:
+            status_opts = sorted({pp["status"] for pp in proj if pp["status"]})
+            sf = st.multiselect("Filtrar por Status:",options=status_opts,default=[],
+                                placeholder="Todos os status",key=f"fst_{p['nome']}")
+            proj_v = [pp for pp in proj if pp["status"] in sf] if sf else proj
             col_tab, col_pil = st.columns([3,1])
             with col_tab:
                 st.markdown(f"<p style='font-size:11px;color:{SILVER};margin-bottom:6px;'>"
-                            f"<b>{n} projetos</b> em {p['nome']}</p>", unsafe_allow_html=True)
-                st.markdown(proj_table_html(proj), unsafe_allow_html=True)
+                            f"<b>{len(proj_v)}</b> de {n} projetos em {p['nome']}</p>", unsafe_allow_html=True)
+                st.markdown(proj_table_html(proj_v), unsafe_allow_html=True)
             with col_pil:
                 st.markdown(f"<p style='font-size:10px;font-weight:700;color:{NAVY};'>"
                             f"Pilares — {p['nome']}</p>", unsafe_allow_html=True)
@@ -982,11 +1027,15 @@ for a in areas:
         proj = fn(D) if fn else []
         n = len(proj)
         if proj:
+            status_opts_a = sorted({pp["status"] for pp in proj if pp["status"]})
+            sf_a = st.multiselect("Filtrar por Status:",options=status_opts_a,default=[],
+                                  placeholder="Todos os status",key=f"fst_{a['nome']}")
+            proj_va = [pp for pp in proj if pp["status"] in sf_a] if sf_a else proj
             col_tab, col_pil = st.columns([3,1])
             with col_tab:
                 st.markdown(f"<p style='font-size:11px;color:{SILVER};margin-bottom:6px;'>"
-                            f"<b>{n} projetos</b> em {a['nome']}</p>", unsafe_allow_html=True)
-                st.markdown(proj_table_html(proj), unsafe_allow_html=True)
+                            f"<b>{len(proj_va)}</b> de {n} projetos em {a['nome']}</p>", unsafe_allow_html=True)
+                st.markdown(proj_table_html(proj_va), unsafe_allow_html=True)
             with col_pil:
                 st.markdown(f"<p style='font-size:10px;font-weight:700;color:{NAVY};'>"
                             f"Pilares — {a['nome']}</p>", unsafe_allow_html=True)
@@ -1000,45 +1049,44 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 # ── CLASSIFICAÇÃO DE GANHOS ────────────────────────────────────────────────────
 st.markdown('<div class="sc">', unsafe_allow_html=True)
-st.markdown('<span class="st">Classificação de Ganhos — Impacto no DRE</span>', unsafe_allow_html=True)
-cc1,cc2,cc3,cc4,cc5 = st.columns(5)
-ganhos = [
+is_class = section_open("classificacao","Classificação de Ganhos — Impacto no DRE",default_open=False)
+if is_class:
+    cc1,cc2,cc3,cc4,cc5 = st.columns(5)
+    ganhos = [
     (cc1,NAVY,   "🔵","BSW","Benchmark de peso bruto. Redução de MP — impacto direto e mensurável no DRE.","✓ DRE",GREEN),
     (cc2,GREEN,  "🔥","Redução de Custo","Elimina custo direto na operação. Reduz GGF no DRE de forma tangível.","✓ DRE",GREEN),
     (cc3,AMBER,  "⚡","Kaizen / Ganho Recorrente","Produtividade recorrente apurada. Entra no DRE quando validado por Custos.","✓ DRE",GREEN),
     (cc4,"#512DA8","↷","Kaizen – Custo Evitado","MO realocada internamente — não reduz GGF no DRE. Gera valor operacional.","↷ Não DRE",SILVER),
     (cc5,"#0D47A1","🏦","Kaizen – Capital de Giro","Reduz estoque / melhora fluxo de caixa. Impacto no balanço, não no DRE.","↷ Não DRE",SILVER),
 ]
-for col,cor,icon,titulo,texto,dre,dcor in ganhos:
-    with col:
-        st.markdown(f"""<div style="border:2px solid {cor};border-radius:8px;padding:12px 14px;height:100%;">
-          <div style="font-weight:700;color:{cor};margin-bottom:4px;font-size:12px;">{icon} {titulo}</div>
-          <div style="font-size:10px;color:#444;line-height:1.5;margin-bottom:6px;">{texto}</div>
-          <div style="font-size:10px;font-weight:700;color:{dcor};">{dre}</div>
-        </div>""", unsafe_allow_html=True)
+    for col,cor,icon,titulo,texto,dre,dcor in ganhos:
+        with col:
+            st.markdown(f"""<div style="border:2px solid {cor};border-radius:8px;padding:12px 14px;height:100%;">
+              <div style="font-weight:700;color:{cor};margin-bottom:4px;font-size:12px;">{icon} {titulo}</div>
+              <div style="font-size:10px;color:#444;line-height:1.5;margin-bottom:6px;">{texto}</div>
+              <div style="font-size:10px;font-weight:700;color:{dcor};">{dre}</div>
+            </div>""", unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── RANKING ────────────────────────────────────────────────────────────────────
 st.markdown('<div class="sc">', unsafe_allow_html=True)
-st.markdown('<span class="st">Ranking de Projetos — Todos os Pilares</span>', unsafe_allow_html=True)
-
-rk1,rk2,rk3 = st.columns([2,2,1])
-with rk1:
-    f_uni = st.multiselect("Unidade:", sorted({r["uni"] for r in ranking}),
-                           default=[], placeholder="Todas", key="rk_uni")
-with rk2:
-    f_st  = st.multiselect("Status:", sorted({r["status"] for r in ranking if r["status"]}),
-                           default=[], placeholder="Todos", key="rk_st")
-with rk3:
-    n_lin = st.number_input("Linhas:", 5, 200, 25, 5)
-
-pf = ranking
-if f_uni: pf = [r for r in pf if r["uni"] in f_uni]
-if f_st:  pf = [r for r in pf if r["status"] in f_st]
-
-st.markdown(f"<p style='font-size:11px;color:{SILVER};margin-bottom:6px;'>"
-            f"Exibindo {min(int(n_lin),len(pf))} de {len(pf)} projetos</p>",
-            unsafe_allow_html=True)
+is_rank = section_open("ranking","Ranking de Projetos — Todos os Pilares",default_open=False)
+if is_rank:
+    rk1,rk2,rk3 = st.columns([2,2,1])
+    with rk1:
+        f_uni = st.multiselect("Unidade:", sorted({r["uni"] for r in ranking}),
+                               default=[], placeholder="Todas", key="rk_uni")
+    with rk2:
+        f_st  = st.multiselect("Status:", sorted({r["status"] for r in ranking if r["status"]}),
+                               default=[], placeholder="Todos", key="rk_st")
+    with rk3:
+        n_lin = st.number_input("Linhas:", 5, 200, 25, 5)
+    pf = ranking
+    if f_uni: pf = [r for r in pf if r["uni"] in f_uni]
+    if f_st:  pf = [r for r in pf if r["status"] in f_st]
+    st.markdown(f"<p style='font-size:11px;color:{SILVER};margin-bottom:6px;'>"
+                f"Exibindo {min(int(n_lin),len(pf))} de {len(pf)} projetos</p>",
+                unsafe_allow_html=True)
 rows_rk = "".join(f"""<tr>
   <td style="text-align:center;color:{SILVER};font-weight:700;font-size:11px;">{r['pos']}</td>
   <td style="font-weight:600;font-size:11px;">{r['uni']}</td>
@@ -1056,31 +1104,30 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 # ── GAP ────────────────────────────────────────────────────────────────────────
 st.markdown('<div class="sc">', unsafe_allow_html=True)
-st.markdown(f'<span class="st" style="border-bottom-color:{AMBER};">GAP — Projetos Aguardando Validação de Custos</span>',
-            unsafe_allow_html=True)
-st.markdown(f'<p style="font-size:11px;color:{SILVER};margin-bottom:10px;">Projetos com valor projetado mas ainda sem validação do depto de Custos. Principal alavancador do pipeline.</p>',
-            unsafe_allow_html=True)
+is_gap = section_open("gap","GAP — Projetos Aguardando Validação de Custos",default_open=False,accent_color=AMBER)
+if is_gap:
+    st.markdown(f'<p style="font-size:11px;color:{SILVER};margin-bottom:10px;">Projetos com valor projetado mas ainda sem validação do depto de Custos.</p>',
+                unsafe_allow_html=True)
+    gap = [r for r in ranking if r["custos"] not in ("OK","Não Ok","NOK","Não OK") and r["prev26"]>0]
+    by_uni = {}
+    for r in gap: by_uni[r["uni"]] = by_uni.get(r["uni"],0)+r["prev26"]
+    tot_gap = sum(by_uni.values()) if by_uni else 0
 
-gap = [r for r in ranking if r["custos"] not in ("OK","Não Ok","NOK","Não OK") and r["prev26"]>0]
-by_uni = {}
-for r in gap: by_uni[r["uni"]] = by_uni.get(r["uni"],0)+r["prev26"]
-tot_gap = sum(by_uni.values())
-
-rows_gap = "".join(f"""<tr>
-  <td style="font-weight:600;">{u}</td>
-  <td style="text-align:right;color:{AMBER};font-weight:600;">{fmt_brl(v)}</td>
-  <td style="text-align:right;">{v/tot_gap*100:.1f}%</td>
-</tr>""" for u,v in sorted(by_uni.items(),key=lambda x:-x[1]))
-rows_gap += f"""<tr class="tr-tot">
-  <td>TOTAL GAP</td>
-  <td style="text-align:right;color:{AMBER};">{fmt_brl(tot_gap)}</td>
-  <td style="text-align:right;">100%</td>
-</tr>"""
-st.markdown(f"<p style='font-size:11px;color:{SILVER};'>{len(gap)} projetos aguardam validação</p>",
-            unsafe_allow_html=True)
-st.markdown(th("Unidade",f'<span style="color:{AMBER}">Previsto 2026 (não validado)</span>',
-               "% do Gap")+rows_gap+"</tbody></table>",
-            unsafe_allow_html=True)
+    rows_gap = "".join(f"""<tr>
+      <td style="font-weight:600;">{u}</td>
+      <td style="text-align:right;color:{AMBER};font-weight:600;">{fmt_brl(v)}</td>
+      <td style="text-align:right;">{v/tot_gap*100:.1f}%</td>
+    </tr>""" for u,v in sorted(by_uni.items(),key=lambda x:-x[1]))
+    rows_gap += f"""<tr class="tr-tot">
+      <td>TOTAL GAP</td>
+      <td style="text-align:right;color:{AMBER};">{fmt_brl(tot_gap)}</td>
+      <td style="text-align:right;">100%</td>
+    </tr>"""
+    st.markdown(f"<p style='font-size:11px;color:{SILVER};'>{len(gap)} projetos aguardam validação</p>",
+                unsafe_allow_html=True)
+    st.markdown(th("Unidade",f'<span style="color:{AMBER}">Previsto 2026 (não validado)</span>',
+                   "% do Gap")+rows_gap+"</tbody></table>",
+                unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── FOOTER ─────────────────────────────────────────────────────────────────────
