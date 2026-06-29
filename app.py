@@ -29,11 +29,12 @@ TEAL   = "#20C997"
 DRE_TIPOS = {
     'BSW', 'Kaizen', 'Kaizen - Ganho Recorrente',
     'Redução de custo', 'Redução de Custo', 'Redução de Custo ',
-    'Você Resolve', 'Você resolve', 'Meta Executiva',
+    'Você Resolve', 'Você resolve',
     'Estratégia Comercial', 'kaizen'
 }
 NAO_DRE_TIPOS = {
-    'Kaizen - Custo Evitado', 'Kaizen - Capital de Giro'
+    'Kaizen - Custo Evitado', 'Kaizen - Capital de Giro',
+    'Meta Executiva', 'Meta Executiva '
 }
 VALID_TIPOS = DRE_TIPOS | NAO_DRE_TIPOS
 
@@ -354,11 +355,11 @@ def extract_pilares_local(projetos):
     res=[]
     for k in ORDER:
         if k in qtd:
-            entra_dre = k not in ("Kaizen - Custo Evitado","Kaizen - Capital de Giro")
+            entra_dre = k not in ("Kaizen - Custo Evitado","Kaizen - Capital de Giro","Meta Executiva","Meta Executiva ")
             res.append(dict(nome=k,qtd=qtd[k],prev=prev[k],real=real[k],dre=entra_dre))
     for k in sorted(qtd):
         if k not in ORDER:
-            entra_dre = k not in ("Kaizen - Custo Evitado","Kaizen - Capital de Giro")
+            entra_dre = k not in ("Kaizen - Custo Evitado","Kaizen - Capital de Giro","Meta Executiva","Meta Executiva ")
             res.append(dict(nome=k,qtd=qtd[k],prev=prev[k],real=real[k],dre=entra_dre))
     return res
 
@@ -824,7 +825,7 @@ st.markdown(f"""<div class="kpi-wrap">
 st.markdown(f"""<div class="nota">
   <b>Metodologia:</b>&nbsp;
   <b style="color:{GREEN};">✓ DRE</b>: BSW · Kaizen · Kaizen GR · Redução de Custo · Você Resolve — impacto direto e mensurável no DRE.&nbsp;
-  <b style="color:{SILVER};">↷ Não DRE</b>: Kaizen Custo Evitado · Kaizen Capital de Giro — geram valor operacional mas não reduzem GGF no DRE.
+  <b style="color:{SILVER};">↷ Não DRE</b>: Kaizen Custo Evitado · Kaizen Capital de Giro · Meta Executiva — geram valor operacional mas não reduzem GGF no DRE.
 </div>""", unsafe_allow_html=True)
 
 # ── EVOLUÇÃO ───────────────────────────────────────────────────────────────────
