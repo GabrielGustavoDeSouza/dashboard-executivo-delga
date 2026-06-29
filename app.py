@@ -489,7 +489,7 @@ def extract_ranking(d):
 PAL = [NAVY,"#2C4F7C","#4A7AB5",SILVER,"#A8C8E8"]
 
 def chart_funnel(kpis):
-    stages = ["Meta do Grupo","Portfólio Previsto (Anual)","Previsto 2026","Validado Custos","Real DRE"]
+    stages = ["Meta do Grupo","Portfólio Previsto (Anualizado)","Previsto 2026","Validado Custos","Real DRE"]
     values = [kpis["meta"],kpis["portfolio"],kpis["prev2026"],kpis["validado"],kpis["real"]]
     pcts   = [f"{v/kpis['meta']*100:.1f}%" for v in values]
     colors = [NAVY,"#2C5F8A","#4A90D9",AMBER,GREEN]
