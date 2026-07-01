@@ -855,6 +855,9 @@ with st.expander("🔐 Administrador — Atualizar Planilha"):
     if arquivo:
         b = arquivo.read(); save_bytes(b)
         st.cache_data.clear()
+        # Limpa session_state de cache de dados para forçar recarregamento
+        for k in list(st.session_state.keys()):
+            if k.startswith("_cache_"): del st.session_state[k]
         st.success("✅ Planilha atualizada! Todos os usuários verão os novos dados.")
 
 # CARGA
@@ -876,7 +879,7 @@ ev      = extract_evolucao(D)
 ranking = extract_ranking(D)
 
 meta=kpis["meta"]; portfolio=kpis["portfolio"]; prev2026=kpis["prev2026"]
-validado=kpis["validado"]; real=kpis["real"]; extra_dre=kpis["extra_dre"]; pct_ating=kpis["pct_ating"]
+validado=kpis["validado"]; real=kpis["real"]; extra_dre=kpis.get("extra_dre",0.0); pct_ating=kpis["pct_ating"]
 
 # ── KPI CARDS ──────────────────────────────────────────────────────────────────
 # ── KPI CARDS ──────────────────────────────────────────────────────────────────
