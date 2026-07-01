@@ -75,6 +75,7 @@ html,body,[class*="css"]{{font-family:'Inter',sans-serif;}}
 
 /* ── KPI CARDS ── */
 .kpi-wrap{{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px;}}
+.kpi-6{{grid-template-columns:repeat(6,1fr);}}
 .kpi-card{{background:white;border-radius:12px;padding:18px 20px;
            border-left:4px solid {NAVY};
            box-shadow:0 1px 4px rgba(28,43,74,.06),0 4px 16px rgba(28,43,74,.04);
@@ -304,9 +305,9 @@ def extract_plantas(d):
         df_p = d.get(sh, pd.DataFrame())
         p2026 = safe(df_p.iloc[4,3]) if not df_p.empty else 0
         res.append(dict(nome=nome,sheet=sh,
-            meta=safe(df.iloc[21,col]),prev=safe(df.iloc[22,col]),
-            prev2026=p2026,val=safe(df.iloc[24,col]),
-            real=safe(df.iloc[25,col]),pct=safe(df.iloc[26,col])))
+            meta=safe(df.iloc[22,col]),prev=safe(df.iloc[23,col]),
+            prev2026=p2026,val=safe(df.iloc[25,col]),
+            real=safe(df.iloc[26,col]),pct=safe(df.iloc[27,col])))
     return res
 
 def extract_areas(d):
@@ -317,22 +318,24 @@ def extract_areas(d):
         df_a = d.get(sh, pd.DataFrame())
         p2026 = safe(df_a.iloc[4,4]) if (not df_a.empty and sh!="Corporativo") else 0
         res.append(dict(nome=nome,sheet=sh,
-            meta=safe(df.iloc[21,col]),prev=safe(df.iloc[22,col]),
-            prev2026=p2026,val=safe(df.iloc[24,col]),
-            real=safe(df.iloc[25,col]),pct=safe(df.iloc[26,col])))
+            meta=safe(df.iloc[22,col]),prev=safe(df.iloc[23,col]),
+            prev2026=p2026,val=safe(df.iloc[25,col]),
+            real=safe(df.iloc[26,col]),pct=safe(df.iloc[27,col])))
     return res
 
 def extract_pilares_global(d):
     """Pilares do painel 5 Unidades (rows 12-16)."""
     df = d["u5"]
     res=[]
-    for i in range(12,17):
+    for i in range(12,22):
         nome=df.iloc[i,3]
-        if pd.notna(nome) and str(nome)!="TOTAL":
-            res.append(dict(
-                nome=str(nome),qtd=int(safe(df.iloc[i,4])),
-                prev=safe(df.iloc[i,5]),val=safe(df.iloc[i,6]),
-                pct=safe(df.iloc[i,7])))
+        if pd.notna(nome) and str(nome) not in ("TOTAL",""):
+            try:
+                res.append(dict(
+                    nome=str(nome),qtd=int(safe(df.iloc[i,4])),
+                    prev=safe(df.iloc[i,5]),val=safe(df.iloc[i,6]),
+                    pct=safe(df.iloc[i,7])))
+            except: pass
     return res
 
 def extract_pilares_local(projetos):
@@ -366,9 +369,18 @@ def extract_pilares_local(projetos):
 def extract_evolucao(d):
     df = d["u5"]
     meses=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"]
-    def row(r): return [safe(df.iloc[r,c]) for c in range(22,34)]
-    return dict(meses=meses,prev=row(53),real=row(54),
-                acum_prev=row(56),acum_real=row(57),proj_meta=row(58))
+    # v12: col21=label, cols 22-33=monthly, rows deslocados +1
+    # row54=Previsto, row55=Real, row57=Acum.Prev, row58=Acum.Real, row59=Projeção Meta
+    max_col = min(34, df.shape[1])
+    def row(r): return [safe(df.iloc[r,c]) for c in range(22, max_col)]
+    # Pad to 12 if needed
+    def pad(lst): return (lst + [0]*12)[:12]
+    return dict(meses=meses,
+                prev     =pad(row(54)),
+                real     =pad(row(55)),
+                acum_prev=pad(row(57)),
+                acum_real=pad(row(58)),
+                proj_meta=pad(row(59)))
 
 # ── EXTRAÇÃO DE PROJETOS — FUNÇÃO CENTRAL ─────────────────────────────────────
 def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
@@ -568,6 +580,8 @@ def chart_evolucao(ev, series):
 
 def chart_donut(labels,values,colors):
     total = sum(values)
+    if total == 0:
+        total = 1  # evita ZeroDivisionError quando todos os valores são zero
     txt = [f"  {labels[i]}  {values[i]/total*100:.1f}%  {fmt_mi(values[i])}"
            for i in range(len(labels))]
     fig = go.Figure(go.Pie(labels=txt,values=values,hole=0.62,
@@ -605,6 +619,66 @@ def chart_pilares(pilares_global, real_total):
 def th(*cols):
     ths = "".join(f"<th>{c}</th>" for c in cols)
     return f"<table class='dt'><thead><tr>{ths}</tr></thead><tbody>"
+
+def render_proj_filtros(projetos, key_prefix=""):
+    """
+    Renderiza controles de filtro + ordenação no estilo Excel.
+    Retorna a lista filtrada/ordenada de projetos.
+    """
+    if not projetos:
+        return projetos
+
+    TIPOS_DISP   = sorted({p["tipo"] for p in projetos if p["tipo"]})
+    STATUS_DISP  = sorted({p["status"] for p in projetos if p["status"]})
+    CUSTOS_DISP  = sorted({p["val_custos"] for p in projetos if p["val_custos"]})
+
+    fc1, fc2, fc3, fc4, fc5 = st.columns([2,2,2,2,3])
+
+    with fc1:
+        f_tipo = st.multiselect("Tipo", TIPOS_DISP, default=[],
+                                key=f"{key_prefix}_ftipo", placeholder="Todos")
+    with fc2:
+        f_status = st.multiselect("Status", STATUS_DISP, default=[],
+                                  key=f"{key_prefix}_fstatus", placeholder="Todos")
+    with fc3:
+        f_custos = st.multiselect("Custos", CUSTOS_DISP, default=[],
+                                  key=f"{key_prefix}_fcustos", placeholder="Todos")
+    with fc4:
+        sort_col = st.selectbox("Ordenar por",
+            ["Nome (A→Z)", "Nome (Z→A)",
+             "V.Previsto ↓", "V.Previsto ↑",
+             "V.Validado ↓", "V.Validado ↑",
+             "V.Real ↓",    "V.Real ↑",
+             "Status (A→Z)","Tipo (A→Z)"],
+            index=0, key=f"{key_prefix}_sort")
+    with fc5:
+        f_nome = st.text_input("🔍 Buscar projeto", value="",
+                               key=f"{key_prefix}_fnome", placeholder="Filtrar por nome...")
+
+    # Aplicar filtros
+    res = projetos[:]
+    if f_tipo:   res = [p for p in res if p["tipo"]       in f_tipo]
+    if f_status: res = [p for p in res if p["status"]     in f_status]
+    if f_custos: res = [p for p in res if p["val_custos"] in f_custos]
+    if f_nome:   res = [p for p in res if f_nome.lower() in p["nome"].lower()]
+
+    # Ordenar
+    sort_map = {
+        "Nome (A→Z)":    (lambda p: p["nome"].lower(),       False),
+        "Nome (Z→A)":    (lambda p: p["nome"].lower(),       True),
+        "V.Previsto ↓":  (lambda p: p["previsto"],           True),
+        "V.Previsto ↑":  (lambda p: p["previsto"],           False),
+        "V.Validado ↓":  (lambda p: p["val_saving"],         True),
+        "V.Validado ↑":  (lambda p: p["val_saving"],         False),
+        "V.Real ↓":      (lambda p: p["real_ano"],           True),
+        "V.Real ↑":      (lambda p: p["real_ano"],           False),
+        "Status (A→Z)":  (lambda p: p["status"].lower(),     False),
+        "Tipo (A→Z)":    (lambda p: p["tipo"].lower(),       False),
+    }
+    key_fn, rev = sort_map.get(sort_col, (lambda p: p["nome"].lower(), False))
+    res = sorted(res, key=key_fn, reverse=rev)
+
+    return res
 
 def proj_table_html(projetos):
     """Tabela de projetos com colunas Onde Parado e Data Liberação."""
@@ -814,12 +888,13 @@ def kpi(cls,lbl,vb,sub,det):
             f'<div class="kpi-v">{vb}</div><div class="kpi-s">{sub}</div>'
             f'<div class="kpi-d">{det}</div></div>')
 
-st.markdown(f"""<div class="kpi-wrap">
+st.markdown(f"""<div class="kpi-wrap kpi-6">
   {kpi("","Meta Anual do Grupo (2026)",fmt_mi(meta),fmt_brl(meta),"Objetivo 2026 — 100%")}
   {kpi("cs","Portfólio Previsto (Anualizado)",fmt_mi(portfolio),fmt_brl(portfolio),f"{cob:.1f}% da meta coberta")}
   {kpi("ca","Previsto 2026",fmt_mi(prev2026),fmt_brl(prev2026),f"{pp:.1f}% do portfólio total")}
   {kpi("","Validado por Custos (2026)",fmt_mi(validado),fmt_brl(validado),f"{pv:.1f}% do Previsto 2026")}
   {kpi("cg","Retorno Real (DRE) (2026)",fmt_mi(real),fmt_brl(real),f"{pct_ating*100:.1f}% de atingimento")}
+  {kpi("cr","Extra DRE (Até o Momento)",fmt_mi(extra_dre),fmt_brl(extra_dre),"Ganho fora do DRE acumulado")}
 </div>""", unsafe_allow_html=True)
 
 st.markdown(f"""<div class="nota">
@@ -969,7 +1044,8 @@ if is_pil:
         with t1: show_prev = st.toggle("Previsto", value=True,  key="tog_prev")
         with t2: show_val  = st.toggle("Validado", value=True,  key="tog_val")
         with t3: show_real = st.toggle("Real DRE", value=False, key="tog_real")
-        fig_pil = chart_pilares_gerencial(p_glob, real, show_prev, show_val, show_real)
+        p_grupo = build_pilares_grupo(hash(fb))  # fonte única para gráfico E tabela
+        fig_pil = chart_pilares_gerencial(p_grupo, real, show_prev, show_val, show_real)
         if fig_pil:
             st.plotly_chart(fig_pil, use_container_width=True, config={"displayModeBar":False})
         else:
@@ -977,7 +1053,6 @@ if is_pil:
     with cp2:
         st.markdown(f'<p class="st" style="border-bottom-color:{RED};">Resumo por Pilar — Grupo</p>',
                     unsafe_allow_html=True)
-        p_grupo = build_pilares_grupo(hash(fb))
         rows_p = ""
         for p in p_grupo:
             dre_s = f"color:{GREEN};font-size:9px;font-weight:600;" if p["dre"] else f"color:{SILVER};font-size:9px;"
@@ -1019,16 +1094,11 @@ for p in plantas:
         proj = get_proj_planta(D, p["sheet"])
         n = len(proj)
         if proj:
-            status_opts = sorted({pp["status"] for pp in proj if pp["status"]})
-            sf = st.multiselect("Status:", options=status_opts, default=[],
-                                placeholder="Todos", key=f"fst_{p['nome']}")
-            proj_v = [pp for pp in proj if pp["status"] in sf] if sf else proj
-            st.markdown(f"<p style='font-size:11px;color:{SILVER};margin:6px 0;'>"
+            proj_v = render_proj_filtros(proj, key_prefix=f"plt_{p['nome']}")
+            st.markdown(f"<p style='font-size:11px;color:{SILVER};margin:4px 0 8px;'>"
                         f"<b>{len(proj_v)}</b> de {n} projetos</p>", unsafe_allow_html=True)
-            # Tabela de projetos — ocupa toda a largura
             st.markdown(proj_table_html(proj_v), unsafe_allow_html=True)
-            # Resumo por pilar abaixo, sem sobrepor
-            st.markdown(f"<hr style='margin:12px 0;border-color:#EEF0F3;'>", unsafe_allow_html=True)
+            st.markdown("<hr style='margin:12px 0;border-color:#EEF0F3;'>", unsafe_allow_html=True)
             st.markdown(f'<p style="font-size:10px;font-weight:700;color:{NAVY};margin-bottom:6px;">Resumo por Pilar — {p['nome']}</p>',
                         unsafe_allow_html=True)
             st.markdown(pilar_resumo_html(proj), unsafe_allow_html=True)
@@ -1056,14 +1126,11 @@ for a in areas:
         proj = fn(D) if fn else []
         n = len(proj)
         if proj:
-            status_opts_a = sorted({pp["status"] for pp in proj if pp["status"]})
-            sf_a = st.multiselect("Status:", options=status_opts_a, default=[],
-                                  placeholder="Todos", key=f"fst_{a['nome']}")
-            proj_va = [pp for pp in proj if pp["status"] in sf_a] if sf_a else proj
-            st.markdown(f"<p style='font-size:11px;color:{SILVER};margin:6px 0;'>"
+            proj_va = render_proj_filtros(proj, key_prefix=f"area_{a['nome']}")
+            st.markdown(f"<p style='font-size:11px;color:{SILVER};margin:4px 0 8px;'>"
                         f"<b>{len(proj_va)}</b> de {n} projetos</p>", unsafe_allow_html=True)
             st.markdown(proj_table_html(proj_va), unsafe_allow_html=True)
-            st.markdown(f"<hr style='margin:12px 0;border-color:#EEF0F3;'>", unsafe_allow_html=True)
+            st.markdown("<hr style='margin:12px 0;border-color:#EEF0F3;'>", unsafe_allow_html=True)
             st.markdown(f'<p style="font-size:10px;font-weight:700;color:{NAVY};margin-bottom:6px;">Resumo por Pilar — {a['nome']}</p>',
                         unsafe_allow_html=True)
             st.markdown(pilar_resumo_html(proj), unsafe_allow_html=True)
