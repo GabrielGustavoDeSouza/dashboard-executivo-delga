@@ -208,13 +208,14 @@ def fmt_brl(v):
     return "R$ " + f"{float(v):,.0f}".replace(",","X").replace(".",",").replace("X",".")
 
 def fmt_date(v):
-    if pd.isna(v) or v is None or str(v)=="nan": return "—"
+    if pd.isna(v) or v is None or str(v).strip() in ("nan",""): return "—"
+    s = str(v).strip()
+    if s.upper() in ("N/A","NA","S/A"): return s
     try:
         if isinstance(v,(datetime.datetime,datetime.date)): return v.strftime("%m/%Y")
-        s=str(v)
-        if " " in s: return pd.to_datetime(s).strftime("%m/%Y")
+        if " " in s and ":" in s: return pd.to_datetime(s).strftime("%m/%Y")
         return s[:7]
-    except: return str(v)[:7]
+    except: return s
 
 def safe(v, d=0.0):
     try: return float(v) if pd.notna(v) else d
@@ -420,11 +421,13 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
             data_lib    = ""
             if col_onde is not None and df.shape[1] > col_onde:
                 v_onde = df.iloc[i, col_onde]
-                if pd.notna(v_onde) and str(v_onde).strip() not in ("", "nan"):
-                    onde_parado = str(v_onde).strip()
+                v_str = str(v_onde).strip() if pd.notna(v_onde) else ""
+                if v_str not in ("", "nan"):
+                    onde_parado = v_str
             if col_data_lib is not None and df.shape[1] > col_data_lib:
                 v_dl = df.iloc[i, col_data_lib]
-                if pd.notna(v_dl) and str(v_dl).strip() not in ("", "nan"):
+                v_str2 = str(v_dl).strip() if pd.notna(v_dl) else ""
+                if v_str2 not in ("", "nan"):
                     data_lib = fmt_date(v_dl)
 
             res.append(dict(
@@ -973,8 +976,11 @@ def chart_pilares_gerencial(pilares_global, real_total, show_prev, show_val, sho
     labels   = [p["nome"] for p in pilares_global]
     previsto = [p["prev"] for p in pilares_global]
     validado_l = [p["val"] for p in pilares_global]
-    tv = sum(validado_l)
-    real_est = [v/tv*real_total if tv>0 else 0 for v in validado_l]
+    # Usa 'real' direto se disponível (lido da tabela 5U), senão estima
+    real_est = [p.get("real", 0) for p in pilares_global]
+    if all(v == 0 for v in real_est):
+        tv = sum(validado_l)
+        real_est = [v/tv*real_total if tv>0 else 0 for v in validado_l]
     series = []
     if show_prev: series.append(dict(name="Previsto",  x=previsto,    color="#C8D8EE"))
     if show_val:  series.append(dict(name="Validado",  x=validado_l,  color=NAVY))
@@ -1009,36 +1015,25 @@ def chart_pilares_gerencial(pilares_global, real_total, show_prev, show_val, sho
 @st.cache_data(show_spinner=False)
 def build_pilares_grupo(fb_key):
     """
-    Constrói resumo de pilares agregando todas as abas com colunas corretas.
-    Valores batem com os KPIs globais da planilha 5 Unidades.
+    Lê DIRETAMENTE da tabela 'Saving Especulado por Pilar' da aba 5 Unidades
+    (rows 12-19, cols 3-7) — fonte única de verdade, mesmos valores do Excel.
+    col3=Pilar, col4=Qtd, col5=Saving(Previsto), col6=Saving Validado, col7=Até o Momento(Real)
     """
-    from collections import defaultdict
-    qtd_g=defaultdict(int); prev_g=defaultdict(float)
-    val_g=defaultdict(float); real_g=defaultdict(float); dre_g={}
-    def _add(proj_list):
-        for p in proj_list:
-            k=PILARES_EXIBE.get(p["tipo"],p["tipo"])
-            qtd_g[k]+=1
-            prev_g[k]+=p["previsto"]    # Total Ano Previsto
-            val_g[k] +=p["val_saving"]  # Saving Validado (col13/col12)
-            real_g[k]+=p["real_ano"]    # Total Ano Real (linha Real)
-            dre_g[k]  =is_dre(p["tipo"])
-    for sh in ["Diadema","Ferraz","São Leopoldo","Jarinu","Anchieta"]:
-        _add(get_proj_planta(D, sh))
-    _add(get_proj_compras(D))   # col_total_ano=37 corrigido
-    _add(get_proj_vendas(D))    # start_row=32 corrigido
-    ORDER=["BSW","Kaizen","Kaizen - Ganho Recorrente","Kaizen - Custo Evitado",
-           "Kaizen - Capital de Giro","Redução de Custo","Você Resolve",
-           "Estratégia Comercial","Meta Executiva"]
-    res=[]
-    for k in ORDER:
-        if k in qtd_g:
-            res.append(dict(nome=k,qtd=qtd_g[k],prev=prev_g[k],
-                            val=val_g[k],real=real_g[k],dre=dre_g.get(k,True)))
-    for k in sorted(qtd_g):
-        if k not in ORDER:
-            res.append(dict(nome=k,qtd=qtd_g[k],prev=prev_g[k],
-                            val=val_g[k],real=real_g[k],dre=dre_g.get(k,True)))
+    NAO_DRE_PIL = {"Kaizen - Custo Evitado","Kaizen - Capital de Giro",
+                   "Meta Executiva","Meta Executiva "}
+    df = D["u5"]
+    res = []
+    for ri in range(12, 21):  # rows 12-20 (20 = TOTAL, pular)
+        nome = str(df.iloc[ri,3]).strip() if pd.notna(df.iloc[ri,3]) else ""
+        if not nome or nome in ("TOTAL",""):
+            continue
+        qtd  = int(safe(df.iloc[ri,4]))
+        prev = safe(df.iloc[ri,5])
+        val  = safe(df.iloc[ri,6])
+        real = safe(df.iloc[ri,7])
+        dre  = nome not in NAO_DRE_PIL
+        res.append(dict(nome=nome.strip(), qtd=qtd, prev=prev,
+                        val=val, real=real, dre=dre))
     return res
 
 if is_pil:
