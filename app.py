@@ -1056,9 +1056,12 @@ def build_pilares_grupo(fb_key):
 if is_pil:
     cp1, cp2 = st.columns([5, 4])
     with cp1:
+        _t1, _t2, _t3, _tsp = st.columns([2, 2, 2, 3])
+        with _t1: show_prev = st.toggle("Previsto",  value=True,  key="tog_prev")
+        with _t2: show_val  = st.toggle("Validado",  value=True,  key="tog_val")
+        with _t3: show_real = st.toggle("Real DRE",  value=False, key="tog_real")
         p_grupo = build_pilares_grupo(hash(fb))
-        # Sempre exibe Previsto e Validado; Real desativado por padrão
-        fig_pil = chart_pilares_gerencial(p_grupo, real, True, True, False)
+        fig_pil = chart_pilares_gerencial(p_grupo, real, show_prev, show_val, show_real)
         if fig_pil:
             st.plotly_chart(fig_pil, use_container_width=True, config={"displayModeBar":False})
         else:
@@ -1109,11 +1112,6 @@ for p in plantas:
         proj = get_proj_planta(D, p["sheet"])
         n = len(proj)
         if proj:
-            # Toggles do gráfico de pilares — dentro do expander, compactos
-            _tc1, _tc2, _tc3, _tsp = st.columns([2, 2, 2, 6])
-            with _tc1: _sp = st.toggle("Previsto", value=True,  key=f"tp_{p['nome']}")
-            with _tc2: _sv = st.toggle("Validado", value=True,  key=f"tv_{p['nome']}")
-            with _tc3: _sr = st.toggle("Real DRE", value=False, key=f"tr_{p['nome']}")
             proj_v = render_proj_filtros(proj, key_prefix=f"plt_{p['nome']}")
             st.markdown(f"<p style='font-size:11px;color:{SILVER};margin:4px 0 8px;'>"
                         f"<b>{len(proj_v)}</b> de {n} projetos</p>", unsafe_allow_html=True)
@@ -1148,10 +1146,8 @@ for a in areas:
         proj = fn(D) if fn else []
         n = len(proj)
         if proj:
-            _ac1, _ac2, _ac3, _asp = st.columns([2, 2, 2, 6])
-            with _ac1: _ap = st.toggle("Previsto", value=True,  key=f"tp_{a['nome']}")
-            with _ac2: _av = st.toggle("Validado", value=True,  key=f"tv_{a['nome']}")
-            with _ac3: _ar = st.toggle("Real DRE", value=False, key=f"tr_{a['nome']}")
+
+
             proj_va = render_proj_filtros(proj, key_prefix=f"area_{a['nome']}")
             st.markdown(f"<p style='font-size:11px;color:{SILVER};margin:4px 0 8px;'>"
                         f"<b>{len(proj_va)}</b> de {n} projetos</p>", unsafe_allow_html=True)
