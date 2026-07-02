@@ -757,6 +757,17 @@ def pilar_resumo_html(projetos):
       <td style="text-align:right;font-size:11px;">{fmt_mi(tot_prev)}</td>
       <td style="text-align:right;font-size:11px;color:{GREEN};">{fmt_mi(tot_real)}</td>
     </tr>"""
+    # Linha de total
+    tot_qtd  = sum(p["qtd"]  for p in pilares)
+    tot_prev = sum(p["prev"] for p in pilares)
+    tot_real = sum(p["real"] for p in pilares)
+    real_c_tot = GREEN if tot_real > 0 else ("#DC3545" if tot_real < 0 else SILVER)
+    rows += f"""<tr class="tr-tot">
+      <td style="font-size:11px;">TOTAL</td>
+      <td style="text-align:center;font-size:11px;">{tot_qtd}</td>
+      <td style="text-align:right;font-size:11px;">{fmt_mi(tot_prev)}</td>
+      <td style="text-align:right;font-size:11px;color:{real_c_tot};font-weight:700;">{fmt_mi(tot_real)}</td>
+    </tr>"""
     return (th("Pilar","Qtd","V. Previsto","V. Real (Acum.)") + rows + "</tbody></table>")
 
 # Cabeçalho macro-tabela
@@ -1098,9 +1109,12 @@ for p in plantas:
                         f"<b>{len(proj_v)}</b> de {n} projetos</p>", unsafe_allow_html=True)
             st.markdown(proj_table_html(proj_v), unsafe_allow_html=True)
             st.markdown("<hr style='margin:12px 0;border-color:#EEF0F3;'>", unsafe_allow_html=True)
-            st.markdown(f'<p style="font-size:10px;font-weight:700;color:{NAVY};margin-bottom:6px;">Resumo por Pilar — {p['nome']}</p>',
+            # Resumo recalculado sobre os projetos FILTRADOS
+            filtro_ativo = len(proj_v) < n
+            label_resumo = f"Resumo por Pilar — {p['nome']} {'(filtrado)' if filtro_ativo else ''}"
+            st.markdown(f'<p style="font-size:10px;font-weight:700;color:{NAVY};margin-bottom:6px;">{label_resumo}</p>',
                         unsafe_allow_html=True)
-            st.markdown(pilar_resumo_html(proj), unsafe_allow_html=True)
+            st.markdown(pilar_resumo_html(proj_v), unsafe_allow_html=True)
         else:
             st.markdown("<p style='color:#999;font-size:12px;'>Sem projetos.</p>",
                         unsafe_allow_html=True)
@@ -1130,9 +1144,11 @@ for a in areas:
                         f"<b>{len(proj_va)}</b> de {n} projetos</p>", unsafe_allow_html=True)
             st.markdown(proj_table_html(proj_va), unsafe_allow_html=True)
             st.markdown("<hr style='margin:12px 0;border-color:#EEF0F3;'>", unsafe_allow_html=True)
-            st.markdown(f'<p style="font-size:10px;font-weight:700;color:{NAVY};margin-bottom:6px;">Resumo por Pilar — {a['nome']}</p>',
+            filtro_ativo_a = len(proj_va) < n
+            label_resumo_a = f"Resumo por Pilar — {a['nome']} {'(filtrado)' if filtro_ativo_a else ''}"
+            st.markdown(f'<p style="font-size:10px;font-weight:700;color:{NAVY};margin-bottom:6px;">{label_resumo_a}</p>',
                         unsafe_allow_html=True)
-            st.markdown(pilar_resumo_html(proj), unsafe_allow_html=True)
+            st.markdown(pilar_resumo_html(proj_va), unsafe_allow_html=True)
         else:
             st.markdown("<p style='color:#999;font-size:12px;'>Sem projetos.</p>",
                         unsafe_allow_html=True)
