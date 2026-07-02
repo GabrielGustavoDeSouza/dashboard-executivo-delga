@@ -69,9 +69,11 @@ html,body,[class*="css"]{{font-family:'Inter',sans-serif;}}
 .dh img{{height:44px;border-radius:6px;}}
 .dh-t h1{{color:white;font-size:20px;font-weight:700;margin:0;letter-spacing:-.2px;}}
 .dh-t p{{color:rgba(255,255,255,.55);font-size:11px;margin:2px 0 0;}}
-.dh-b{{margin-left:auto;background:{RED};color:white;font-size:11px;
-       font-weight:600;padding:5px 14px;border-radius:20px;white-space:nowrap;
-       letter-spacing:.3px;}}
+.dh-b{{margin-left:auto;background:rgba(255,255,255,.12);
+       color:rgba(255,255,255,.85);font-size:10px;
+       font-weight:500;padding:5px 14px;border-radius:8px;white-space:nowrap;
+       letter-spacing:.4px;border:1px solid rgba(255,255,255,.18);}}
+.dh-b span.lbl{{font-size:9px;opacity:.7;display:block;letter-spacing:.6px;text-transform:uppercase;margin-bottom:1px;}}
 
 /* ── KPI CARDS ── */
 .kpi-wrap{{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px;}}
@@ -140,6 +142,10 @@ html,body,[class*="css"]{{font-family:'Inter',sans-serif;}}
 /* ── IMPEDIMENTO ── */
 .imp{{background:#FFF8E1;border-left:3px solid {AMBER};border-radius:4px;
       padding:3px 7px;font-size:10px;color:#555;margin-top:3px;line-height:1.5;}}
+
+/* ── TOGGLE LABELS — sem quebra de linha ── */
+[data-testid="stToggle"] label {{white-space:nowrap!important;font-size:12px!important;font-weight:500!important;}}
+[data-testid="stToggle"] {{align-items:center!important;}}
 
 /* ── SECTION TOGGLE — botão − / + minimalista (sem círculo) ── */
 [data-testid="stColumn"]:last-child button[kind="secondary"]{{
@@ -860,7 +866,7 @@ st.markdown(f"""<div class="dh">
     <h1>Dashboard Executivo — Grupo Delga 2026</h1>
     <p>Gestão Estratégica de Projetos e Redução de Custos</p>
   </div>
-  <div class="dh-b">Jun / 2026</div>
+  <div class="dh-b"><span class="lbl">Atualizado em</span>Jun / 2026</div>
 </div>""", unsafe_allow_html=True)
 
 # ADMIN UPLOAD
@@ -1050,10 +1056,10 @@ def build_pilares_grupo(fb_key):
 if is_pil:
     cp1, cp2 = st.columns([5, 4])
     with cp1:
-        t1, t2, t3, _ = st.columns([1,1,1,4])
-        with t1: show_prev = st.toggle("Previsto", value=True,  key="tog_prev")
-        with t2: show_val  = st.toggle("Validado", value=True,  key="tog_val")
-        with t3: show_real = st.toggle("Real DRE", value=False, key="tog_real")
+        # Toggles movidos para acima das tabelas de plantas/áreas
+        show_prev = st.session_state.get("gpil_prev", True)
+        show_val  = st.session_state.get("gpil_val",  True)
+        show_real = st.session_state.get("gpil_real", False)
         p_grupo = build_pilares_grupo(hash(fb))  # fonte única para gráfico E tabela
         fig_pil = chart_pilares_gerencial(p_grupo, real, show_prev, show_val, show_real)
         if fig_pil:
@@ -1093,6 +1099,8 @@ st.markdown('</div>', unsafe_allow_html=True)
 # ═══════════════════════════════════════════════════════════════════════════════
 # PLANTAS INDUSTRIAIS
 # ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────
 st.markdown('<div class="sc">', unsafe_allow_html=True)
 st.markdown(f'<span class="st">Plantas Industriais — Performance Consolidada</span>',
             unsafe_allow_html=True)
@@ -1104,12 +1112,16 @@ for p in plantas:
         proj = get_proj_planta(D, p["sheet"])
         n = len(proj)
         if proj:
+            # Toggles do gráfico de pilares — dentro do expander, compactos
+            _tc1, _tc2, _tc3, _tsp = st.columns([2, 2, 2, 6])
+            with _tc1: _sp = st.toggle("Previsto", value=True,  key=f"tp_{p['nome']}")
+            with _tc2: _sv = st.toggle("Validado", value=True,  key=f"tv_{p['nome']}")
+            with _tc3: _sr = st.toggle("Real DRE", value=False, key=f"tr_{p['nome']}")
             proj_v = render_proj_filtros(proj, key_prefix=f"plt_{p['nome']}")
             st.markdown(f"<p style='font-size:11px;color:{SILVER};margin:4px 0 8px;'>"
                         f"<b>{len(proj_v)}</b> de {n} projetos</p>", unsafe_allow_html=True)
             st.markdown(proj_table_html(proj_v), unsafe_allow_html=True)
             st.markdown("<hr style='margin:12px 0;border-color:#EEF0F3;'>", unsafe_allow_html=True)
-            # Resumo recalculado sobre os projetos FILTRADOS
             filtro_ativo = len(proj_v) < n
             label_resumo = f"Resumo por Pilar — {p['nome']} {'(filtrado)' if filtro_ativo else ''}"
             st.markdown(f'<p style="font-size:10px;font-weight:700;color:{NAVY};margin-bottom:6px;">{label_resumo}</p>',
@@ -1139,6 +1151,10 @@ for a in areas:
         proj = fn(D) if fn else []
         n = len(proj)
         if proj:
+            _ac1, _ac2, _ac3, _asp = st.columns([2, 2, 2, 6])
+            with _ac1: _ap = st.toggle("Previsto", value=True,  key=f"tp_{a['nome']}")
+            with _ac2: _av = st.toggle("Validado", value=True,  key=f"tv_{a['nome']}")
+            with _ac3: _ar = st.toggle("Real DRE", value=False, key=f"tr_{a['nome']}")
             proj_va = render_proj_filtros(proj, key_prefix=f"area_{a['nome']}")
             st.markdown(f"<p style='font-size:11px;color:{SILVER};margin:4px 0 8px;'>"
                         f"<b>{len(proj_va)}</b> de {n} projetos</p>", unsafe_allow_html=True)
