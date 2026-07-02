@@ -866,7 +866,7 @@ st.markdown(f"""<div class="dh">
     <h1>Dashboard Executivo — Grupo Delga 2026</h1>
     <p>Gestão Estratégica de Projetos e Redução de Custos</p>
   </div>
-  <div class="dh-b"><span class="lbl">Atualizado em</span>Jun / 2026</div>
+  <div class="dh-b"><span class="lbl">Atualizado em</span>{datetime.datetime.now().strftime("%b / %Y").capitalize()}</div>
 </div>""", unsafe_allow_html=True)
 
 # ADMIN UPLOAD
@@ -1056,11 +1056,12 @@ def build_pilares_grupo(fb_key):
 if is_pil:
     cp1, cp2 = st.columns([5, 4])
     with cp1:
-        # Toggles movidos para acima das tabelas de plantas/áreas
-        show_prev = st.session_state.get("gpil_prev", True)
-        show_val  = st.session_state.get("gpil_val",  True)
-        show_real = st.session_state.get("gpil_real", False)
-        p_grupo = build_pilares_grupo(hash(fb))  # fonte única para gráfico E tabela
+        # Toggles acima do gráfico — em linha, sem quebrar texto
+        _t1, _t2, _t3, _tspc = st.columns([2, 2, 2, 3])
+        with _t1: show_prev = st.toggle("Previsto",  value=True,  key="tog_prev")
+        with _t2: show_val  = st.toggle("Validado",  value=True,  key="tog_val")
+        with _t3: show_real = st.toggle("Real DRE",  value=False, key="tog_real")
+        p_grupo = build_pilares_grupo(hash(fb))
         fig_pil = chart_pilares_gerencial(p_grupo, real, show_prev, show_val, show_real)
         if fig_pil:
             st.plotly_chart(fig_pil, use_container_width=True, config={"displayModeBar":False})
