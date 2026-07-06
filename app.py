@@ -172,36 +172,7 @@ html,body,[class*="css"]{{font-family:'Inter',sans-serif;}}
 #MainMenu{{visibility:hidden;}}footer{{visibility:hidden;}}
 .stDeployButton{{display:none;}}header[data-testid="stHeader"]{{display:none;}}
 
-/* ── NAV LATERAL ── */
-.side-nav{{
-  position:fixed;left:14px;top:50%;transform:translateY(-50%);
-  z-index:9999;display:flex;flex-direction:column;gap:2px;
-  background:white;
-  border-radius:14px;padding:12px 6px;
-  box-shadow:0 4px 24px rgba(28,43,74,.13),0 1px 4px rgba(28,43,74,.08);
-  border:1px solid #EEF0F3;
-}}
-.side-nav a{{
-  display:flex;align-items:center;gap:10px;
-  color:#8A9BB0;text-decoration:none;
-  font-size:10px;font-weight:600;white-space:nowrap;
-  padding:6px 12px;border-radius:10px;
-  transition:all .18s;cursor:pointer;
-  letter-spacing:.3px;text-transform:uppercase;
-}}
-.side-nav a:hover{{
-  background:#F4F6F9;
-  color:#1C2B4A;
-}}
-.side-nav a .dot{{
-  width:7px;height:7px;border-radius:50%;
-  background:#E2E8F0;flex-shrink:0;
-  transition:all .18s;
-}}
-.side-nav a:hover .dot{{
-  background:#C8202E;
-  box-shadow:0 0 0 3px rgba(200,32,46,.15);
-}}
+
 div[data-testid="stExpander"]>div:first-child{{
   background:{LIGHT}!important;border:1px solid #E2E8F0!important;
   border-radius:8px!important;padding:4px 10px!important;}}
@@ -918,33 +889,6 @@ st.markdown(f"""<div class="dh">
   <div class="dh-b"><span class="lbl">Atualizado em</span>{datetime.datetime.now().strftime("%d/%m/%Y")}</div>
 </div>""", unsafe_allow_html=True)
 
-# NAV LATERAL DE NAVEGAÇÃO
-st.markdown("""
-<div class="side-nav">
-  <a onclick="navTo('sec-evolucao')"><span class="dot"></span>Evolução</a>
-  <a onclick="navTo('sec-funil')"><span class="dot"></span>Funil / Gauge</a>
-  <a onclick="navTo('sec-pilares')"><span class="dot"></span>Pilares</a>
-  <a onclick="navTo('sec-plantas')"><span class="dot"></span>Plantas</a>
-  <a onclick="navTo('sec-areas')"><span class="dot"></span>Áreas</a>
-  <a onclick="navTo('sec-ranking')"><span class="dot"></span>Ranking</a>
-  <a onclick="navTo('sec-gap')"><span class="dot"></span>GAP</a>
-</div>
-
-<script>
-function navTo(id) {
-  // Streamlit roda dentro de um iframe — precisamos subir para o documento pai
-  var target = window.parent.document.getElementById(id);
-  if (target) {
-    target.scrollIntoView({behavior: 'smooth', block: 'start'});
-    return;
-  }
-  // Fallback: busca no documento atual
-  var t2 = document.getElementById(id);
-  if (t2) t2.scrollIntoView({behavior: 'smooth', block: 'start'});
-}
-</script>
-""", unsafe_allow_html=True)
-
 # ADMIN UPLOAD
 with st.expander("🔐 Administrador — Atualizar Planilha"):
     arquivo = st.file_uploader("Nova versão (.xlsx)", type=["xlsx"], key="up")
@@ -1003,7 +947,6 @@ st.markdown(f"""<div class="nota">
   <b style="color:{SILVER};">↷ Não DRE</b>: Kaizen Custo Evitado · Kaizen Capital de Giro · Meta Executiva — geram valor operacional mas não reduzem GGF no DRE.
 </div>""", unsafe_allow_html=True)
 
-st.markdown('<div id="sec-evolucao"></div>', unsafe_allow_html=True)
 # ── EVOLUÇÃO ───────────────────────────────────────────────────────────────────
 st.markdown('<div class="sc">', unsafe_allow_html=True)
 is_ev = section_open("evolucao", "Evolução Mensal — Acumulado Previsto vs Real vs Meta")
@@ -1014,7 +957,6 @@ if is_ev:
         st.plotly_chart(chart_evolucao(ev,sel), use_container_width=True, config={"displayModeBar":False})
 st.markdown('</div>', unsafe_allow_html=True)
 
-st.markdown('<div id="sec-funil"></div>', unsafe_allow_html=True)
 # ── FUNIL + GAUGE — botão único para o par ─────────────────────────────────────
 is_fg = paired_section_open("funil_gauge",
                              "Funil de Conversão — Portfólio → DRE",
@@ -1062,7 +1004,6 @@ with cd2:
                         use_container_width=True, config={"displayModeBar":False})
     st.markdown('</div>', unsafe_allow_html=True)
 
-st.markdown('<div id="sec-pilares"></div>', unsafe_allow_html=True)
 # ── PILARES ────────────────────────────────────────────────────────────────────
 st.markdown('<div class="sc">', unsafe_allow_html=True)
 is_pil = section_open("pilares", "Distribuição por Tipo de Iniciativa — Grupo")
@@ -1179,7 +1120,6 @@ st.markdown('</div>', unsafe_allow_html=True)
 # PLANTAS INDUSTRIAIS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-st.markdown('<div id="sec-plantas"></div>', unsafe_allow_html=True)
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown('<div class="sc">', unsafe_allow_html=True)
 is_plantas = section_open("plantas", "Plantas Industriais — Performance Consolidada")
@@ -1215,7 +1155,6 @@ st.markdown('</div>', unsafe_allow_html=True)
 # ═══════════════════════════════════════════════════════════════════════════════
 # ÁREAS FUNCIONAIS
 # ═══════════════════════════════════════════════════════════════════════════════
-st.markdown('<div id="sec-areas"></div>', unsafe_allow_html=True)
 st.markdown('<div class="sc">', unsafe_allow_html=True)
 is_areas = section_open("areas", "Áreas Funcionais — Performance Consolidada")
 area_fn = {"Compras": get_proj_compras, "Vendas": get_proj_vendas}
@@ -1272,7 +1211,6 @@ if is_class:
             </div>""", unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
-st.markdown('<div id="sec-ranking"></div>', unsafe_allow_html=True)
 # ── RANKING ────────────────────────────────────────────────────────────────────
 st.markdown('<div class="sc">', unsafe_allow_html=True)
 is_rank = section_open("ranking","Ranking de Projetos — Todos os Pilares",default_open=False)
@@ -1307,7 +1245,6 @@ if is_rank:
                 unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
-st.markdown('<div id="sec-gap"></div>', unsafe_allow_html=True)
 # ── GAP ────────────────────────────────────────────────────────────────────────
 st.markdown('<div class="sc">', unsafe_allow_html=True)
 is_gap = section_open("gap","GAP — Projetos Aguardando Validação de Custos",
