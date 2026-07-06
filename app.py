@@ -377,17 +377,34 @@ def extract_pilares_local(projetos):
 def extract_evolucao(d):
     df = d["u5"]
     meses=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"]
-    # v12: col21=label, cols 22-33=monthly, rows deslocados +1
-    # row54=Previsto, row55=Real, row57=Acum.Prev, row58=Acum.Real, row59=Projeção Meta
     max_col = min(34, df.shape[1])
     def row(r): return [safe(df.iloc[r,c]) for c in range(22, max_col)]
-    # Pad to 12 if needed
     def pad(lst): return (lst + [0]*12)[:12]
+
+    real_raw = pad(row(55))
+
+    # A linha Real da planilha inclui Extra DRE por erro de fórmula.
+    # Escalonamos os valores mensais para que o acumulado bata com o KPI Real DRE.
+    kpi_real = safe(df.iloc[6, 9])   # Retorno Real (DRE) — fonte da verdade
+    soma_real = sum(real_raw)
+    if soma_real > 0 and kpi_real > 0:
+        factor = kpi_real / soma_real
+        real_corr = [v * factor for v in real_raw]
+    else:
+        real_corr = real_raw
+
+    # Recalcula acumulado real com valores corrigidos
+    acum_real_corr = []
+    acc = 0.0
+    for v in real_corr:
+        acc += v
+        acum_real_corr.append(acc)
+
     return dict(meses=meses,
                 prev     =pad(row(54)),
-                real     =pad(row(55)),
+                real     =real_corr,
                 acum_prev=pad(row(57)),
-                acum_real=pad(row(58)),
+                acum_real=acum_real_corr,
                 proj_meta=pad(row(59)))
 
 # ── EXTRAÇÃO DE PROJETOS — FUNÇÃO CENTRAL ─────────────────────────────────────
