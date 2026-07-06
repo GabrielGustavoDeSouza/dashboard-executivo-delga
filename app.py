@@ -174,29 +174,34 @@ html,body,[class*="css"]{{font-family:'Inter',sans-serif;}}
 
 /* ── NAV LATERAL ── */
 .side-nav{{
-  position:fixed;right:14px;top:50%;transform:translateY(-50%);
-  z-index:9999;display:flex;flex-direction:column;gap:6px;
-  background:rgba(28,43,74,.85);backdrop-filter:blur(8px);
-  border-radius:12px;padding:10px 8px;
-  box-shadow:0 4px 20px rgba(0,0,0,.25);
+  position:fixed;left:14px;top:50%;transform:translateY(-50%);
+  z-index:9999;display:flex;flex-direction:column;gap:2px;
+  background:white;
+  border-radius:14px;padding:12px 6px;
+  box-shadow:0 4px 24px rgba(28,43,74,.13),0 1px 4px rgba(28,43,74,.08);
+  border:1px solid #EEF0F3;
 }}
 .side-nav a{{
-  display:flex;align-items:center;gap:8px;
-  color:rgba(255,255,255,.6);text-decoration:none;
-  font-size:11px;font-weight:500;white-space:nowrap;
-  padding:5px 10px;border-radius:8px;
-  transition:all .2s;cursor:pointer;
+  display:flex;align-items:center;gap:10px;
+  color:#8A9BB0;text-decoration:none;
+  font-size:10px;font-weight:600;white-space:nowrap;
+  padding:6px 12px;border-radius:10px;
+  transition:all .18s;cursor:pointer;
+  letter-spacing:.3px;text-transform:uppercase;
 }}
 .side-nav a:hover{{
-  background:rgba(255,255,255,.12);
-  color:white;
+  background:#F4F6F9;
+  color:#1C2B4A;
 }}
 .side-nav a .dot{{
-  width:6px;height:6px;border-radius:50%;
-  background:rgba(255,255,255,.3);flex-shrink:0;
-  transition:all .2s;
+  width:7px;height:7px;border-radius:50%;
+  background:#E2E8F0;flex-shrink:0;
+  transition:all .18s;
 }}
-.side-nav a:hover .dot{{background:#C8202E;}}
+.side-nav a:hover .dot{{
+  background:#C8202E;
+  box-shadow:0 0 0 3px rgba(200,32,46,.15);
+}}
 div[data-testid="stExpander"]>div:first-child{{
   background:{LIGHT}!important;border:1px solid #E2E8F0!important;
   border-radius:8px!important;padding:4px 10px!important;}}
