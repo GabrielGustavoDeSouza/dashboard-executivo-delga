@@ -484,13 +484,14 @@ def get_proj_compras(d):
 def get_proj_vendas(d):
     df = d.get("Vendas")
     if df is None: return []
-    # Vendas v9: col0=tipo,col1=nome,col4=resp,col6=term,col11=custos,col12=saving,
-    #            col13=status,col17=Prev/Real,col35=TotalAno
-    # start_row=32 (projetos começam na row32, não 36)
-    return extract_projetos(df, start_row=32,
+    # Vendas v12: row32=header, projetos start row33
+    # col0=tipo, col1=nome, col4=resp, col6=termino, col7=previsto,
+    # col11=custos, col12=saving, col13=status, col14=onde, col15=data_lib,
+    # col17=Previsto/Real, col35=Total Ano
+    return extract_projetos(df, start_row=33,
         col_tipo=0, col_nome=1, col_resp=4, col_termino=6,
         col_custos=11, col_saving=12, col_status=13,
-        col_onde=None, col_data_lib=None,
+        col_onde=14, col_data_lib=15,
         col_prev_real=17, col_total_ano=35)
 
 def extract_ranking(d):
