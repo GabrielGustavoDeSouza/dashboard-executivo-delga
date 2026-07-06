@@ -406,8 +406,8 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
     i = start_row
     max_row = min(start_row + 600, df.shape[0] - 1)
     while i <= max_row:
-        tipo = str(df.iloc[i, col_tipo]).strip()
-        nome = str(df.iloc[i, col_nome]).strip()
+        tipo = str(df.iloc[i, col_tipo]).replace("\n"," ").replace("\r"," ").strip()
+        nome = str(df.iloc[i, col_nome]).replace("\n"," ").replace("\r"," ").strip()
         c_pr = str(df.iloc[i, col_prev_real]).strip() if df.shape[1] > col_prev_real else ""
 
         if tipo in VALID_TIPOS and nome not in ("", "nan") and c_pr == "Previsto":
