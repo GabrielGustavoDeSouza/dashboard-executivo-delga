@@ -308,29 +308,33 @@ def extract_kpis(d):
 
 def extract_plantas(d):
     df = d["u5"]
+    # col4=Diadema,5=Ferraz,6=SãoLeopoldo,7=Jarinu,8=Anchieta
     cfg = [("Diadema",4,"Diadema"),("Ferraz",5,"Ferraz"),
            ("São Leopoldo",6,"São Leopoldo"),("Jarinu",7,"Jarinu"),("Anchieta",8,"Anchieta")]
     res=[]
     for nome,col,sh in cfg:
-        df_p = d.get(sh, pd.DataFrame())
-        p2026 = safe(df_p.iloc[4,3]) if not df_p.empty else 0
         res.append(dict(nome=nome,sheet=sh,
-            meta=safe(df.iloc[22,col]),prev=safe(df.iloc[23,col]),
-            prev2026=p2026,val=safe(df.iloc[25,col]),
-            real=safe(df.iloc[26,col]),pct=safe(df.iloc[27,col])))
+            meta    =safe(df.iloc[22,col]),
+            prev    =safe(df.iloc[23,col]),
+            prev2026=safe(df.iloc[24,col]),  # direto de 5 Unidades — fonte única
+            val     =safe(df.iloc[25,col]),
+            real    =safe(df.iloc[26,col]),
+            pct     =safe(df.iloc[27,col])))
     return res
 
 def extract_areas(d):
     df = d["u5"]
+    # col9=Corporativo,10=Compras,11=Vendas
     cfg = [("Corporativo",9,"Corporativo"),("Compras",10,"Compras "),("Vendas",11,"Vendas")]
     res=[]
     for nome,col,sh in cfg:
-        df_a = d.get(sh, pd.DataFrame())
-        p2026 = safe(df_a.iloc[4,4]) if (not df_a.empty and sh!="Corporativo") else 0
         res.append(dict(nome=nome,sheet=sh,
-            meta=safe(df.iloc[22,col]),prev=safe(df.iloc[23,col]),
-            prev2026=p2026,val=safe(df.iloc[25,col]),
-            real=safe(df.iloc[26,col]),pct=safe(df.iloc[27,col])))
+            meta    =safe(df.iloc[22,col]),
+            prev    =safe(df.iloc[23,col]),
+            prev2026=safe(df.iloc[24,col]),  # direto de 5 Unidades — fonte única
+            val     =safe(df.iloc[25,col]),
+            real    =safe(df.iloc[26,col]),
+            pct     =safe(df.iloc[27,col])))
     return res
 
 def extract_pilares_global(d):
@@ -1302,3 +1306,4 @@ _,cft = st.columns([5,1])
 with cft:
     if st.button("🚪 Sair", key="logout"):
         st.session_state["auth"]=False; st.rerun()
+        
