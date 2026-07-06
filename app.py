@@ -797,42 +797,64 @@ def pilar_resumo_html(projetos):
     return (th("Pilar","Qtd","V. Previsto","V. Real (Acum.)") + rows + "</tbody></table>")
 
 # Cabeçalho macro-tabela
-MC_COLS = ["Unidade / Área","Meta 2026","Previsto Total",
-           f'<span style="color:{AMBER}">Previsto 2026</span>',
-           f'<span style="color:{TEAL}">Validado</span>',
-           f'<span style="color:{GREEN}">Real DRE</span>',
-           "% Meta","Status"]
+# Larguras fixas por coluna — garante alinhamento header/rows/total
+MC_WIDTHS = ["18%","12%","12%","12%","12%","12%","12%","10%"]
 
-def mc_header():
-    ths = "".join(f'<th style="background:{NAVY};color:white;padding:9px 11px;'
-                  f'font-size:11px;font-weight:600;">{c}</th>' for c in MC_COLS)
-    return f'<table class="mct"><thead><tr>{ths}</tr></thead></table>'
+def render_macro_table(items, show_expander_fn=None):
+    """
+    Renderiza tabela macro completa (header + rows + total) em HTML único.
+    Garante alinhamento perfeito entre colunas.
+    """
+    col_names = [
+        "Unidade / Área","Meta 2026","Previsto Total",
+        f'<span style="color:{AMBER}">Previsto 2026</span>',
+        f'<span style="color:{TEAL}">Validado</span>',
+        f'<span style="color:{GREEN}">Real DRE</span>',
+        "% Meta","Status"
+    ]
+    # Header
+    ths = "".join(
+        f'<th style="background:{NAVY};color:white;padding:10px 12px;'
+        f'font-size:11px;font-weight:600;width:{w};text-align:left;">{c}</th>'
+        for c,w in zip(col_names, MC_WIDTHS)
+    )
+    html = f'<table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px;"><thead><tr>{ths}</tr></thead><tbody>'
 
-def mc_row(it):
-    return f"""<table class="mct"><tbody><tr>
-      <td style="font-weight:600;min-width:130px;">{it['nome']}</td>
-      <td>{fmt_brl(it['meta'])}</td>
-      <td>{fmt_brl(it['prev'])}</td>
-      <td style="color:{AMBER};">{fmt_brl(it['prev2026'])}</td>
-      <td style="color:{TEAL};">{fmt_brl(it['val'])}</td>
-      <td style="color:{GREEN};font-weight:600;">{fmt_brl(it['real'])}</td>
-      <td>{pbar_html(it['pct'])}</td>
-      <td>{bdg_status(it['pct'])}</td>
-    </tr></tbody></table>"""
+    # Rows
+    for it in items:
+        html += f"""<tr style="border-bottom:1px solid #EEF0F3;">
+          <td style="padding:10px 12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{it['nome']}</td>
+          <td style="padding:10px 12px;">{fmt_brl(it['meta'])}</td>
+          <td style="padding:10px 12px;">{fmt_brl(it['prev'])}</td>
+          <td style="padding:10px 12px;color:{AMBER};">{fmt_brl(it['prev2026'])}</td>
+          <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(it['val'])}</td>
+          <td style="padding:10px 12px;color:{GREEN};font-weight:600;">{fmt_brl(it['real'])}</td>
+          <td style="padding:10px 12px;">{pbar_html(it['pct'])}</td>
+          <td style="padding:10px 12px;">{bdg_status(it['pct'])}</td>
+        </tr>"""
 
-def mc_total(items):
+    # Total
     tm=tp=tp26=tv=tr=0
     for it in items:
         tm+=it["meta"];tp+=it["prev"];tp26+=it["prev2026"];tv+=it["val"];tr+=it["real"]
     pt = tr/tm if tm>0 else 0
-    return f"""<table class="mct"><tbody><tr class="mc-tot">
-      <td><b>TOTAL</b></td>
-      <td><b>{fmt_brl(tm)}</b></td><td><b>{fmt_brl(tp)}</b></td>
-      <td style="color:{AMBER};"><b>{fmt_brl(tp26)}</b></td>
-      <td style="color:{TEAL};"><b>{fmt_brl(tv)}</b></td>
-      <td style="color:{GREEN};font-weight:700;"><b>{fmt_brl(tr)}</b></td>
-      <td>{pbar_html(pt)}</td><td></td>
-    </tr></tbody></table>"""
+    html += f"""<tr style="background:{LIGHT};border-top:2px solid {NAVY};font-weight:700;">
+      <td style="padding:10px 12px;">TOTAL</td>
+      <td style="padding:10px 12px;">{fmt_brl(tm)}</td>
+      <td style="padding:10px 12px;">{fmt_brl(tp)}</td>
+      <td style="padding:10px 12px;color:{AMBER};">{fmt_brl(tp26)}</td>
+      <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(tv)}</td>
+      <td style="padding:10px 12px;color:{GREEN};">{fmt_brl(tr)}</td>
+      <td style="padding:10px 12px;">{pbar_html(pt)}</td>
+      <td style="padding:10px 12px;"></td>
+    </tr>"""
+    html += "</tbody></table>"
+    return html
+
+# Compat shims — mantidos para não quebrar código legado
+def mc_header(): return ""
+def mc_row(it): return ""
+def mc_total(items): return ""
 
 # ── HELPERS DE SEÇÃO MINIMIZÁVEL ─────────────────────────────────────────────
 def section_open(key, title, default_open=True, accent_color=None):
@@ -1124,12 +1146,11 @@ st.markdown('</div>', unsafe_allow_html=True)
 st.markdown('<div class="sc">', unsafe_allow_html=True)
 is_plantas = section_open("plantas", "Plantas Industriais — Performance Consolidada")
 if is_plantas:
-    st.markdown(mc_header(), unsafe_allow_html=True)
+    st.markdown(render_macro_table(plantas), unsafe_allow_html=True)
 
 for p in plantas:
     if not is_plantas:
         break
-    st.markdown(mc_row(p), unsafe_allow_html=True)
     with st.expander(f"＋  Ver projetos de {p['nome']}", expanded=False):
         proj = get_proj_planta(D, p["sheet"])
         n = len(proj)
@@ -1148,8 +1169,7 @@ for p in plantas:
             st.markdown("<p style='color:#999;font-size:12px;'>Sem projetos.</p>",
                         unsafe_allow_html=True)
 
-if is_plantas:
-    st.markdown(mc_total(plantas), unsafe_allow_html=True)
+
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1159,12 +1179,11 @@ st.markdown('<div class="sc">', unsafe_allow_html=True)
 is_areas = section_open("areas", "Áreas Funcionais — Performance Consolidada")
 area_fn = {"Compras": get_proj_compras, "Vendas": get_proj_vendas}
 if is_areas:
-    st.markdown(mc_header(), unsafe_allow_html=True)
+    st.markdown(render_macro_table(areas), unsafe_allow_html=True)
 
 for a in areas:
     if not is_areas:
         break
-    st.markdown(mc_row(a), unsafe_allow_html=True)
     with st.expander(f"＋  Ver projetos de {a['nome']}", expanded=False):
         fn = area_fn.get(a["nome"])
         proj = fn(D) if fn else []
@@ -1186,8 +1205,7 @@ for a in areas:
             st.markdown("<p style='color:#999;font-size:12px;'>Sem projetos.</p>",
                         unsafe_allow_html=True)
 
-if is_areas:
-    st.markdown(mc_total(areas), unsafe_allow_html=True)
+
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── CLASSIFICAÇÃO DE GANHOS ────────────────────────────────────────────────────
