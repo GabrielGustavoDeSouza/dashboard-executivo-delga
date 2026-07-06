@@ -921,28 +921,28 @@ st.markdown(f"""<div class="dh">
 # NAV LATERAL DE NAVEGAÇÃO
 st.markdown("""
 <div class="side-nav">
-  <a onclick="document.getElementById('sec-evolucao').scrollIntoView({behavior:'smooth'})">
-    <span class="dot"></span>Evolução
-  </a>
-  <a onclick="document.getElementById('sec-funil').scrollIntoView({behavior:'smooth'})">
-    <span class="dot"></span>Funil / Gauge
-  </a>
-  <a onclick="document.getElementById('sec-pilares').scrollIntoView({behavior:'smooth'})">
-    <span class="dot"></span>Pilares
-  </a>
-  <a onclick="document.getElementById('sec-plantas').scrollIntoView({behavior:'smooth'})">
-    <span class="dot"></span>Plantas
-  </a>
-  <a onclick="document.getElementById('sec-areas').scrollIntoView({behavior:'smooth'})">
-    <span class="dot"></span>Áreas
-  </a>
-  <a onclick="document.getElementById('sec-ranking').scrollIntoView({behavior:'smooth'})">
-    <span class="dot"></span>Ranking
-  </a>
-  <a onclick="document.getElementById('sec-gap').scrollIntoView({behavior:'smooth'})">
-    <span class="dot"></span>GAP
-  </a>
+  <a onclick="navTo('sec-evolucao')"><span class="dot"></span>Evolução</a>
+  <a onclick="navTo('sec-funil')"><span class="dot"></span>Funil / Gauge</a>
+  <a onclick="navTo('sec-pilares')"><span class="dot"></span>Pilares</a>
+  <a onclick="navTo('sec-plantas')"><span class="dot"></span>Plantas</a>
+  <a onclick="navTo('sec-areas')"><span class="dot"></span>Áreas</a>
+  <a onclick="navTo('sec-ranking')"><span class="dot"></span>Ranking</a>
+  <a onclick="navTo('sec-gap')"><span class="dot"></span>GAP</a>
 </div>
+
+<script>
+function navTo(id) {
+  // Streamlit roda dentro de um iframe — precisamos subir para o documento pai
+  var target = window.parent.document.getElementById(id);
+  if (target) {
+    target.scrollIntoView({behavior: 'smooth', block: 'start'});
+    return;
+  }
+  // Fallback: busca no documento atual
+  var t2 = document.getElementById(id);
+  if (t2) t2.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+</script>
 """, unsafe_allow_html=True)
 
 # ADMIN UPLOAD
