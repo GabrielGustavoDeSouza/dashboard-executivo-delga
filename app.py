@@ -1120,11 +1120,13 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown('<div class="sc">', unsafe_allow_html=True)
-st.markdown(f'<span class="st">Plantas Industriais — Performance Consolidada</span>',
-            unsafe_allow_html=True)
-st.markdown(mc_header(), unsafe_allow_html=True)
+is_plantas = section_open("plantas", "Plantas Industriais — Performance Consolidada")
+if is_plantas:
+    st.markdown(mc_header(), unsafe_allow_html=True)
 
 for p in plantas:
+    if not is_plantas:
+        break
     st.markdown(mc_row(p), unsafe_allow_html=True)
     with st.expander(f"＋  Ver projetos de {p['nome']}", expanded=False):
         proj = get_proj_planta(D, p["sheet"])
@@ -1144,20 +1146,22 @@ for p in plantas:
             st.markdown("<p style='color:#999;font-size:12px;'>Sem projetos.</p>",
                         unsafe_allow_html=True)
 
-st.markdown(mc_total(plantas), unsafe_allow_html=True)
+if is_plantas:
+    st.markdown(mc_total(plantas), unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # ÁREAS FUNCIONAIS
 # ═══════════════════════════════════════════════════════════════════════════════
 st.markdown('<div class="sc">', unsafe_allow_html=True)
-st.markdown(f'<span class="st">Áreas Funcionais — Performance Consolidada</span>',
-            unsafe_allow_html=True)
-st.markdown(mc_header(), unsafe_allow_html=True)
-
+is_areas = section_open("areas", "Áreas Funcionais — Performance Consolidada")
 area_fn = {"Compras": get_proj_compras, "Vendas": get_proj_vendas}
+if is_areas:
+    st.markdown(mc_header(), unsafe_allow_html=True)
 
 for a in areas:
+    if not is_areas:
+        break
     st.markdown(mc_row(a), unsafe_allow_html=True)
     with st.expander(f"＋  Ver projetos de {a['nome']}", expanded=False):
         fn = area_fn.get(a["nome"])
@@ -1180,7 +1184,8 @@ for a in areas:
             st.markdown("<p style='color:#999;font-size:12px;'>Sem projetos.</p>",
                         unsafe_allow_html=True)
 
-st.markdown(mc_total(areas), unsafe_allow_html=True)
+if is_areas:
+    st.markdown(mc_total(areas), unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── CLASSIFICAÇÃO DE GANHOS ────────────────────────────────────────────────────
