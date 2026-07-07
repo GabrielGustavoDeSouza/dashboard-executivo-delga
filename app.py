@@ -589,27 +589,65 @@ def chart_gauge(pct):
     return fig
 
 def chart_evolucao(ev, series):
+    """
+    Gráfico de evolução com:
+    - Linhas: Acumulado Previsto, Acumulado Real, Projeção da Meta
+    - Barras mensais: Previsto Mensal (azul claro), Real Mensal (verde)
+    - Hover ordenado do maior para o menor
+    """
+    BARRAS = {"Previsto Mensal", "Real Mensal"}
+
+    # Configurações de cada série
     cfg = {
-        "Acumulado Previsto":dict(data=ev["acum_prev"],color=NAVY, dash="solid"),
-        "Acumulado Real":    dict(data=ev["acum_real"],color=GREEN,dash="solid"),
-        "Projeção da Meta":  dict(data=ev["proj_meta"],color=RED,  dash="dash"),
-        "Previsto Mensal":   dict(data=ev["prev"],     color="#4A90D9",dash="dot"),
-        "Real Mensal":       dict(data=ev["real"],     color="#28A745",dash="dot"),
+        "Acumulado Previsto": dict(data=ev["acum_prev"], color=NAVY,      dash="solid", type="line"),
+        "Acumulado Real":     dict(data=ev["acum_real"], color=GREEN,     dash="solid", type="line"),
+        "Projeção da Meta":   dict(data=ev["proj_meta"], color=RED,       dash="dash",  type="line"),
+        "Previsto Mensal":    dict(data=ev["prev"],      color="#7EB3D8",              type="bar"),
+        "Real Mensal":        dict(data=ev["real"],      color="#52A97C",              type="bar"),
     }
+
     fig = go.Figure()
+
+    # Barras primeiro (ficam atrás das linhas)
     for s in series:
+        if s not in cfg: continue
         c = cfg[s]
-        fig.add_trace(go.Scatter(x=ev["meses"],y=c["data"],mode="lines+markers",name=s,
-            line=dict(color=c["color"],width=2.5,dash=c["dash"]),
-            marker=dict(size=6,color=c["color"]),
-            hovertemplate=f"<b>{s}</b><br>%{{x}}: R$ %{{y:,.0f}}<extra></extra>"))
+        if c["type"] == "bar":
+            fig.add_trace(go.Bar(
+                x=ev["meses"], y=c["data"], name=s,
+                marker=dict(color=c["color"], opacity=0.75, line=dict(width=0)),
+                hovertemplate=f"<b>{s}</b><br>%{{x}}: R$ %{{y:,.0f}}<extra></extra>",
+            ))
+
+    # Linhas por cima
+    for s in series:
+        if s not in cfg: continue
+        c = cfg[s]
+        if c["type"] == "line":
+            fig.add_trace(go.Scatter(
+                x=ev["meses"], y=c["data"], mode="lines+markers", name=s,
+                line=dict(color=c["color"], width=2.5, dash=c["dash"]),
+                marker=dict(size=6, color=c["color"]),
+                hovertemplate=f"<b>{s}</b><br>%{{x}}: R$ %{{y:,.0f}}<extra></extra>",
+            ))
+
     fig.update_layout(
-        xaxis=dict(showgrid=True,gridcolor="#F0F4F8"),
-        yaxis=dict(tickformat=",.0f",showgrid=True,gridcolor="#F0F4F8",title="R$"),
-        legend=dict(orientation="h",y=1.05,x=0.5,xanchor="center",font=dict(size=11)),
-        margin=dict(l=80,r=20,t=50,b=40),height=400,
-        paper_bgcolor="white",plot_bgcolor="white",
-        hovermode="x unified",font=dict(family="Inter"))
+        barmode="group",
+        bargap=0.25,
+        bargroupgap=0.05,
+        xaxis=dict(showgrid=True, gridcolor="#F0F4F8"),
+        yaxis=dict(tickformat=",.0f", showgrid=True, gridcolor="#F0F4F8", title="R$"),
+        legend=dict(orientation="h", y=1.05, x=0.5, xanchor="center", font=dict(size=11)),
+        margin=dict(l=80, r=20, t=50, b=40),
+        height=420,
+        paper_bgcolor="white", plot_bgcolor="white",
+        # Hover ordenado do maior para o menor
+        hovermode="x unified",
+        hoverlabel=dict(bgcolor="white", font_size=12, font_family="Inter"),
+        font=dict(family="Inter"),
+    )
+    # Ordenar hover do maior para o menor por valor
+    fig.update_layout(hoversubplots="axis")
     return fig
 
 def chart_donut(labels,values,colors):
@@ -978,7 +1016,10 @@ st.markdown('<div class="sc">', unsafe_allow_html=True)
 is_ev = section_open("evolucao", "Evolução Mensal — Acumulado Previsto vs Real vs Meta")
 if is_ev:
     series_all = ["Acumulado Previsto","Acumulado Real","Projeção da Meta","Previsto Mensal","Real Mensal"]
-    sel = st.multiselect("Séries:", series_all, default=series_all[:3], key="ev_sel")
+    sel = st.multiselect("Séries:", series_all,
+                         default=["Acumulado Previsto","Acumulado Real","Projeção da Meta",
+                                  "Previsto Mensal","Real Mensal"],
+                         key="ev_sel")
     if sel:
         st.plotly_chart(chart_evolucao(ev,sel), use_container_width=True, config={"displayModeBar":False})
 st.markdown('</div>', unsafe_allow_html=True)
@@ -1306,4 +1347,3 @@ _,cft = st.columns([5,1])
 with cft:
     if st.button("🚪 Sair", key="logout"):
         st.session_state["auth"]=False; st.rerun()
-        
