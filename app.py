@@ -418,7 +418,8 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
                      col_termino=7, col_custos=12, col_saving=13,
                      col_status=14, col_onde=15, col_data_lib=16,
                      col_prev_real=18,  # col com 'Previsto'/'Real'
-                     col_total_ano=36): # col com Total Ano
+                     col_total_ano=36,  # col com Total Ano (linha Real = V.Real acumulado)
+                     col_previsto=8):   # col com PREVISTO(R$) original do projeto
     """
     Extrai projetos de uma aba usando a lógica:
       - Linha Previsto: col_tipo in VALID_TIPOS + col_nome preenchido + col_prev_real='Previsto'
@@ -434,8 +435,8 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
         c_pr = str(df.iloc[i, col_prev_real]).strip() if df.shape[1] > col_prev_real else ""
 
         if tipo in VALID_TIPOS and nome not in ("", "nan") and c_pr == "Previsto":
-            # Linha Previsto — Total Ano
-            tot_prev = safe(df.iloc[i, col_total_ano])
+            # V.Previsto = col8 (PREVISTO R$ original do projeto)
+            tot_prev = safe(df.iloc[i, col_previsto])
 
             # Linha Real (row+1)
             tot_real = 0.0
@@ -491,7 +492,7 @@ def get_proj_planta(d, sheet_key):
         col_tipo=0, col_nome=2, col_resp=5, col_termino=7,
         col_custos=12, col_saving=13, col_status=14,
         col_onde=15, col_data_lib=16,
-        col_prev_real=18, col_total_ano=36)
+        col_prev_real=18, col_total_ano=36, col_previsto=8)
 
 def get_proj_compras(d):
     df = d.get("Compras ")
@@ -502,7 +503,7 @@ def get_proj_compras(d):
         col_tipo=0, col_nome=3, col_resp=5, col_termino=7,
         col_custos=12, col_saving=13, col_status=14,
         col_onde=15, col_data_lib=16,
-        col_prev_real=19, col_total_ano=37)
+        col_prev_real=19, col_total_ano=37, col_previsto=8)
 
 def get_proj_vendas(d):
     df = d.get("Vendas")
@@ -515,7 +516,7 @@ def get_proj_vendas(d):
         col_tipo=0, col_nome=1, col_resp=4, col_termino=6,
         col_custos=11, col_saving=12, col_status=13,
         col_onde=14, col_data_lib=15,
-        col_prev_real=17, col_total_ano=35)
+        col_prev_real=17, col_total_ano=35, col_previsto=7)
 
 def extract_ranking(d):
     df = d["u5"]
