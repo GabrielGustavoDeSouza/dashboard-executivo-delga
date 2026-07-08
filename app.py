@@ -1160,7 +1160,7 @@ def kpi(cls,lbl,vb,sub,det):
 st.markdown(f"""<div class="kpi-wrap kpi-6">
   {kpi("","Meta Anual do Grupo (2026)",fmt_mi(meta),"","Objetivo 2026 — 100%")}
   {kpi("cs","Portfólio Previsto (Anualizado)",fmt_mi(portfolio),"",f"{cob:.1f}% da meta coberta")}
-  {kpi("ca","Previsto 2026 (Global)",fmt_mi(prev2026),"",f"{pp:.1f}% do portfólio total")}
+  {kpi("ca","Previsto 2026",fmt_mi(prev2026),"",f"{pp:.1f}% do portfólio total")}
   {kpi("","Validado por Custos (2026)",fmt_mi(validado),"",f"{pv:.1f}% do Previsto 2026")}
   {kpi("cg","Retorno Real (DRE) (2026)",fmt_mi(real),"",f"{pct_ating*100:.1f}% de atingimento")}
   {kpi("cr","Extra DRE (Até o Momento)",fmt_mi(extra_dre),"","Ganho fora do DRE acumulado")}
