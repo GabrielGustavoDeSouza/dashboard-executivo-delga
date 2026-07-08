@@ -884,6 +884,35 @@ def projetos_por_pilar_html(projetos, key_prefix=""):
                 unsafe_allow_html=True
             )
 
+    # Barra de TOTAL no fim — mesmo estilo dos pilares
+    tot_all_prev = sum(p["previsto"]   for p in res) if res else 0
+    tot_all_val  = sum(p["val_saving"] for p in res) if res else 0
+    tot_all_real = sum(p["real_ano"]   for p in res) if res else 0
+    n_all        = len(res)
+    st.markdown(f"""<div style="background:{NAVY};border-radius:8px;
+        padding:10px 16px;display:flex;align-items:center;gap:16px;margin-top:16px;
+        border:2px solid rgba(255,255,255,.12);">
+      <span style="color:white;font-size:12px;font-weight:700;letter-spacing:.3px;">TOTAL</span>
+      <div style="margin-left:auto;display:flex;gap:28px;align-items:center;">
+        <div style="text-align:center;">
+          <div style="color:rgba(255,255,255,.5);font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Projetos</div>
+          <div style="color:white;font-size:14px;font-weight:700;">{n_all}</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="color:rgba(255,255,255,.5);font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Previsto</div>
+          <div style="color:#C8D8EE;font-size:14px;font-weight:700;">{fmt_mi(tot_all_prev)}</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="color:rgba(255,255,255,.5);font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Validado</div>
+          <div style="color:#7BDD9A;font-size:14px;font-weight:700;">{fmt_mi(tot_all_val)}</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="color:rgba(255,255,255,.5);font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Real Acum.</div>
+          <div style="color:#7BDD9A;font-size:14px;font-weight:700;">{fmt_mi(tot_all_real)}</div>
+        </div>
+      </div>
+    </div>""", unsafe_allow_html=True)
+
     return res, ""
 
 def proj_table_html(projetos):
