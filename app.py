@@ -1201,16 +1201,10 @@ for p in plantas:
         proj = get_proj_planta(D, p["sheet"])
         n = len(proj)
         if proj:
-            proj_v = render_proj_filtros(proj, key_prefix=f"plt_{p['nome']}")
+            proj_v, pilar_html = projetos_por_pilar_html(proj, key_prefix=f"plt_{p['nome']}")
             st.markdown(f"<p style='font-size:11px;color:{SILVER};margin:4px 0 8px;'>"
                         f"<b>{len(proj_v)}</b> de {n} projetos</p>", unsafe_allow_html=True)
-            st.markdown(proj_table_html(proj_v), unsafe_allow_html=True)
-            st.markdown("<hr style='margin:12px 0;border-color:#EEF0F3;'>", unsafe_allow_html=True)
-            filtro_ativo = len(proj_v) < n
-            label_resumo = f"Resumo por Pilar — {p['nome']} {'(filtrado)' if filtro_ativo else ''}"
-            st.markdown(f'<p style="font-size:10px;font-weight:700;color:{NAVY};margin-bottom:6px;">{label_resumo}</p>',
-                        unsafe_allow_html=True)
-            st.markdown(pilar_resumo_html(proj_v), unsafe_allow_html=True)
+            st.markdown(pilar_html, unsafe_allow_html=True)
         else:
             st.markdown("<p style='color:#999;font-size:12px;'>Sem projetos.</p>",
                         unsafe_allow_html=True)
@@ -1235,22 +1229,13 @@ for a in areas:
         proj = fn(D) if fn else []
         n = len(proj)
         if proj:
-
-
-            proj_va = render_proj_filtros(proj, key_prefix=f"area_{a['nome']}")
+            proj_va, pilar_html_a = projetos_por_pilar_html(proj, key_prefix=f"area_{a['nome']}")
             st.markdown(f"<p style='font-size:11px;color:{SILVER};margin:4px 0 8px;'>"
                         f"<b>{len(proj_va)}</b> de {n} projetos</p>", unsafe_allow_html=True)
-            st.markdown(proj_table_html(proj_va), unsafe_allow_html=True)
-            st.markdown("<hr style='margin:12px 0;border-color:#EEF0F3;'>", unsafe_allow_html=True)
-            filtro_ativo_a = len(proj_va) < n
-            label_resumo_a = f"Resumo por Pilar — {a['nome']} {'(filtrado)' if filtro_ativo_a else ''}"
-            st.markdown(f'<p style="font-size:10px;font-weight:700;color:{NAVY};margin-bottom:6px;">{label_resumo_a}</p>',
-                        unsafe_allow_html=True)
-            st.markdown(pilar_resumo_html(proj_va), unsafe_allow_html=True)
+            st.markdown(pilar_html_a, unsafe_allow_html=True)
         else:
             st.markdown("<p style='color:#999;font-size:12px;'>Sem projetos.</p>",
                         unsafe_allow_html=True)
-
 
 st.markdown('</div>', unsafe_allow_html=True)
 
