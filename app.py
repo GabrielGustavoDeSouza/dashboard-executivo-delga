@@ -1003,7 +1003,7 @@ def pilar_resumo_html(projetos):
 
 # Cabeçalho macro-tabela
 # Larguras fixas por coluna — garante alinhamento header/rows/total
-MC_WIDTHS = ["18%","12%","12%","12%","12%","12%","12%","10%"]
+MC_WIDTHS = ["22%","14%","14%","16%","16%","10%","8%"]
 
 def render_macro_table(items, show_expander_fn=None):
     """
@@ -1031,7 +1031,6 @@ def render_macro_table(items, show_expander_fn=None):
           <td style="padding:10px 12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{it['nome']}</td>
           <td style="padding:10px 12px;">{fmt_brl(it['meta'])}</td>
           <td style="padding:10px 12px;">{fmt_brl(it['prev'])}</td>
-          <td style="padding:10px 12px;color:{AMBER};">{fmt_brl(it['prev2026'])}</td>
           <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(it['val'])}</td>
           <td style="padding:10px 12px;color:{GREEN};font-weight:600;">{fmt_brl(it['real'])}</td>
           <td style="padding:10px 12px;">{pbar_html(it['pct'])}</td>
@@ -1039,15 +1038,14 @@ def render_macro_table(items, show_expander_fn=None):
         </tr>"""
 
     # Total
-    tm=tp=tp26=tv=tr=0
+    tm=tp=tv=tr=0
     for it in items:
-        tm+=it["meta"];tp+=it["prev"];tp26+=it["prev2026"];tv+=it["val"];tr+=it["real"]
+        tm+=it["meta"];tp+=it["prev"];tv+=it["val"];tr+=it["real"]
     pt = tr/tm if tm>0 else 0
     html += f"""<tr style="background:{LIGHT};border-top:2px solid {NAVY};font-weight:700;">
       <td style="padding:10px 12px;">TOTAL</td>
       <td style="padding:10px 12px;">{fmt_brl(tm)}</td>
       <td style="padding:10px 12px;">{fmt_brl(tp)}</td>
-      <td style="padding:10px 12px;color:{AMBER};">{fmt_brl(tp26)}</td>
       <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(tv)}</td>
       <td style="padding:10px 12px;color:{GREEN};">{fmt_brl(tr)}</td>
       <td style="padding:10px 12px;">{pbar_html(pt)}</td>
@@ -1162,7 +1160,7 @@ def kpi(cls,lbl,vb,sub,det):
 st.markdown(f"""<div class="kpi-wrap kpi-6">
   {kpi("","Meta Anual do Grupo (2026)",fmt_mi(meta),"","Objetivo 2026 — 100%")}
   {kpi("cs","Portfólio Previsto (Anualizado)",fmt_mi(portfolio),"",f"{cob:.1f}% da meta coberta")}
-  {kpi("ca","Previsto 2026",fmt_mi(prev2026),"",f"{pp:.1f}% do portfólio total")}
+  {kpi("ca","Previsto 2026 (Global)",fmt_mi(prev2026),"",f"{pp:.1f}% do portfólio total")}
   {kpi("","Validado por Custos (2026)",fmt_mi(validado),"",f"{pv:.1f}% do Previsto 2026")}
   {kpi("cg","Retorno Real (DRE) (2026)",fmt_mi(real),"",f"{pct_ating*100:.1f}% de atingimento")}
   {kpi("cr","Extra DRE (Até o Momento)",fmt_mi(extra_dre),"","Ganho fora do DRE acumulado")}
