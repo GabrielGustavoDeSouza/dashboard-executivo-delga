@@ -803,28 +803,30 @@ def projetos_por_pilar_html(projetos, key_prefix=""):
             grupos[t] = []
         grupos[t].append(p)
 
-    html_parts = []
+    # Renderiza cada pilar como bloco expandível via session_state
+    # Retorna lista filtrada + flag vazia (HTML renderizado diretamente via st)
     for tipo, projs in grupos.items():
         if not projs:
             continue
         dre_flag = is_dre(tipo)
         dre_lbl  = "✓ DRE" if dre_flag else "↷ N/DRE"
-        dre_clr  = "#7BDD9A" if dre_flag else "rgba(255,255,255,.4)"
+        dre_clr  = "#7BDD9A" if dre_flag else "rgba(255,255,255,.45)"
         tot_prev = sum(p["previsto"]   for p in projs)
         tot_val  = sum(p["val_saving"] for p in projs)
         tot_real = sum(p["real_ano"]   for p in projs)
-        n        = len(projs)
+        n_p      = len(projs)
 
-        pilar_header = f"""<div style="background:{NAVY};border-radius:8px 8px 0 0;
-            padding:10px 16px;display:flex;align-items:center;gap:16px;margin-top:16px;">
+        # Cabeçalho do pilar (sempre visível)
+        header_html = f"""<div style="background:{NAVY};border-radius:8px;
+            padding:10px 16px;display:flex;align-items:center;gap:16px;margin-top:12px;">
           <div>
             <span style="color:white;font-size:12px;font-weight:700;">{tipo}</span>
             <span style="color:{dre_clr};font-size:9px;margin-left:8px;font-weight:600;">{dre_lbl}</span>
           </div>
-          <div style="margin-left:auto;display:flex;gap:28px;">
+          <div style="margin-left:auto;display:flex;gap:28px;align-items:center;">
             <div style="text-align:center;">
               <div style="color:rgba(255,255,255,.5);font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Projetos</div>
-              <div style="color:white;font-size:14px;font-weight:700;">{n}</div>
+              <div style="color:white;font-size:14px;font-weight:700;">{n_p}</div>
             </div>
             <div style="text-align:center;">
               <div style="color:rgba(255,255,255,.5);font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Previsto</div>
@@ -841,44 +843,48 @@ def projetos_por_pilar_html(projetos, key_prefix=""):
           </div>
         </div>"""
 
-        col_headers = "".join(
-            f'<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:600;'
-            f'color:{SILVER};text-transform:uppercase;letter-spacing:.4px;background:#F4F6F9;">{c}</th>'
-            for c in ["Projeto","Responsável","Término","V.Previsto","V.Validado","V.Real","Custos","Status","Onde Parado","Prev.Lib."]
-        )
+        # Renderiza cabeçalho do pilar (sempre visível)
+        st.markdown(header_html, unsafe_allow_html=True)
 
-        rows = ""
-        for p in projs:
-            real_v = p["real_ano"]
-            real_s = fmt_brl(real_v) if real_v and real_v != 0 else "—"
-            rc     = GREEN if real_v > 0 else ("#DC3545" if real_v < 0 else "#999")
-            concluido = "Concluído" in str(p.get("status",""))
-            onde  = p.get("onde_parado","")
-            dlib  = p.get("data_lib","")
-            onde_html = f'<span style="font-size:10px;color:#555;">{onde}</span>' if (onde and not concluido) else '<span style="color:#ccc;font-size:10px;">—</span>'
-            data_html = f'<span style="font-size:10px;color:{AMBER};font-weight:600;">{dlib}</span>' if (dlib and not concluido) else '<span style="color:#ccc;font-size:10px;">—</span>'
-            rows += f"""<tr style="border-bottom:1px solid #EEF0F3;">
-              <td style="padding:8px 12px;font-size:11px;max-width:260px;"><b>{p['nome']}</b></td>
-              <td style="padding:8px 12px;font-size:11px;white-space:nowrap;">{p['resp']}</td>
-              <td style="padding:8px 12px;font-size:11px;white-space:nowrap;">{p['termino']}</td>
-              <td style="padding:8px 12px;text-align:right;font-size:11px;">{fmt_brl(p['previsto'])}</td>
-              <td style="padding:8px 12px;text-align:right;font-size:11px;color:{TEAL};">{fmt_brl(p['val_saving'])}</td>
-              <td style="padding:8px 12px;text-align:right;font-size:11px;color:{rc};font-weight:600;">{real_s}</td>
-              <td style="padding:8px 12px;">{bdg_custos(p['val_custos'])}</td>
-              <td style="padding:8px 12px;white-space:nowrap;">{bdg_st(p['status'])}</td>
-              <td style="padding:8px 12px;">{onde_html}</td>
-              <td style="padding:8px 12px;">{data_html}</td>
-            </tr>"""
+        # Tabela de projetos — expander nativo com +/−
+        with st.expander("", expanded=True):
+            col_headers = "".join(
+                f'<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:600;'
+                f'color:{SILVER};text-transform:uppercase;letter-spacing:.4px;background:#F4F6F9;">{c}</th>'
+                for c in ["Projeto","Responsável","Término","V.Previsto","V.Validado",
+                          "V.Real","Custos","Status","Onde Parado","Prev.Lib."]
+            )
+            rows = ""
+            for p in projs:
+                real_v = p["real_ano"]
+                real_s = fmt_brl(real_v) if real_v and real_v != 0 else "—"
+                rc     = GREEN if real_v > 0 else ("#DC3545" if real_v < 0 else "#999")
+                concluido = "Concluído" in str(p.get("status",""))
+                onde  = p.get("onde_parado","")
+                dlib  = p.get("data_lib","")
+                onde_html = f'<span style="font-size:10px;color:#555;">{onde}</span>' if (onde and not concluido) else '<span style="color:#ccc;font-size:10px;">—</span>'
+                data_html = f'<span style="font-size:10px;color:{AMBER};font-weight:600;">{dlib}</span>' if (dlib and not concluido) else '<span style="color:#ccc;font-size:10px;">—</span>'
+                rows += f"""<tr style="border-bottom:1px solid #EEF0F3;">
+                  <td style="padding:8px 12px;font-size:11px;"><b>{p['nome']}</b></td>
+                  <td style="padding:8px 12px;font-size:11px;white-space:nowrap;">{p['resp']}</td>
+                  <td style="padding:8px 12px;font-size:11px;white-space:nowrap;">{p['termino']}</td>
+                  <td style="padding:8px 12px;text-align:right;font-size:11px;">{fmt_brl(p['previsto'])}</td>
+                  <td style="padding:8px 12px;text-align:right;font-size:11px;color:{TEAL};">{fmt_brl(p['val_saving'])}</td>
+                  <td style="padding:8px 12px;text-align:right;font-size:11px;color:{rc};font-weight:600;">{real_s}</td>
+                  <td style="padding:8px 12px;">{bdg_custos(p['val_custos'])}</td>
+                  <td style="padding:8px 12px;white-space:nowrap;">{bdg_st(p['status'])}</td>
+                  <td style="padding:8px 12px;">{onde_html}</td>
+                  <td style="padding:8px 12px;">{data_html}</td>
+                </tr>"""
 
-        pilar_table = (
-            f'<table style="width:100%;border-collapse:collapse;'
-            f'border:1px solid #EEF0F3;border-top:none;border-radius:0 0 8px 8px;">'
-            f'<thead><tr>{col_headers}</tr></thead>'
-            f'<tbody>{rows}</tbody></table>'
-        )
-        html_parts.append(pilar_header + pilar_table)
+            st.markdown(
+                f'<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+                f'<thead><tr>{col_headers}</tr></thead>'
+                f'<tbody>{rows}</tbody></table>',
+                unsafe_allow_html=True
+            )
 
-    return res, "".join(html_parts)
+    return res, ""
 
 def proj_table_html(projetos):
     """Tabela de projetos com colunas Onde Parado e Data Liberação."""
