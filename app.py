@@ -753,6 +753,133 @@ def render_proj_filtros(projetos, key_prefix=""):
 
     return res
 
+
+def projetos_por_pilar_html(projetos, key_prefix=""):
+    """Exibe projetos agrupados por Tipo/Pilar com cabeçalho de totais."""
+    if not projetos:
+        return [], ""
+
+    PILARES_ORDER = [
+        "BSW","Kaizen","Kaizen - Ganho Recorrente","Kaizen - Custo Evitado",
+        "Kaizen - Capital de Giro","Redução de Custo","Redução de custo",
+        "Você Resolve","Você resolve","Meta Executiva","Meta Executiva ",
+        "Estratégia Comercial",
+    ]
+
+    STATUS_DISP = sorted({p["status"] for p in projetos if p["status"]})
+    fc1, fc2, fc3 = st.columns([3, 2, 4])
+    with fc1:
+        f_status = st.multiselect("Status:", STATUS_DISP, default=[],
+                                  key=f"{key_prefix}_fstatus", placeholder="Todos")
+    with fc2:
+        sort_col = st.selectbox("Ordenar por",
+            ["Nome (A→Z)","V.Previsto ↓","V.Previsto ↑","V.Real ↓","V.Real ↑"],
+            index=0, key=f"{key_prefix}_sort")
+    with fc3:
+        f_nome = st.text_input("🔍 Buscar projeto", value="",
+                               key=f"{key_prefix}_fnome", placeholder="Filtrar por nome...")
+
+    res = projetos[:]
+    if f_status: res = [p for p in res if p["status"] in f_status]
+    if f_nome:   res = [p for p in res if f_nome.lower() in p["nome"].lower()]
+
+    sort_map = {
+        "Nome (A→Z)":   (lambda p: p["nome"].lower(), False),
+        "V.Previsto ↓": (lambda p: p["previsto"],     True),
+        "V.Previsto ↑": (lambda p: p["previsto"],     False),
+        "V.Real ↓":     (lambda p: p["real_ano"],     True),
+        "V.Real ↑":     (lambda p: p["real_ano"],     False),
+    }
+    key_fn, rev = sort_map.get(sort_col, (lambda p: p["nome"].lower(), False))
+    res = sorted(res, key=key_fn, reverse=rev)
+
+    from collections import OrderedDict
+    grupos = OrderedDict()
+    for tipo in PILARES_ORDER:
+        grupos[tipo] = []
+    for p in res:
+        t = p["tipo"]
+        if t not in grupos:
+            grupos[t] = []
+        grupos[t].append(p)
+
+    html_parts = []
+    for tipo, projs in grupos.items():
+        if not projs:
+            continue
+        dre_flag = is_dre(tipo)
+        dre_lbl  = "✓ DRE" if dre_flag else "↷ N/DRE"
+        dre_clr  = "#7BDD9A" if dre_flag else "rgba(255,255,255,.4)"
+        tot_prev = sum(p["previsto"]   for p in projs)
+        tot_val  = sum(p["val_saving"] for p in projs)
+        tot_real = sum(p["real_ano"]   for p in projs)
+        n        = len(projs)
+
+        pilar_header = f"""<div style="background:{NAVY};border-radius:8px 8px 0 0;
+            padding:10px 16px;display:flex;align-items:center;gap:16px;margin-top:16px;">
+          <div>
+            <span style="color:white;font-size:12px;font-weight:700;">{tipo}</span>
+            <span style="color:{dre_clr};font-size:9px;margin-left:8px;font-weight:600;">{dre_lbl}</span>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:28px;">
+            <div style="text-align:center;">
+              <div style="color:rgba(255,255,255,.5);font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Projetos</div>
+              <div style="color:white;font-size:14px;font-weight:700;">{n}</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="color:rgba(255,255,255,.5);font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Previsto</div>
+              <div style="color:#C8D8EE;font-size:14px;font-weight:700;">{fmt_mi(tot_prev)}</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="color:rgba(255,255,255,.5);font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Validado</div>
+              <div style="color:#7BDD9A;font-size:14px;font-weight:700;">{fmt_mi(tot_val)}</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="color:rgba(255,255,255,.5);font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Real Acum.</div>
+              <div style="color:#7BDD9A;font-size:14px;font-weight:700;">{fmt_mi(tot_real)}</div>
+            </div>
+          </div>
+        </div>"""
+
+        col_headers = "".join(
+            f'<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:600;'
+            f'color:{SILVER};text-transform:uppercase;letter-spacing:.4px;background:#F4F6F9;">{c}</th>'
+            for c in ["Projeto","Responsável","Término","V.Previsto","V.Validado","V.Real","Custos","Status","Onde Parado","Prev.Lib."]
+        )
+
+        rows = ""
+        for p in projs:
+            real_v = p["real_ano"]
+            real_s = fmt_brl(real_v) if real_v and real_v != 0 else "—"
+            rc     = GREEN if real_v > 0 else ("#DC3545" if real_v < 0 else "#999")
+            concluido = "Concluído" in str(p.get("status",""))
+            onde  = p.get("onde_parado","")
+            dlib  = p.get("data_lib","")
+            onde_html = f'<span style="font-size:10px;color:#555;">{onde}</span>' if (onde and not concluido) else '<span style="color:#ccc;font-size:10px;">—</span>'
+            data_html = f'<span style="font-size:10px;color:{AMBER};font-weight:600;">{dlib}</span>' if (dlib and not concluido) else '<span style="color:#ccc;font-size:10px;">—</span>'
+            rows += f"""<tr style="border-bottom:1px solid #EEF0F3;">
+              <td style="padding:8px 12px;font-size:11px;max-width:260px;"><b>{p['nome']}</b></td>
+              <td style="padding:8px 12px;font-size:11px;white-space:nowrap;">{p['resp']}</td>
+              <td style="padding:8px 12px;font-size:11px;white-space:nowrap;">{p['termino']}</td>
+              <td style="padding:8px 12px;text-align:right;font-size:11px;">{fmt_brl(p['previsto'])}</td>
+              <td style="padding:8px 12px;text-align:right;font-size:11px;color:{TEAL};">{fmt_brl(p['val_saving'])}</td>
+              <td style="padding:8px 12px;text-align:right;font-size:11px;color:{rc};font-weight:600;">{real_s}</td>
+              <td style="padding:8px 12px;">{bdg_custos(p['val_custos'])}</td>
+              <td style="padding:8px 12px;white-space:nowrap;">{bdg_st(p['status'])}</td>
+              <td style="padding:8px 12px;">{onde_html}</td>
+              <td style="padding:8px 12px;">{data_html}</td>
+            </tr>"""
+
+        pilar_table = (
+            f'<table style="width:100%;border-collapse:collapse;'
+            f'border:1px solid #EEF0F3;border-top:none;border-radius:0 0 8px 8px;">'
+            f'<thead><tr>{col_headers}</tr></thead>'
+            f'<tbody>{rows}</tbody></table>'
+        )
+        html_parts.append(pilar_header + pilar_table)
+
+    return res, "".join(html_parts)
+
 def proj_table_html(projetos):
     """Tabela de projetos com colunas Onde Parado e Data Liberação."""
     if not projetos:
