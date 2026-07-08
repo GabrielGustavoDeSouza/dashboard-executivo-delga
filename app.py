@@ -851,8 +851,8 @@ def projetos_por_pilar_html(projetos, key_prefix=""):
             col_headers = "".join(
                 f'<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:600;'
                 f'color:{SILVER};text-transform:uppercase;letter-spacing:.4px;background:#F4F6F9;">{c}</th>'
-                for c in ["Projeto","Responsável","Término","V.Previsto","V.Validado",
-                          "V.Real","Custos","Status","Onde Parado","Prev.Lib."]
+                for c in ["Projeto","Responsável","Término","Previsto (R$)","Saving Validado",
+                          "Real Acum.","Custos","Status","Onde Parado","Prev.Lib."]
             )
             rows = ""
             for p in projs:
@@ -956,7 +956,7 @@ def proj_table_html(projetos):
           <td style="white-space:nowrap;">{data_html}</td>
         </tr>"""
     return (th("Tipo","Projeto","Responsável","Término",
-               "V.Previsto","V.Validado","V.Real","Custos","Status",
+               "Previsto (R$)","Saving Validado","Real Acum.","Custos","Status",
                "Onde Parado","Previsão Lib.")
             + rows + "</tbody></table>")
 
@@ -999,7 +999,7 @@ def pilar_resumo_html(projetos):
       <td style="text-align:right;font-size:11px;">{fmt_mi(tot_prev)}</td>
       <td style="text-align:right;font-size:11px;color:{real_c_tot};font-weight:700;">{fmt_mi(tot_real)}</td>
     </tr>"""
-    return (th("Pilar","Qtd","V. Previsto","V. Real (Acum.)") + rows + "</tbody></table>")
+    return (th("Pilar","Qtd","Saving (R$)","Real Acum.") + rows + "</tbody></table>")
 
 # Cabeçalho macro-tabela
 # Larguras fixas por coluna — garante alinhamento header/rows/total
@@ -1340,7 +1340,7 @@ if is_pil:
           <td style="text-align:right;font-size:11px;color:{TEAL};">{fmt_mi(tot_val_g)}</td>
           <td style="text-align:right;font-size:11px;color:{GREEN};">{fmt_mi(tot_real_g)}</td>
         </tr>"""
-        st.markdown(th("Pilar","Qtd","V. Previsto (Ano)","V. Validado","V. Real (DRE)")+rows_p+"</tbody></table>",
+        st.markdown(th("Pilar","Qtd","Saving (R$)","Saving Validado","Até o Momento")+rows_p+"</tbody></table>",
                     unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
