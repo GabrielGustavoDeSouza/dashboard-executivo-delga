@@ -316,25 +316,26 @@ def extract_plantas(d):
         res.append(dict(nome=nome,sheet=sh,
             meta    =safe(df.iloc[22,col]),
             prev    =safe(df.iloc[23,col]),
-            prev2026=safe(df.iloc[24,col]),  # direto de 5 Unidades — fonte única
+            prev2026=safe(df.iloc[24,col]),
             val     =safe(df.iloc[25,col]),
             real    =safe(df.iloc[26,col]),
-            pct     =safe(df.iloc[27,col])))
+            pct     =safe(df.iloc[27,col]),
+            extra   =safe(df.iloc[28,col])))  # row28 = Extra DRE (nova linha v27)
     return res
 
 def extract_areas(d):
     df = d["u5"]
-    # col9=Corporativo,10=Compras,11=Vendas
     cfg = [("Corporativo",9,"Corporativo"),("Compras",10,"Compras "),("Vendas",11,"Vendas")]
     res=[]
     for nome,col,sh in cfg:
         res.append(dict(nome=nome,sheet=sh,
             meta    =safe(df.iloc[22,col]),
             prev    =safe(df.iloc[23,col]),
-            prev2026=safe(df.iloc[24,col]),  # direto de 5 Unidades — fonte única
+            prev2026=safe(df.iloc[24,col]),
             val     =safe(df.iloc[25,col]),
             real    =safe(df.iloc[26,col]),
-            pct     =safe(df.iloc[27,col])))
+            pct     =safe(df.iloc[27,col]),
+            extra   =safe(df.iloc[28,col])))  # row28 = Extra DRE (nova linha v27)
     return res
 
 def extract_pilares_global(d):
