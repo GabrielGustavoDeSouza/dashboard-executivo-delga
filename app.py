@@ -848,11 +848,27 @@ def projetos_por_pilar_html(projetos, key_prefix=""):
                 dlib  = p.get("data_lib","")
                 onde_html = f'<span style="font-size:10px;color:#555;">{onde}</span>' if (onde and not concluido) else '<span style="color:#ccc;font-size:10px;">—</span>'
                 data_html = f'<span style="font-size:10px;color:{AMBER};font-weight:600;">{dlib}</span>' if (dlib and not concluido) else '<span style="color:#ccc;font-size:10px;">—</span>'
-                rows += f"""<tr style="border-bottom:1px solid #EEF0F3;">
-                  <td style="padding:8px 12px;font-size:11px;"><b>{p['nome']}</b></td>
-                  <td style="padding:8px 12px;font-size:11px;white-space:nowrap;">{p['resp']}</td>
-                  <td style="padding:8px 12px;font-size:11px;white-space:nowrap;">{p['termino']}</td>
-                  <td style="padding:8px 12px;text-align:right;font-size:11px;">{fmt_brl(p['previsto'])}</td>
+
+                # Detectar se término passou e projeto não está concluído
+                termo_str = str(p.get("termino","")).strip()
+                atrasado = False
+                if not concluido and termo_str and termo_str != "—":
+                    try:
+                        termo_dt = datetime.datetime.strptime(termo_str[:7], "%m/%Y")
+                        hoje = datetime.datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+                        if termo_dt < hoje:
+                            atrasado = True
+                    except:
+                        pass
+
+                row_style = "border-bottom:1px solid #EEF0F3;" + ("background:#FFF5F5;" if atrasado else "")
+                txt_style = "color:#C8202E;" if atrasado else ""
+
+                rows += f"""<tr style="{row_style}">
+                  <td style="padding:8px 12px;font-size:11px;{txt_style}"><b>{p['nome']}</b></td>
+                  <td style="padding:8px 12px;font-size:11px;white-space:nowrap;{txt_style}">{p['resp']}</td>
+                  <td style="padding:8px 12px;font-size:11px;white-space:nowrap;{txt_style}">{p['termino']}</td>
+                  <td style="padding:8px 12px;text-align:right;font-size:11px;{txt_style}">{fmt_brl(p['previsto'])}</td>
                   <td style="padding:8px 12px;text-align:right;font-size:11px;color:{TEAL};">{fmt_brl(p['val_saving'])}</td>
                   <td style="padding:8px 12px;text-align:right;font-size:11px;color:{rc};font-weight:600;">{real_s}</td>
                   <td style="padding:8px 12px;">{bdg_custos(p['val_custos'])}</td>
