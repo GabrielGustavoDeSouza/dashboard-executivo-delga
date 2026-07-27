@@ -88,21 +88,62 @@ body, .stApp {{
   margin-top:14px;margin-bottom:24px;
 }}
 
-/* Trava de fundo: força texto e campos claros dentro do dashboard,
-   independente do tema (claro/escuro) do sistema operacional ou navegador
-   do usuário. Estilos inline (usados em quase todo o app) continuam tendo
-   prioridade, então nada do que já está colorido manualmente é afetado. */
-.block-container, .block-container p, .block-container span,
-.block-container label, .block-container div {{
-  color:#1C2B4A;
-}}
-[data-testid="stAppViewContainer"] input,
-[data-testid="stAppViewContainer"] textarea,
-[data-testid="stAppViewContainer"] select,
-[data-baseweb="select"], [data-baseweb="input"],
-[data-baseweb="popover"], [data-baseweb="menu"] {{
+/* Trava de fundo: os cards/tabelas custom do dashboard usam cor inline
+   (badges, cabeçalhos, etc.) e não são tocados aqui. Esta seção mira SÓ os
+   componentes nativos do Streamlit (filtros, dropdowns, campos) — que são
+   exatamente os que mudavam de cor sozinhos conforme o tema do sistema. */
+
+/* Caixa dos filtros (selectbox / multiselect / text_input / number_input) */
+[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+[data-testid="stMultiSelect"] div[data-baseweb="select"] > div,
+[data-testid="stTextInput"] input,
+[data-testid="stNumberInput"] input,
+[data-testid="stDateInput"] input,
+[data-baseweb="input"] input {{
   background-color:#FFFFFF !important;
   color:#1C2B4A !important;
+  border-color:#D8DEE8 !important;
+}}
+[data-baseweb="select"] svg {{ fill:#1C2B4A !important; }}
+[data-baseweb="select"] [class*="placeholder"] {{ color:#8A9BB0 !important; }}
+
+/* Rótulos acima dos filtros (Tipo, Status, Ordenar por, Buscar projeto...) */
+[data-testid="stWidgetLabel"] p, [data-testid="stWidgetLabel"] label,
+[data-testid="stWidgetLabel"] div {{
+  color:#1C2B4A !important;
+}}
+
+/* Menu/lista de opções que ABRE ao clicar no filtro — este é renderizado
+   fora do card, direto na página, por isso precisava de reforço à parte. */
+[data-baseweb="popover"], [data-baseweb="menu"],
+[role="listbox"], [role="option"], ul[data-baseweb="menu"] li {{
+  background-color:#FFFFFF !important;
+  color:#1C2B4A !important;
+}}
+[role="option"]:hover, [data-baseweb="menu"] li:hover {{
+  background-color:#F0F4FA !important;
+}}
+
+/* "Chips" dos itens já selecionados no multiselect */
+[data-baseweb="tag"] {{
+  background-color:{NAVY} !important;
+  color:#FFFFFF !important;
+}}
+[data-baseweb="tag"] span, [data-baseweb="tag"] svg {{
+  color:#FFFFFF !important; fill:#FFFFFF !important;
+}}
+
+/* Toggles (Previsto / Validado / Real DRE) e expanders (Administrador,
+   "Ver projetos de ...") */
+[data-testid="stToggle"] p, [data-testid="stToggle"] label {{
+  color:#1C2B4A !important;
+}}
+[data-testid="stExpander"] summary p, [data-testid="stExpander"] summary span,
+[data-testid="stExpander"] svg {{
+  color:#1C2B4A !important; fill:#1C2B4A !important;
+}}
+[data-testid="stExpander"] details {{
+  background-color:#FFFFFF !important;
 }}
 
 /* ── HEADER ── */
