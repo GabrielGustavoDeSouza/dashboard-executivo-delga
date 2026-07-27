@@ -579,53 +579,74 @@ def chart_gauge(pct):
     fig.update_layout(margin=dict(l=20,r=20,t=50,b=10),height=280,paper_bgcolor="white", font=dict(family="Inter", color="#1C2B4A"))
     return fig
 
-def chart_evolucao(ev, series):
-    cfg = {
-        "Acumulado Previsto": dict(data=ev["acum_prev"], color=NAVY,      dash="solid", type="line"),
-        "Acumulado Real":     dict(data=ev["acum_real"], color=GREEN,     dash="solid", type="line"),
-        "Projeção da Meta":   dict(data=ev["proj_meta"], color=RED,       dash="dash",  type="line"),
-        "Previsto Mensal":    dict(data=ev["prev"],      color="#7EB3D8",              type="bar"),
-        "Real Mensal":        dict(data=ev["real"],      color="#52A97C",              type="bar"),
-    }
+import plotly.graph_objects as go
+import pandas as pd
 
+def chart_evolucao(ev, sel):
+    # 1. Trava de segurança: se nenhuma série for selecionada ou o DataFrame estiver vazio
+    if not sel or ev is None or (isinstance(ev, pd.DataFrame) and ev.empty):
+        fig = go.Figure()
+        fig.update_layout(
+            xaxis={"visible": False},
+            yaxis={"visible": False},
+            annotations=[{
+                "text": "Selecione ao menos uma série no filtro acima.",
+                "xref": "paper",
+                "yref": "paper",
+                "showarrow": False,
+                "font": {"size": 14, "color": "#1C2B4A", "family": "Inter"}
+            }],
+            margin=dict(l=20, r=20, t=40, b=20),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)"
+        )
+        return fig
+
+    # 2. Inicialização da figura do Plotly
     fig = go.Figure()
 
-    for s in series:
-        if s not in cfg: continue
-        c = cfg[s]
-        if c["type"] == "bar":
-            fig.add_trace(go.Bar(
-                x=ev["meses"], y=c["data"], name=s,
-                marker=dict(color=c["color"], opacity=0.75, line=dict(width=0)),
-                hovertemplate=f"<b>{s}</b><br>%{{x}}: R$ %{{y:,.0f}}<extra></extra>",
-            ))
+    # 3. Mapeamento e montagem das séries conforme a seleção 'sel'
+    # Ajuste os nomes das colunas e os tipos de traço (bar/scatter) de acordo com o seu modelo:
+    if "Acumulado Previsto" in sel and "acumulado_previsto" in ev.columns:
+        fig.add_trace(go.Scatter(
+            x=ev["mes"], y=ev["acumulado_previsto"],
+            mode="lines+markers", name="Acumulado Previsto"
+        ))
 
-    for s in series:
-        if s not in cfg: continue
-        c = cfg[s]
-        if c["type"] == "line":
-            fig.add_trace(go.Scatter(
-                x=ev["meses"], y=c["data"], mode="lines+markers", name=s,
-                line=dict(color=c["color"], width=2.5, dash=c["dash"]),
-                marker=dict(size=6, color=c["color"]),
-                hovertemplate=f"<b>{s}</b><br>%{{x}}: R$ %{{y:,.0f}}<extra></extra>",
-            ))
+    if "Acumulado Real" in sel and "acumulado_real" in ev.columns:
+        fig.add_trace(go.Scatter(
+            x=ev["mes"], y=ev["acumulado_real"],
+            mode="lines+markers", name="Acumulado Real"
+        ))
 
+    if "Projeção da Meta" in sel and "projecao_meta" in ev.columns:
+        fig.add_trace(go.Scatter(
+            x=ev["mes"], y=ev["projecao_meta"],
+            mode="lines", line=dict(dash="dash"), name="Projeção da Meta"
+        ))
+
+    if "Previsto Mensal" in sel and "previsto_mensal" in ev.columns:
+        fig.add_trace(go.Bar(
+            x=ev["mes"], y=ev["previsto_mensal"], name="Previsto Mensal"
+        ))
+
+    if "Real Mensal" in sel and "real_mensal" in ev.columns:
+        fig.add_trace(go.Bar(
+            x=ev["mes"], y=ev["real_mensal"], name="Real Mensal"
+        ))
+
+    # 4. Estilização do Layout (Linha 614 do seu app.py)
     fig.update_layout(
         barmode="group",
-        bargap=0.25,
-        bargroupgap=0.05,
-        xaxis=dict(showgrid=True, gridcolor="#F0F4F8", tickfont=dict(color="#1C2B4A")),
-        yaxis=dict(tickformat=",.0f", showgrid=True, gridcolor="#F0F4F8", title="R$", tickfont=dict(color="#1C2B4A"), titlefont=dict(color="#1C2B4A")),
-        legend=dict(orientation="h", y=1.05, x=0.5, xanchor="center", font=dict(size=11, color="#1C2B4A")),
-        margin=dict(l=80, r=20, t=50, b=40),
-        height=420,
-        paper_bgcolor="white", plot_bgcolor="white",
-        hovermode="x unified",
-        hoverlabel=dict(bgcolor="white", font_size=12, font_family="Inter", font_color="#1C2B4A"),
         font=dict(family="Inter", color="#1C2B4A"),
+        margin=dict(l=20, r=20, t=30, b=20),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        xaxis=dict(showgrid=False),
+        yaxis=dict(showgrid=True, gridcolor="#E5E7EB")
     )
-    fig.update_layout(hoversubplots="axis")
+
     return fig
 
 def chart_donut(labels,values,colors):
