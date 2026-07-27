@@ -23,12 +23,6 @@ GREEN  = "#1A7A3A"
 AMBER  = "#E8A838"
 TEAL   = "#20C997"
 
-# Fundo sempre branco/claro — fixo, não muda com o modo claro/escuro do
-# sistema operacional do usuário (Windows, macOS, navegador, etc.).
-APP_BG   = "#EEF1F6"
-PAPER_BG = "#FFFFFF"
-PAPER_SHADOW = "0 1px 4px rgba(28,43,74,.06), 0 4px 16px rgba(28,43,74,.04)"
-
 # ── TIPOS VÁLIDOS DE PROJETO ───────────────────────────────────────────────────
 # Entram no DRE: BSW, Kaizen, Kaizen - Ganho Recorrente, Redução de Custo, Você Resolve
 # NÃO entram no DRE: Kaizen - Custo Evitado, Kaizen - Capital de Giro
@@ -64,106 +58,57 @@ PILARES_EXIBE = {
 st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-html,body,[class*="css"]{{font-family:'Inter',sans-serif;}}
 
-/* ── TRAVA DE TEMA ──────────────────────────────────────────────────────────
-   Impede que o modo escuro do Windows/navegador altere as cores do app.
-   O fundo do dashboard é sempre branco/claro, ponto final — não existe
-   alternância nem depende da configuração de tema de quem está acessando. */
-:root, html {{ color-scheme: light !important; }}
-[data-testid="stAppViewContainer"], [data-testid="stAppViewContainer"] > .main,
-body, .stApp {{
-  background:{APP_BG} !important;
-  transition:background .25s ease;
-}}
-[data-testid="stHeader"]{{background:transparent!important;}}
-
-/* "Folha" do dashboard — sempre clara, garante que toda a informação
-   permaneça 100% legível em qualquer um dos dois modos. */
-.block-container{{
-  padding-top:18px!important;padding-bottom:2rem;max-width:1440px;
-  background:{PAPER_BG};
-  border-radius:16px;
-  box-shadow:{PAPER_SHADOW};
-  margin-top:14px;margin-bottom:24px;
+/* ── FORÇAR LIGHT MODE GLOBALMENTE ── */
+:root {{
+  color-scheme: light !important;
 }}
 
-/* Trava de fundo: os cards/tabelas custom do dashboard usam cor inline
-   (badges, cabeçalhos, etc.) e não são tocados aqui. Esta seção mira SÓ os
-   componentes nativos do Streamlit (filtros, dropdowns, campos) — que são
-   exatamente os que mudavam de cor sozinhos conforme o tema do sistema. */
-
-/* Caixa dos filtros (selectbox / multiselect / text_input / number_input) */
-[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
-[data-testid="stMultiSelect"] div[data-baseweb="select"] > div,
-[data-testid="stTextInput"] input,
-[data-testid="stNumberInput"] input,
-[data-testid="stDateInput"] input,
-[data-baseweb="input"] input {{
-  background-color:#FFFFFF !important;
-  color:#1C2B4A !important;
-  border-color:#D8DEE8 !important;
-}}
-[data-baseweb="select"] svg {{ fill:#1C2B4A !important; }}
-[data-baseweb="select"] [class*="placeholder"] {{ color:#8A9BB0 !important; }}
-
-/* Rótulos acima dos filtros (Tipo, Status, Ordenar por, Buscar projeto...) */
-[data-testid="stWidgetLabel"] p, [data-testid="stWidgetLabel"] label,
-[data-testid="stWidgetLabel"] div {{
-  color:#1C2B4A !important;
+html, body, [data-testid="stAppViewContainer"], .main {{
+  background-color: #F4F6F9 !important;
+  color: #1C2B4A !important;
+  font-family: 'Inter', sans-serif;
 }}
 
-/* Menu/lista de opções que ABRE ao clicar no filtro — este é renderizado
-   fora do card, direto na página, por isso precisava de reforço à parte. */
-[data-baseweb="popover"], [data-baseweb="menu"],
-[role="listbox"], [role="option"], ul[data-baseweb="menu"] li {{
-  background-color:#FFFFFF !important;
-  color:#1C2B4A !important;
-}}
-[role="option"]:hover, [data-baseweb="menu"] li:hover {{
-  background-color:#F0F4FA !important;
+/* Forçar cor de texto em seletores nativos do Streamlit */
+[data-testid="stMarkdownContainer"] p, 
+[data-testid="stMarkdownContainer"] span, 
+[data-testid="stMarkdownContainer"] div,
+label, .stText, p, span, div {{
+  color: #1C2B4A;
 }}
 
-/* "Chips" dos itens já selecionados no multiselect */
-[data-baseweb="tag"] {{
-  background-color:{NAVY} !important;
-  color:#FFFFFF !important;
-}}
-[data-baseweb="tag"] span, [data-baseweb="tag"] svg {{
-  color:#FFFFFF !important; fill:#FFFFFF !important;
+.block-container{{padding-top:0!important;padding-bottom:2rem;max-width:1440px;}}
+
+/* ── INPUTS E SELETORES NO DARK/LIGHT MODE ── */
+input, textarea, select, [data-baseweb="select"] {{
+  background-color: #FFFFFF !important;
+  color: #1C2B4A !important;
 }}
 
-/* Toggles (Previsto / Validado / Real DRE) e expanders (Administrador,
-   "Ver projetos de ...") */
-[data-testid="stToggle"] p, [data-testid="stToggle"] label {{
-  color:#1C2B4A !important;
-}}
-[data-testid="stExpander"] summary p, [data-testid="stExpander"] summary span,
-[data-testid="stExpander"] svg {{
-  color:#1C2B4A !important; fill:#1C2B4A !important;
-}}
-[data-testid="stExpander"] details {{
-  background-color:#FFFFFF !important;
+div[data-baseweb="select"] * {{
+  color: #1C2B4A !important;
+  background-color: #FFFFFF !important;
 }}
 
 /* ── HEADER ── */
 .dh{{background:linear-gradient(135deg,{NAVY} 0%,#243B55 100%);
-     padding:18px 32px;border-radius:12px;
+     padding:18px 32px;border-radius:0 0 12px 12px;
      display:flex;align-items:center;gap:18px;margin-bottom:20px;
      box-shadow:0 2px 12px rgba(28,43,74,.18);}}
 .dh img{{height:44px;border-radius:6px;}}
-.dh-t h1{{color:white;font-size:20px;font-weight:700;margin:0;letter-spacing:-.2px;}}
-.dh-t p{{color:rgba(255,255,255,.55);font-size:11px;margin:2px 0 0;}}
+.dh-t h1{{color:white !important;font-size:20px;font-weight:700;margin:0;letter-spacing:-.2px;}}
+.dh-t p{{color:rgba(255,255,255,.75) !important;font-size:11px;margin:2px 0 0;}}
 .dh-b{{margin-left:auto;background:rgba(255,255,255,.12);
-       color:rgba(255,255,255,.85);font-size:10px;
+       color:rgba(255,255,255,.85) !important;font-size:10px;
        font-weight:500;padding:5px 14px;border-radius:8px;white-space:nowrap;
        letter-spacing:.4px;border:1px solid rgba(255,255,255,.18);}}
-.dh-b span.lbl{{font-size:9px;opacity:.7;display:block;letter-spacing:.6px;text-transform:uppercase;margin-bottom:1px;}}
+.dh-b span.lbl{{font-size:9px;opacity:.7;display:block;letter-spacing:.6px;text-transform:uppercase;margin-bottom:1px;color:white !important;}}
 
 /* ── KPI CARDS ── */
 .kpi-wrap{{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px;}}
 .kpi-6{{grid-template-columns:repeat(6,1fr);}}
-.kpi-card{{background:white;border-radius:12px;padding:18px 20px;
+.kpi-card{{background:white !important;border-radius:12px;padding:18px 20px;
            border-left:4px solid {NAVY};
            box-shadow:0 1px 4px rgba(28,43,74,.06),0 4px 16px rgba(28,43,74,.04);
            transition:box-shadow .2s;}}
@@ -172,44 +117,45 @@ body, .stApp {{
 .kpi-card.cg{{border-left-color:{GREEN};}}
 .kpi-card.ca{{border-left-color:{AMBER};}}
 .kpi-card.cs{{border-left-color:{SILVER};}}
-.kpi-l{{font-size:9px;font-weight:600;color:{SILVER};text-transform:uppercase;
+.kpi-l{{font-size:9px;font-weight:600;color:{SILVER} !important;text-transform:uppercase;
         letter-spacing:.9px;margin-bottom:6px;}}
-.kpi-v{{font-size:24px;font-weight:700;color:{NAVY};line-height:1.1;margin-bottom:3px;}}
-.kpi-s{{font-size:11px;color:#555;margin-bottom:2px;}}
-.kpi-d{{font-size:10px;color:{SILVER};}}
+.kpi-v{{font-size:24px;font-weight:700;color:{NAVY} !important;line-height:1.1;margin-bottom:3px;}}
+.kpi-s{{font-size:11px;color:#555555 !important;margin-bottom:2px;}}
+.kpi-d{{font-size:10px;color:{SILVER} !important;}}
 
 /* ── SECTION CARD ── */
-.sc{{background:white;border-radius:12px;padding:20px 22px;
+.sc{{background:white !important;border-radius:12px;padding:20px 22px;
      box-shadow:0 1px 4px rgba(28,43,74,.06),0 4px 16px rgba(28,43,74,.04);
      margin-bottom:16px;}}
-.st{{font-size:11px;font-weight:700;color:{NAVY};text-transform:uppercase;
+.st{{font-size:11px;font-weight:700;color:{NAVY} !important;text-transform:uppercase;
      letter-spacing:.7px;border-bottom:2px solid {RED};
      padding-bottom:7px;margin-bottom:14px;display:inline-block;}}
 
 /* ── NOTA ── */
-.nota{{background:#FFFBF0;border-left:3px solid {AMBER};border-radius:6px;
-       padding:11px 16px;font-size:11px;color:#444;line-height:1.7;margin:14px 0;}}
+.nota{{background:#FFFBF0 !important;border-left:3px solid {AMBER};border-radius:6px;
+       padding:11px 16px;font-size:11px;color:#444444 !important;line-height:1.7;margin:14px 0;}}
 
 /* ── TABELA ── */
-.dt{{width:100%;border-collapse:collapse;font-size:12px;}}
-.dt thead tr{{background:{NAVY};}}
-.dt thead th{{color:white;padding:10px 12px;text-align:left;font-weight:600;
+.dt{{width:100%;border-collapse:collapse;font-size:12px;background:white !important;color:#1C2B4A !important;}}
+.dt thead tr{{background:{NAVY} !important;}}
+.dt thead th{{color:white !important;padding:10px 12px;text-align:left;font-weight:600;
               font-size:11px;white-space:nowrap;}}
 .dt thead th:first-child{{border-radius:6px 0 0 0;}}
 .dt thead th:last-child{{border-radius:0 6px 0 0;}}
-.dt tbody tr:nth-child(even){{background:#FAFBFC;}}
-.dt tbody tr:hover{{background:#F0F4FA;transition:background .1s;}}
-.dt tbody td{{padding:8px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle;}}
-.dt tbody tr.tr-tot td{{background:{LIGHT};font-weight:700;
-                         border-top:2px solid {NAVY};border-bottom:none;}}
+.dt tbody tr{{background:white !important;color:#1C2B4A !important;}}
+.dt tbody tr:nth-child(even){{background:#FAFBFC !important;}}
+.dt tbody tr:hover{{background:#F0F4FA !important;transition:background .1s;}}
+.dt tbody td{{padding:8px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle;color:#1C2B4A !important;}}
+.dt tbody tr.tr-tot td{{background:{LIGHT} !important;font-weight:700;
+                         border-top:2px solid {NAVY};border-bottom:none;color:#1C2B4A !important;}}
 
 /* ── MACRO TABLE ── */
-.mct{{width:100%;border-collapse:collapse;font-size:12px;}}
-.mct td{{padding:10px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle;}}
-.mct tr:hover{{background:#F7F9FC;}}
-.mch th{{color:white;padding:10px 12px;font-weight:600;font-size:11px;
+.mct{{width:100%;border-collapse:collapse;font-size:12px;background:white !important;color:#1C2B4A !important;}}
+.mct td{{padding:10px 12px;border-bottom:1px solid #EEF0F3;vertical-align:middle;color:#1C2B4A !important;}}
+.mct tr:hover{{background:#F7F9FC !important;}}
+.mch th{{color:white !important;padding:10px 12px;font-weight:600;font-size:11px;
          text-align:left;white-space:nowrap;}}
-.mc-tot td{{background:{LIGHT};font-weight:700;border-top:2px solid {NAVY};}}
+.mc-tot td{{background:{LIGHT} !important;font-weight:700;border-top:2px solid {NAVY};color:#1C2B4A !important;}}
 
 /* ── PROGRESS ── */
 .pb{{display:flex;align-items:center;gap:8px;}}
@@ -218,18 +164,18 @@ body, .stApp {{
 
 /* ── BADGES ── */
 .bdg{{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;}}
-.bg{{background:#E6F4EC;color:{GREEN};}}
-.ba{{background:#FFF3E0;color:{AMBER};}}
-.br{{background:#FDECEA;color:{RED};}}
-.bk{{background:#F2F3F5;color:#555;}}
-.bn{{background:#E8EDF5;color:{NAVY};}}
+.bg{{background:#E6F4EC !important;color:{GREEN} !important;}}
+.ba{{background:#FFF3E0 !important;color:{AMBER} !important;}}
+.br{{background:#FDECEA !important;color:{RED} !important;}}
+.bk{{background:#F2F3F5 !important;color:#555555 !important;}}
+.bn{{background:#E8EDF5 !important;color:{NAVY} !important;}}
 
 /* ── IMPEDIMENTO ── */
-.imp{{background:#FFF8E1;border-left:3px solid {AMBER};border-radius:4px;
-      padding:3px 7px;font-size:10px;color:#555;margin-top:3px;line-height:1.5;}}
+.imp{{background:#FFF8E1 !important;border-left:3px solid {AMBER};border-radius:4px;
+      padding:3px 7px;font-size:10px;color:#555555 !important;margin-top:3px;line-height:1.5;}}
 
 /* ── TOGGLE LABELS — sem quebra de linha ── */
-[data-testid="stToggle"] label {{white-space:nowrap!important;font-size:12px!important;font-weight:500!important;}}
+[data-testid="stToggle"] label {{white-space:nowrap!important;font-size:12px!important;font-weight:500!important;color:#1C2B4A!important;}}
 [data-testid="stToggle"] {{align-items:center!important;}}
 
 /* ── SECTION TOGGLE — botão − / + minimalista (sem círculo) ── */
@@ -251,16 +197,22 @@ body, .stApp {{
 }}
 
 /* ── LOGIN ── */
-.lw{{max-width:360px;margin:80px auto;padding:40px;background:white;
-     border-radius:14px;box-shadow:0 8px 32px rgba(28,43,74,.14);text-align:center;}}
+.lw{{max-width:360px;margin:80px auto;padding:40px;background:white !important;
+     border-radius:14px;box-shadow:0 8px 32px rgba(28,43,74,.14);text-align:center;color:#1C2B4A !important;}}
 
 #MainMenu{{visibility:hidden;}}footer{{visibility:hidden;}}
 .stDeployButton{{display:none;}}header[data-testid="stHeader"]{{display:none;}}
 
-
+div[data-testid="stExpander"]{{
+  background-color: white !important;
+  border-radius: 8px !important;
+}}
 div[data-testid="stExpander"]>div:first-child{{
   background:{LIGHT}!important;border:1px solid #E2E8F0!important;
   border-radius:8px!important;padding:4px 10px!important;}}
+div[data-testid="stExpander"] * {{
+  color: #1C2B4A !important;
+}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -272,8 +224,8 @@ def check_password():
     if st.session_state.get("auth"): return True
     st.markdown("""<div class="lw">
       <div style="font-size:44px;margin-bottom:12px;">📊</div>
-      <div style="font-size:20px;font-weight:700;color:#1C2B4A;margin-bottom:4px;">Grupo Delga</div>
-      <div style="font-size:12px;color:#8A9BB0;margin-bottom:22px;">Dashboard Executivo 2026 — Acesso Restrito</div>
+      <div style="font-size:20px;font-weight:700;color:#1C2B4A !important;margin-bottom:4px;">Grupo Delga</div>
+      <div style="font-size:12px;color:#8A9BB0 !important;margin-bottom:22px;">Dashboard Executivo 2026 — Acesso Restrito</div>
     </div>""", unsafe_allow_html=True)
     _, col, _ = st.columns([1,2,1])
     with col:
@@ -319,7 +271,7 @@ def pbar_html(pct, w=72):
     c = GREEN if pct>=.30 else (AMBER if pct>=.15 else RED)
     return (f'<div class="pb"><div class="pb-bg" style="width:{w}px;">'
             f'<div class="pb-f" style="width:{pc:.0f}%;background:{c};"></div></div>'
-            f'<span style="font-size:11px;font-weight:600;">{pc:.1f}%</span></div>')
+            f'<span style="font-size:11px;font-weight:600;color:#1C2B4A !important;">{pc:.1f}%</span></div>')
 
 def bdg_status(pct):
     return ('<span class="bdg bg">DESTAQUE ✓</span>' if pct>=.30
@@ -342,8 +294,8 @@ def bdg_st(v):
 def bdg_tipo(v):
     v=str(v).strip()
     if "BSW"         in v: return f'<span class="bdg bn">BSW</span>'
-    if "Capital"     in v: return f'<span class="bdg" style="background:#EDE7F6;color:#512DA8;">Cap. Giro</span>'
-    if "Evitado"     in v: return f'<span class="bdg" style="background:#E3F2FD;color:#0D47A1;">C. Evitado</span>'
+    if "Capital"     in v: return f'<span class="bdg" style="background:#EDE7F6 !important;color:#512DA8 !important;">Cap. Giro</span>'
+    if "Evitado"     in v: return f'<span class="bdg" style="background:#E3F2FD !important;color:#0D47A1 !important;">C. Evitado</span>'
     if "Recorrente"  in v: return f'<span class="bdg ba">Kaizen GR</span>'
     if "Kaizen"      in v or "kaizen" in v: return f'<span class="bdg ba">Kaizen</span>'
     if "Redução"     in v: return f'<span class="bdg bg">Red. Custo</span>'
@@ -393,7 +345,6 @@ def extract_kpis(d):
 
 def extract_plantas(d):
     df = d["u5"]
-    # col4=Diadema,5=Ferraz,6=SãoLeopoldo,7=Jarinu,8=Anchieta
     cfg = [("Diadema",4,"Diadema"),("Ferraz",5,"Ferraz"),
            ("São Leopoldo",6,"São Leopoldo"),("Jarinu",7,"Jarinu"),("Anchieta",8,"Anchieta")]
     res=[]
@@ -405,7 +356,7 @@ def extract_plantas(d):
             val     =safe(df.iloc[25,col]),
             real    =safe(df.iloc[26,col]),
             pct     =safe(df.iloc[27,col]),
-            extra   =safe(df.iloc[28,col])))  # row28 = Extra DRE (nova linha v27)
+            extra   =safe(df.iloc[28,col])))
     return res
 
 def extract_areas(d):
@@ -420,11 +371,10 @@ def extract_areas(d):
             val     =safe(df.iloc[25,col]),
             real    =safe(df.iloc[26,col]),
             pct     =safe(df.iloc[27,col]),
-            extra   =safe(df.iloc[28,col])))  # row28 = Extra DRE (nova linha v27)
+            extra   =safe(df.iloc[28,col])))
     return res
 
 def extract_pilares_global(d):
-    """Pilares do painel 5 Unidades (rows 12-16)."""
     df = d["u5"]
     res=[]
     for i in range(12,22):
@@ -439,10 +389,6 @@ def extract_pilares_global(d):
     return res
 
 def extract_pilares_local(projetos):
-    """
-    Gera resumo de pilares a partir da lista de projetos de uma unidade,
-    incluindo todos os subtipos de Kaizen. Retorna lista ordenada.
-    """
     from collections import defaultdict
     qtd  = defaultdict(int)
     prev = defaultdict(float)
@@ -469,8 +415,6 @@ def extract_pilares_local(projetos):
 def extract_evolucao(d):
     df = d["u5"]
     meses=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"]
-    # v27: col21=label, cols 22-33=dados mensais
-    # row55=Previsto, row56=Real, row58=Acum.Prev, row59=Acum.Real, row60=Projeção Meta
     max_col = min(34, df.shape[1])
     def row(r): return [safe(df.iloc[r,c]) for c in range(22, max_col)]
     def pad(lst): return (lst + [0]*12)[:12]
@@ -486,15 +430,7 @@ def extract_evolucao(d):
 def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
                      col_termino=7, col_custos=12, col_saving=13,
                      col_status=14, col_onde=15, col_data_lib=16,
-                     col_prev_real=18,  # col com 'Previsto'/'Real'
-                     col_total_ano=36,  # col com Total Ano (linha Real = V.Real acumulado)
-                     col_previsto=8):   # col com PREVISTO(R$) original do projeto
-    """
-    Extrai projetos de uma aba usando a lógica:
-      - Linha Previsto: col_tipo in VALID_TIPOS + col_nome preenchido + col_prev_real='Previsto'
-      - Linha Real: row+1, col_prev_real='Real', col_total_ano = valor real acumulado
-    Para antes de qualquer tipo não reconhecido (seção SPD, etc.)
-    """
+                     col_prev_real=18, col_total_ano=36, col_previsto=8):
     res = []
     i = start_row
     max_row = min(start_row + 600, df.shape[0] - 1)
@@ -504,18 +440,14 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
         c_pr = str(df.iloc[i, col_prev_real]).strip() if df.shape[1] > col_prev_real else ""
 
         if tipo in VALID_TIPOS and nome not in ("", "nan") and c_pr == "Previsto":
-            # V.Previsto = col8 (PREVISTO R$ original do projeto)
             tot_prev = safe(df.iloc[i, col_previsto])
 
-            # Linha Real (row+1)
             tot_real = 0.0
-            impede = ""
             if i+1 <= max_row:
                 c_pr_next = str(df.iloc[i+1, col_prev_real]).strip() if df.shape[1] > col_prev_real else ""
                 if c_pr_next == "Real":
                     tot_real = safe(df.iloc[i+1, col_total_ano])
 
-            # Onde está parado (col15) e Data de liberação (col16)
             onde_parado = ""
             data_lib    = ""
             if col_onde is not None and df.shape[1] > col_onde:
@@ -543,9 +475,9 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
                 data_lib   = data_lib,
                 entra_dre  = is_dre(tipo),
             ))
-            i += 2  # pula Previsto + Real
+            i += 2
         elif tipo not in ("", "nan") and tipo not in VALID_TIPOS:
-            break   # seção SPD ou outro bloco diferente — para
+            break
         else:
             i += 1
     return res
@@ -553,10 +485,6 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
 def get_proj_planta(d, sheet_key):
     df = d.get(sheet_key)
     if df is None: return []
-    # Plantas v9: col0=tipo, col2=nome, col5=resp, col7=term,
-    #             col12=custos, col13=saving, col14=status,
-    #             col15=onde_parado, col16=data_lib,
-    #             col18=Previsto/Real, col36=Total Ano
     return extract_projetos(df, start_row=54,
         col_tipo=0, col_nome=2, col_resp=5, col_termino=7,
         col_custos=12, col_saving=13, col_status=14,
@@ -566,8 +494,6 @@ def get_proj_planta(d, sheet_key):
 def get_proj_compras(d):
     df = d.get("Compras ")
     if df is None: return []
-    # Compras v9: col0=tipo,col3=nome,col5=resp,col7=term,col12=custos,col13=saving,
-    #             col14=status,col15=onde,col16=data_lib,col19=Prev/Real,col36=TotalAno
     return extract_projetos(df, start_row=30,
         col_tipo=0, col_nome=3, col_resp=5, col_termino=7,
         col_custos=12, col_saving=13, col_status=14,
@@ -577,10 +503,6 @@ def get_proj_compras(d):
 def get_proj_vendas(d):
     df = d.get("Vendas")
     if df is None: return []
-    # Vendas v12: row32=header, projetos start row33
-    # col0=tipo, col1=nome, col4=resp, col6=termino, col7=previsto,
-    # col11=custos, col12=saving, col13=status, col14=onde, col15=data_lib,
-    # col17=Previsto/Real, col35=Total Ano
     return extract_projetos(df, start_row=33,
         col_tipo=0, col_nome=1, col_resp=4, col_termino=6,
         col_custos=11, col_saving=12, col_status=13,
@@ -612,7 +534,6 @@ def chart_funnel(kpis):
     colors = [NAVY,"#2C5F8A","#4A90D9",AMBER,GREEN]
 
     fig = go.Figure()
-    # Barras horizontais simulando funil (comprimento proporcional)
     for idx,(stage,val,pct,color) in enumerate(zip(stages,values,pcts,colors)):
         w = val/kpis["meta"]
         fig.add_trace(go.Bar(
@@ -621,16 +542,16 @@ def chart_funnel(kpis):
             marker=dict(color=color, line=dict(width=0)),
             text=f"  <b>{fmt_mi(val)}</b>  <span style='opacity:.7'>({pct})</span>",
             textposition="outside",
-            textfont=dict(size=12,color="#333"),
+            textfont=dict(size=12,color="#1C2B4A"),
             hovertemplate=f"<b>{stage}</b><br>{fmt_mi(val)}<br>{pct} da meta<extra></extra>",
             showlegend=False,
-            base=[(kpis["meta"]-val)/2],  # centraliza para efeito funil
+            base=[(kpis["meta"]-val)/2],
         ))
 
     fig.update_layout(
         barmode="overlay",
         xaxis=dict(visible=False, range=[0, kpis["meta"]*1.3]),
-        yaxis=dict(autorange="reversed",tickfont=dict(size=12,color="#444")),
+        yaxis=dict(autorange="reversed",tickfont=dict(size=12,color="#1C2B4A")),
         margin=dict(l=130,r=150,t=10,b=10),
         height=310,
         paper_bgcolor="white", plot_bgcolor="white",
@@ -645,7 +566,7 @@ def chart_gauge(pct):
         value=pct*100,
         number=dict(suffix="%",font=dict(size=40,color=NAVY,family="Inter")),
         gauge=dict(
-            axis=dict(range=[0,100],ticksuffix="%",tickfont=dict(size=10)),
+            axis=dict(range=[0,100],ticksuffix="%",tickfont=dict(size=10, color="#1C2B4A")),
             bar=dict(color=clr,thickness=0.28),
             bgcolor="white",borderwidth=0,
             steps=[dict(range=[0,30],color="#FFEBEE"),
@@ -655,20 +576,10 @@ def chart_gauge(pct):
         ),
         title=dict(text="<b>Atingimento da Meta</b>",font=dict(size=12,color=SILVER)),
     ))
-    fig.update_layout(margin=dict(l=20,r=20,t=50,b=10),height=280,paper_bgcolor="white",
-                       font=dict(family="Inter", color="#1C2B4A"))
+    fig.update_layout(margin=dict(l=20,r=20,t=50,b=10),height=280,paper_bgcolor="white", font=dict(family="Inter", color="#1C2B4A"))
     return fig
 
 def chart_evolucao(ev, series):
-    """
-    Gráfico de evolução com:
-    - Linhas: Acumulado Previsto, Acumulado Real, Projeção da Meta
-    - Barras mensais: Previsto Mensal (azul claro), Real Mensal (verde)
-    - Hover ordenado do maior para o menor
-    """
-    BARRAS = {"Previsto Mensal", "Real Mensal"}
-
-    # Configurações de cada série
     cfg = {
         "Acumulado Previsto": dict(data=ev["acum_prev"], color=NAVY,      dash="solid", type="line"),
         "Acumulado Real":     dict(data=ev["acum_real"], color=GREEN,     dash="solid", type="line"),
@@ -679,7 +590,6 @@ def chart_evolucao(ev, series):
 
     fig = go.Figure()
 
-    # Barras primeiro (ficam atrás das linhas)
     for s in series:
         if s not in cfg: continue
         c = cfg[s]
@@ -690,7 +600,6 @@ def chart_evolucao(ev, series):
                 hovertemplate=f"<b>{s}</b><br>%{{x}}: R$ %{{y:,.0f}}<extra></extra>",
             ))
 
-    # Linhas por cima
     for s in series:
         if s not in cfg: continue
         c = cfg[s]
@@ -707,43 +616,37 @@ def chart_evolucao(ev, series):
         bargap=0.25,
         bargroupgap=0.05,
         xaxis=dict(showgrid=True, gridcolor="#F0F4F8", tickfont=dict(color="#1C2B4A")),
-        yaxis=dict(tickformat=",.0f", showgrid=True, gridcolor="#F0F4F8", title="R$",
-                   tickfont=dict(color="#1C2B4A"), title_font=dict(color="#1C2B4A")),
-        legend=dict(orientation="h", y=1.05, x=0.5, xanchor="center",
-                    font=dict(size=11, color="#1C2B4A")),
+        yaxis=dict(tickformat=",.0f", showgrid=True, gridcolor="#F0F4F8", title="R$", tickfont=dict(color="#1C2B4A"), titlefont=dict(color="#1C2B4A")),
+        legend=dict(orientation="h", y=1.05, x=0.5, xanchor="center", font=dict(size=11, color="#1C2B4A")),
         margin=dict(l=80, r=20, t=50, b=40),
         height=420,
         paper_bgcolor="white", plot_bgcolor="white",
-        # Hover ordenado do maior para o menor
         hovermode="x unified",
         hoverlabel=dict(bgcolor="white", font_size=12, font_family="Inter", font_color="#1C2B4A"),
         font=dict(family="Inter", color="#1C2B4A"),
     )
-    # Ordenar hover do maior para o menor por valor
     fig.update_layout(hoversubplots="axis")
     return fig
 
 def chart_donut(labels,values,colors):
     total = sum(values)
     if total == 0:
-        total = 1  # evita ZeroDivisionError quando todos os valores são zero
+        total = 1
     txt = [f"  {labels[i]}  {values[i]/total*100:.1f}%  {fmt_mi(values[i])}"
            for i in range(len(labels))]
     fig = go.Figure(go.Pie(labels=txt,values=values,hole=0.62,
         marker=dict(colors=colors),textinfo="none",
         hovertemplate="<b>%{label}</b><extra></extra>"))
     fig.update_layout(showlegend=True,
-        legend=dict(orientation="v",y=0.5,x=0.55,yanchor="middle",
-                    font=dict(size=11, color="#1C2B4A")),
+        legend=dict(orientation="v",y=0.5,x=0.55,yanchor="middle",font=dict(size=11, color="#1C2B4A")),
         margin=dict(l=10,r=10,t=10,b=30),height=280,
         paper_bgcolor="white",plot_bgcolor="white",
         annotations=[dict(text=f"<b>{fmt_mi(sum(values))}</b>",x=0.22,y=-0.08,
-                          font_size=12,font_color="#1C2B4A",showarrow=False)],
+                          font_size=12,showarrow=False,font=dict(color="#1C2B4A"))],
         font=dict(family="Inter", color="#1C2B4A"))
     return fig
 
 def chart_pilares(pilares_global, real_total):
-    """Gráfico de pilares do painel global (5 Unidades)."""
     labels=[p["nome"] for p in pilares_global]
     previsto=[p["prev"] for p in pilares_global]
     validado=[p["val"]  for p in pilares_global]
@@ -756,7 +659,7 @@ def chart_pilares(pilares_global, real_total):
     fig.update_layout(barmode="group",
         yaxis=dict(tickformat=",.0f",showgrid=True,gridcolor="#F0F4F8",tickfont=dict(color="#1C2B4A")),
         xaxis=dict(tickfont=dict(color="#1C2B4A")),
-        legend=dict(orientation="h",y=1.05,x=1,xanchor="right",font=dict(size=11,color="#1C2B4A")),
+        legend=dict(orientation="h",y=1.05,x=1,xanchor="right",font=dict(size=11, color="#1C2B4A")),
         margin=dict(l=60,r=20,t=40,b=60),height=300,
         paper_bgcolor="white",plot_bgcolor="white",
         bargap=0.28,font=dict(family="Inter", color="#1C2B4A"))
@@ -768,10 +671,6 @@ def th(*cols):
     return f"<table class='dt'><thead><tr>{ths}</tr></thead><tbody>"
 
 def render_proj_filtros(projetos, key_prefix=""):
-    """
-    Renderiza controles de filtro + ordenação no estilo Excel.
-    Retorna a lista filtrada/ordenada de projetos.
-    """
     if not projetos:
         return projetos
 
@@ -802,14 +701,12 @@ def render_proj_filtros(projetos, key_prefix=""):
         f_nome = st.text_input("🔍 Buscar projeto", value="",
                                key=f"{key_prefix}_fnome", placeholder="Filtrar por nome...")
 
-    # Aplicar filtros
     res = projetos[:]
     if f_tipo:   res = [p for p in res if p["tipo"]       in f_tipo]
     if f_status: res = [p for p in res if p["status"]     in f_status]
     if f_custos: res = [p for p in res if p["val_custos"] in f_custos]
     if f_nome:   res = [p for p in res if f_nome.lower() in p["nome"].lower()]
 
-    # Ordenar
     sort_map = {
         "Nome (A→Z)":    (lambda p: p["nome"].lower(),       False),
         "Nome (Z→A)":    (lambda p: p["nome"].lower(),       True),
@@ -829,7 +726,6 @@ def render_proj_filtros(projetos, key_prefix=""):
 
 
 def projetos_por_pilar_html(projetos, key_prefix=""):
-    """Exibe projetos agrupados por Tipo/Pilar com cabeçalho de totais."""
     if not projetos:
         return [], ""
 
@@ -877,8 +773,6 @@ def projetos_por_pilar_html(projetos, key_prefix=""):
             grupos[t] = []
         grupos[t].append(p)
 
-    # Renderiza cada pilar como bloco expandível via session_state
-    # Retorna lista filtrada + flag vazia (HTML renderizado diretamente via st)
     for tipo, projs in grupos.items():
         if not projs:
             continue
@@ -890,41 +784,38 @@ def projetos_por_pilar_html(projetos, key_prefix=""):
         tot_real = sum(p["real_ano"]   for p in projs)
         n_p      = len(projs)
 
-        # Cabeçalho do pilar (sempre visível)
         header_html = f"""<div style="background:{NAVY};border-radius:8px;
             padding:10px 16px;display:flex;align-items:center;gap:16px;margin-top:12px;">
           <div>
-            <span style="color:white;font-size:12px;font-weight:700;">{tipo}</span>
-            <span style="color:{dre_clr};font-size:9px;margin-left:8px;font-weight:600;">{dre_lbl}</span>
+            <span style="color:white !important;font-size:12px;font-weight:700;">{tipo}</span>
+            <span style="color:{dre_clr} !important;font-size:9px;margin-left:8px;font-weight:600;">{dre_lbl}</span>
           </div>
           <div style="margin-left:auto;display:flex;gap:28px;align-items:center;">
             <div style="text-align:center;">
-              <div style="color:rgba(255,255,255,.5);font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Projetos</div>
-              <div style="color:white;font-size:14px;font-weight:700;">{n_p}</div>
+              <div style="color:rgba(255,255,255,.5) !important;font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Projetos</div>
+              <div style="color:white !important;font-size:14px;font-weight:700;">{n_p}</div>
             </div>
             <div style="text-align:center;">
-              <div style="color:rgba(255,255,255,.5);font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Previsto</div>
-              <div style="color:#C8D8EE;font-size:14px;font-weight:700;">{fmt_mi(tot_prev)}</div>
+              <div style="color:rgba(255,255,255,.5) !important;font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Previsto</div>
+              <div style="color:#C8D8EE !important;font-size:14px;font-weight:700;">{fmt_mi(tot_prev)}</div>
             </div>
             <div style="text-align:center;">
-              <div style="color:rgba(255,255,255,.5);font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Validado</div>
-              <div style="color:#7BDD9A;font-size:14px;font-weight:700;">{fmt_mi(tot_val)}</div>
+              <div style="color:rgba(255,255,255,.5) !important;font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Validado</div>
+              <div style="color:#7BDD9A !important;font-size:14px;font-weight:700;">{fmt_mi(tot_val)}</div>
             </div>
             <div style="text-align:center;">
-              <div style="color:rgba(255,255,255,.5);font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Real Acum.</div>
-              <div style="color:#7BDD9A;font-size:14px;font-weight:700;">{fmt_mi(tot_real)}</div>
+              <div style="color:rgba(255,255,255,.5) !important;font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Real Acum.</div>
+              <div style="color:#7BDD9A !important;font-size:14px;font-weight:700;">{fmt_mi(tot_real)}</div>
             </div>
           </div>
         </div>"""
 
-        # Renderiza cabeçalho do pilar (sempre visível)
         st.markdown(header_html, unsafe_allow_html=True)
 
-        # Tabela de projetos — expander nativo com +/−
         with st.expander("", expanded=True):
             col_headers = "".join(
                 f'<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:600;'
-                f'color:{SILVER};text-transform:uppercase;letter-spacing:.4px;background:#F4F6F9;">{c}</th>'
+                f'color:{SILVER} !important;text-transform:uppercase;letter-spacing:.4px;background:#F4F6F9 !important;">{c}</th>'
                 for c in ["Projeto","Responsável","Término","Previsto (R$)","Saving Validado",
                           "Real Acum.","Custos","Status","Onde Parado","Prev.Lib."]
             )
@@ -936,10 +827,9 @@ def projetos_por_pilar_html(projetos, key_prefix=""):
                 concluido = "Concluído" in str(p.get("status",""))
                 onde  = p.get("onde_parado","")
                 dlib  = p.get("data_lib","")
-                onde_html = f'<span style="font-size:10px;color:#555;">{onde}</span>' if (onde and not concluido) else '<span style="color:#ccc;font-size:10px;">—</span>'
-                data_html = f'<span style="font-size:10px;color:{AMBER};font-weight:600;">{dlib}</span>' if (dlib and not concluido) else '<span style="color:#ccc;font-size:10px;">—</span>'
+                onde_html = f'<span style="font-size:10px;color:#555555 !important;">{onde}</span>' if (onde and not concluido) else '<span style="color:#ccc;font-size:10px;">—</span>'
+                data_html = f'<span style="font-size:10px;color:{AMBER} !important;font-weight:600;">{dlib}</span>' if (dlib and not concluido) else '<span style="color:#ccc;font-size:10px;">—</span>'
 
-                # Detectar se término passou e projeto não está concluído
                 termo_str = str(p.get("termino","")).strip()
                 atrasado = False
                 if not concluido and termo_str and termo_str != "—":
@@ -951,16 +841,16 @@ def projetos_por_pilar_html(projetos, key_prefix=""):
                     except:
                         pass
 
-                row_style = "border-bottom:1px solid #EEF0F3;" + ("background:#FFF5F5;" if atrasado else "")
-                txt_style = "color:#C8202E;" if atrasado else ""
+                row_style = "border-bottom:1px solid #EEF0F3; background:white !important; color:#1C2B4A !important;" + ("background:#FFF5F5 !important;" if atrasado else "")
+                txt_style = "color:#C8202E !important;" if atrasado else "color:#1C2B4A !important;"
 
                 rows += f"""<tr style="{row_style}">
                   <td style="padding:8px 12px;font-size:11px;{txt_style}"><b>{p['nome']}</b></td>
                   <td style="padding:8px 12px;font-size:11px;white-space:nowrap;{txt_style}">{p['resp']}</td>
                   <td style="padding:8px 12px;font-size:11px;white-space:nowrap;{txt_style}">{p['termino']}</td>
                   <td style="padding:8px 12px;text-align:right;font-size:11px;{txt_style}">{fmt_brl(p['previsto'])}</td>
-                  <td style="padding:8px 12px;text-align:right;font-size:11px;color:{TEAL};">{fmt_brl(p['val_saving'])}</td>
-                  <td style="padding:8px 12px;text-align:right;font-size:11px;color:{rc};font-weight:600;">{real_s}</td>
+                  <td style="padding:8px 12px;text-align:right;font-size:11px;color:{TEAL} !important;">{fmt_brl(p['val_saving'])}</td>
+                  <td style="padding:8px 12px;text-align:right;font-size:11px;color:{rc} !important;font-weight:600;">{real_s}</td>
                   <td style="padding:8px 12px;">{bdg_custos(p['val_custos'])}</td>
                   <td style="padding:8px 12px;white-space:nowrap;">{bdg_st(p['status'])}</td>
                   <td style="padding:8px 12px;">{onde_html}</td>
@@ -968,13 +858,12 @@ def projetos_por_pilar_html(projetos, key_prefix=""):
                 </tr>"""
 
             st.markdown(
-                f'<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+                f'<table style="width:100%;border-collapse:collapse;font-size:12px;background:white !important;">'
                 f'<thead><tr>{col_headers}</tr></thead>'
                 f'<tbody>{rows}</tbody></table>',
                 unsafe_allow_html=True
             )
 
-    # Barra de TOTAL no fim — mesmo estilo dos pilares
     tot_all_prev = sum(p["previsto"]   for p in res) if res else 0
     tot_all_val  = sum(p["val_saving"] for p in res) if res else 0
     tot_all_real = sum(p["real_ano"]   for p in res) if res else 0
@@ -982,23 +871,23 @@ def projetos_por_pilar_html(projetos, key_prefix=""):
     st.markdown(f"""<div style="background:{NAVY};border-radius:8px;
         padding:10px 16px;display:flex;align-items:center;gap:16px;margin-top:16px;
         border:2px solid rgba(255,255,255,.12);">
-      <span style="color:white;font-size:12px;font-weight:700;letter-spacing:.3px;">TOTAL</span>
+      <span style="color:white !important;font-size:12px;font-weight:700;letter-spacing:.3px;">TOTAL</span>
       <div style="margin-left:auto;display:flex;gap:28px;align-items:center;">
         <div style="text-align:center;">
-          <div style="color:rgba(255,255,255,.5);font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Projetos</div>
-          <div style="color:white;font-size:14px;font-weight:700;">{n_all}</div>
+          <div style="color:rgba(255,255,255,.5) !important;font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Projetos</div>
+          <div style="color:white !important;font-size:14px;font-weight:700;">{n_all}</div>
         </div>
         <div style="text-align:center;">
-          <div style="color:rgba(255,255,255,.5);font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Previsto</div>
-          <div style="color:#C8D8EE;font-size:14px;font-weight:700;">{fmt_mi(tot_all_prev)}</div>
+          <div style="color:rgba(255,255,255,.5) !important;font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Previsto</div>
+          <div style="color:#C8D8EE !important;font-size:14px;font-weight:700;">{fmt_mi(tot_all_prev)}</div>
         </div>
         <div style="text-align:center;">
-          <div style="color:rgba(255,255,255,.5);font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Validado</div>
-          <div style="color:#7BDD9A;font-size:14px;font-weight:700;">{fmt_mi(tot_all_val)}</div>
+          <div style="color:rgba(255,255,255,.5) !important;font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Validado</div>
+          <div style="color:#7BDD9A !important;font-size:14px;font-weight:700;">{fmt_mi(tot_all_val)}</div>
         </div>
         <div style="text-align:center;">
-          <div style="color:rgba(255,255,255,.5);font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Real Acum.</div>
-          <div style="color:#7BDD9A;font-size:14px;font-weight:700;">{fmt_mi(tot_all_real)}</div>
+          <div style="color:rgba(255,255,255,.5) !important;font-size:9px;text-transform:uppercase;letter-spacing:.5px;">Real Acum.</div>
+          <div style="color:#7BDD9A !important;font-size:14px;font-weight:700;">{fmt_mi(tot_all_real)}</div>
         </div>
       </div>
     </div>""", unsafe_allow_html=True)
@@ -1006,7 +895,6 @@ def projetos_por_pilar_html(projetos, key_prefix=""):
     return res, ""
 
 def proj_table_html(projetos):
-    """Tabela de projetos com colunas Onde Parado e Data Liberação."""
     if not projetos:
         return "<p style='color:#999;font-size:12px;padding:6px 0;'>Nenhum projeto encontrado.</p>"
     rows = ""
@@ -1015,11 +903,10 @@ def proj_table_html(projetos):
         real_s = fmt_brl(real_v) if real_v and real_v != 0 else "—"
         real_c = GREEN if real_v and real_v > 0 else "#999"
 
-        dre_icon = (f'<span title="Entra no DRE" style="color:{GREEN};font-size:9px;">✓ DRE</span>'
+        dre_icon = (f'<span title="Entra no DRE" style="color:{GREEN} !important;font-size:9px;">✓ DRE</span>'
                     if p["entra_dre"] else
-                    f'<span title="Não entra no DRE" style="color:{SILVER};font-size:9px;">↷ N/DRE</span>')
+                    f'<span title="Não entra no DRE" style="color:{SILVER} !important;font-size:9px;">↷ N/DRE</span>')
 
-        # Onde parado + Data lib — só mostra se não concluído
         concluido = "Concluído" in str(p.get("status",""))
         onde = p.get("onde_parado","")
         data_lib = p.get("data_lib","")
@@ -1027,19 +914,19 @@ def proj_table_html(projetos):
             onde_html = '<span style="color:#ccc;font-size:10px;">—</span>'
             data_html = '<span style="color:#ccc;font-size:10px;">—</span>'
         else:
-            onde_html = (f'<span style="font-size:10px;color:#555;">{onde}</span>' if onde
+            onde_html = (f'<span style="font-size:10px;color:#555555 !important;">{onde}</span>' if onde
                          else '<span style="color:#ccc;font-size:10px;">—</span>')
-            data_html = (f'<span style="font-size:10px;color:{AMBER};font-weight:600;">{data_lib}</span>' if data_lib
+            data_html = (f'<span style="font-size:10px;color:{AMBER} !important;font-weight:600;">{data_lib}</span>' if data_lib
                          else '<span style="color:#ccc;font-size:10px;">—</span>')
 
-        rows += f"""<tr>
+        rows += f"""<tr style="background:white !important; color:#1C2B4A !important;">
           <td style="white-space:nowrap;">{bdg_tipo(p['tipo'])}<br>{dre_icon}</td>
-          <td style="max-width:220px;font-size:11px;"><b>{p['nome']}</b></td>
-          <td style="font-size:11px;white-space:nowrap;">{p['resp']}</td>
-          <td style="font-size:11px;white-space:nowrap;">{p['termino']}</td>
-          <td style="text-align:right;font-size:11px;">{fmt_brl(p['previsto'])}</td>
-          <td style="text-align:right;font-size:11px;color:{TEAL};">{fmt_brl(p['val_saving'])}</td>
-          <td style="text-align:right;font-size:11px;color:{real_c};font-weight:600;">{real_s}</td>
+          <td style="max-width:220px;font-size:11px;color:#1C2B4A !important;"><b>{p['nome']}</b></td>
+          <td style="font-size:11px;white-space:nowrap;color:#1C2B4A !important;">{p['resp']}</td>
+          <td style="font-size:11px;white-space:nowrap;color:#1C2B4A !important;">{p['termino']}</td>
+          <td style="text-align:right;font-size:11px;color:#1C2B4A !important;">{fmt_brl(p['previsto'])}</td>
+          <td style="text-align:right;font-size:11px;color:{TEAL} !important;">{fmt_brl(p['val_saving'])}</td>
+          <td style="text-align:right;font-size:11px;color:{real_c} !important;font-weight:600;">{real_s}</td>
           <td>{bdg_custos(p['val_custos'])}</td>
           <td style="white-space:nowrap;">{bdg_st(p['status'])}</td>
           <td style="max-width:160px;">{onde_html}</td>
@@ -1051,115 +938,94 @@ def proj_table_html(projetos):
             + rows + "</tbody></table>")
 
 def pilar_resumo_html(projetos):
-    """Tabela local de pilares — nome completo conforme planilha, com indicador DRE."""
     pilares = extract_pilares_local(projetos)
     if not pilares: return ""
     rows = ""
     for p in pilares:
         dot_color = GREEN if p["dre"] else SILVER
         dre_txt   = "✓ DRE" if p["dre"] else "↷ N/DRE"
-        dre_style = f"color:{GREEN};font-size:9px;" if p["dre"] else f"color:{SILVER};font-size:9px;"
+        dre_style = f"color:{GREEN} !important;font-size:9px;" if p["dre"] else f"color:{SILVER} !important;font-size:9px;"
         real_c = GREEN if p["real"] > 0 else SILVER
-        rows += f"""<tr>
-          <td style="font-size:11px;max-width:120px;">
+        rows += f"""<tr style="background:white !important; color:#1C2B4A !important;">
+          <td style="font-size:11px;max-width:120px;color:#1C2B4A !important;">
             <b>{p['nome']}</b><br>
             <span style="{dre_style}">{dre_txt}</span>
           </td>
-          <td style="text-align:center;font-size:11px;font-weight:700;color:{NAVY};">{p['qtd']}</td>
-          <td style="text-align:right;font-size:11px;">{fmt_mi(p['prev'])}</td>
-          <td style="text-align:right;font-size:11px;color:{real_c};font-weight:600;">{fmt_mi(p['real'])}</td>
+          <td style="text-align:center;font-size:11px;font-weight:700;color:{NAVY} !important;">{p['qtd']}</td>
+          <td style="text-align:right;font-size:11px;color:#1C2B4A !important;">{fmt_mi(p['prev'])}</td>
+          <td style="text-align:right;font-size:11px;color:{real_c} !important;font-weight:600;">{fmt_mi(p['real'])}</td>
         </tr>"""
-    tot_qtd  = sum(p["qtd"]  for p in pilares)
-    tot_prev = sum(p["prev"] for p in pilares)
-    tot_real = sum(p["real"] for p in pilares)
-    rows += f"""<tr class="tr-tot">
-      <td style="font-size:11px;">TOTAL</td>
-      <td style="text-align:center;font-size:11px;">{tot_qtd}</td>
-      <td style="text-align:right;font-size:11px;">{fmt_mi(tot_prev)}</td>
-      <td style="text-align:right;font-size:11px;color:{GREEN};">{fmt_mi(tot_real)}</td>
-    </tr>"""
-    # Linha de total
     tot_qtd  = sum(p["qtd"]  for p in pilares)
     tot_prev = sum(p["prev"] for p in pilares)
     tot_real = sum(p["real"] for p in pilares)
     real_c_tot = GREEN if tot_real > 0 else ("#DC3545" if tot_real < 0 else SILVER)
     rows += f"""<tr class="tr-tot">
-      <td style="font-size:11px;">TOTAL</td>
-      <td style="text-align:center;font-size:11px;">{tot_qtd}</td>
-      <td style="text-align:right;font-size:11px;">{fmt_mi(tot_prev)}</td>
-      <td style="text-align:right;font-size:11px;color:{real_c_tot};font-weight:700;">{fmt_mi(tot_real)}</td>
+      <td style="font-size:11px;color:#1C2B4A !important;">TOTAL</td>
+      <td style="text-align:center;font-size:11px;color:#1C2B4A !important;">{tot_qtd}</td>
+      <td style="text-align:right;font-size:11px;color:#1C2B4A !important;">{fmt_mi(tot_prev)}</td>
+      <td style="text-align:right;font-size:11px;color:{real_c_tot} !important;font-weight:700;">{fmt_mi(tot_real)}</td>
     </tr>"""
     return (th("Pilar","Qtd","Saving (R$)","Real Acum.") + rows + "</tbody></table>")
 
 # Cabeçalho macro-tabela
-# Larguras fixas por coluna — garante alinhamento header/rows/total
 MC_WIDTHS = ["16%","8%","8%","9%","9%","9%","8%","7%","6%"]
 
 def render_macro_table(items, show_expander_fn=None):
-    """
-    Renderiza tabela macro completa (header + rows + total) em HTML único.
-    Garante alinhamento perfeito entre colunas.
-    """
     col_names = [
         "Unidade / Área",
         "Meta 2026",
         "Retorno Previsto (12M)",
-        f'<span style="color:{AMBER}">Previsto 2026</span>',
-        f'<span style="color:{TEAL}">Retorno Validado 2026</span>',
-        f'<span style="color:{GREEN}">Retorno Real 2026</span>',
-        f'<span style="color:#9B59B6">Extra DRE</span>',
+        f'<span style="color:{AMBER} !important">Previsto 2026</span>',
+        f'<span style="color:{TEAL} !important">Retorno Validado 2026</span>',
+        f'<span style="color:{GREEN} !important">Retorno Real 2026</span>',
+        f'<span style="color:#9B59B6 !important">Extra DRE</span>',
         "% Meta","Status"
     ]
-    # Header
     ths = "".join(
-        f'<th style="background:{NAVY};color:white;padding:10px 12px;'
+        f'<th style="background:{NAVY} !important;color:white !important;padding:10px 12px;'
         f'font-size:11px;font-weight:600;width:{w};text-align:left;">{c}</th>'
         for c,w in zip(col_names, MC_WIDTHS)
     )
-    html = f'<table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px;"><thead><tr>{ths}</tr></thead><tbody>'
+    html = f'<table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px;background:white !important;"><thead><tr>{ths}</tr></thead><tbody>'
 
-    # Rows
     for it in items:
-        html += f"""<tr style="border-bottom:1px solid #EEF0F3;">
-          <td style="padding:10px 12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{it['nome']}</td>
-          <td style="padding:10px 12px;">{fmt_brl(it['meta'])}</td>
-          <td style="padding:10px 12px;color:#F39C12;">{fmt_brl(it.get('prev',0))}</td>
-          <td style="padding:10px 12px;color:{AMBER};">{fmt_brl(it.get('prev2026',0))}</td>
-          <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(it['val'])}</td>
-          <td style="padding:10px 12px;color:{GREEN};font-weight:600;">{fmt_brl(it['real'])}</td>
-          <td style="padding:10px 12px;color:#9B59B6;">{fmt_brl(it.get('extra',0))}</td>
+        html += f"""<tr style="border-bottom:1px solid #EEF0F3; background:white !important; color:#1C2B4A !important;">
+          <td style="padding:10px 12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1C2B4A !important;">{it['nome']}</td>
+          <td style="padding:10px 12px;color:#1C2B4A !important;">{fmt_brl(it['meta'])}</td>
+          <td style="padding:10px 12px;color:#F39C12 !important;">{fmt_brl(it.get('prev',0))}</td>
+          <td style="padding:10px 12px;color:{AMBER} !important;">{fmt_brl(it.get('prev2026',0))}</td>
+          <td style="padding:10px 12px;color:{TEAL} !important;">{fmt_brl(it['val'])}</td>
+          <td style="padding:10px 12px;color:{GREEN} !important;font-weight:600;">{fmt_brl(it['real'])}</td>
+          <td style="padding:10px 12px;color:#9B59B6 !important;">{fmt_brl(it.get('extra',0))}</td>
           <td style="padding:10px 12px;">{pbar_html(it['pct'])}</td>
           <td style="padding:10px 12px;">{bdg_status(it['pct'])}</td>
         </tr>"""
 
-    # Total
     tm=tp=tp26=tv=tr=te=0
     for it in items:
         tm+=it["meta"];tp+=it.get("prev",0);tp26+=it.get("prev2026",0)
         tv+=it["val"];tr+=it["real"];te+=it.get("extra",0)
     pt = tr/tm if tm>0 else 0
-    html += f"""<tr style="background:{LIGHT};border-top:2px solid {NAVY};font-weight:700;">
-      <td style="padding:10px 12px;">TOTAL</td>
-      <td style="padding:10px 12px;">{fmt_brl(tm)}</td>
-      <td style="padding:10px 12px;color:#F39C12;">{fmt_brl(tp)}</td>
-      <td style="padding:10px 12px;color:{AMBER};">{fmt_brl(tp26)}</td>
-      <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(tv)}</td>
-      <td style="padding:10px 12px;color:{GREEN};">{fmt_brl(tr)}</td>
-      <td style="padding:10px 12px;color:#9B59B6;">{fmt_brl(te)}</td>
+    html += f"""<tr style="background:{LIGHT} !important;border-top:2px solid {NAVY};font-weight:700;color:#1C2B4A !important;">
+      <td style="padding:10px 12px;color:#1C2B4A !important;">TOTAL</td>
+      <td style="padding:10px 12px;color:#1C2B4A !important;">{fmt_brl(tm)}</td>
+      <td style="padding:10px 12px;color:#F39C12 !important;">{fmt_brl(tp)}</td>
+      <td style="padding:10px 12px;color:{AMBER} !important;">{fmt_brl(tp26)}</td>
+      <td style="padding:10px 12px;color:{TEAL} !important;">{fmt_brl(tv)}</td>
+      <td style="padding:10px 12px;color:{GREEN} !important;">{fmt_brl(tr)}</td>
+      <td style="padding:10px 12px;color:#9B59B6 !important;">{fmt_brl(te)}</td>
       <td style="padding:10px 12px;">{pbar_html(pt)}</td>
       <td style="padding:10px 12px;"></td>
     </tr>"""
     html += "</tbody></table>"
     return html
 
-# Compat shims — mantidos para não quebrar código legado
 def mc_header(): return ""
 def mc_row(it): return ""
 def mc_total(items): return ""
 
 # ── HELPERS DE SEÇÃO MINIMIZÁVEL ─────────────────────────────────────────────
 def section_open(key, title, default_open=True, accent_color=None):
-    """Toggle simples — botão + / − discreto."""
     sk = f"sec_{key}"
     if sk not in st.session_state:
         st.session_state[sk] = default_open
@@ -1177,7 +1043,6 @@ def section_open(key, title, default_open=True, accent_color=None):
     return st.session_state[sk]
 
 def paired_section_open(key, title_left, title_right, default_open=True, accent_color=None):
-    """Toggle único para dois painéis lado a lado."""
     sk = f"sec_{key}"
     if sk not in st.session_state:
         st.session_state[sk] = default_open
@@ -1218,7 +1083,6 @@ with st.expander("🔐 Administrador — Atualizar Planilha"):
     if arquivo:
         b = arquivo.read(); save_bytes(b)
         st.cache_data.clear()
-        # Limpa session_state de cache de dados para forçar recarregamento
         for k in list(st.session_state.keys()):
             if k.startswith("_cache_"): del st.session_state[k]
         st.success("✅ Planilha atualizada! Todos os usuários verão os novos dados.")
@@ -1245,7 +1109,6 @@ meta=kpis["meta"]; portfolio=kpis["portfolio"]; prev2026=kpis["prev2026"]
 validado=kpis["validado"]; real=kpis["real"]; extra_dre=kpis.get("extra_dre",0.0); pct_ating=kpis["pct_ating"]
 
 # ── KPI CARDS ──────────────────────────────────────────────────────────────────
-# ── KPI CARDS ──────────────────────────────────────────────────────────────────
 cob = portfolio/meta*100 if meta>0 else 0
 pp  = prev2026/portfolio*100 if portfolio>0 else 0
 pv  = validado/prev2026*100 if prev2026>0 else 0
@@ -1266,8 +1129,8 @@ st.markdown(f"""<div class="kpi-wrap kpi-6">
 
 st.markdown(f"""<div class="nota">
   <b>Metodologia:</b>&nbsp;
-  <b style="color:{GREEN};">✓ DRE</b>: BSW · Kaizen · Kaizen GR · Redução de Custo · Você Resolve — impacto direto e mensurável no DRE.&nbsp;
-  <b style="color:{SILVER};">↷ Não DRE</b>: Kaizen Custo Evitado · Kaizen Capital de Giro · Meta Executiva — geram valor operacional mas não reduzem GGF no DRE.
+  <b style="color:{GREEN} !important;">✓ DRE</b>: BSW · Kaizen · Kaizen GR · Redução de Custo · Você Resolve — impacto direto e mensurável no DRE.&nbsp;
+  <b style="color:{SILVER} !important;">↷ Não DRE</b>: Kaizen Custo Evitado · Kaizen Capital de Giro · Meta Executiva — geram valor operacional mas não reduzem GGF no DRE.
 </div>""", unsafe_allow_html=True)
 
 # ── EVOLUÇÃO ───────────────────────────────────────────────────────────────────
@@ -1280,7 +1143,7 @@ if is_ev:
                                   "Previsto Mensal","Real Mensal"],
                          key="ev_sel")
     if sel:
-        st.plotly_chart(chart_evolucao(ev,sel), use_container_width=True, config={"displayModeBar":False}, theme=None)
+        st.plotly_chart(chart_evolucao(ev,sel), use_container_width=True, config={"displayModeBar":False})
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── FUNIL + GAUGE — botão único para o par ─────────────────────────────────────
@@ -1291,22 +1154,22 @@ cfu, cga = st.columns([3, 2])
 with cfu:
     st.markdown('<div class="sc" style="min-height:60px;">', unsafe_allow_html=True)
     if is_fg:
-        st.markdown(f'<p style="font-size:11px;color:{SILVER};margin-bottom:8px;">Quanto do portfólio mapeado converte em resultado no DRE?</p>', unsafe_allow_html=True)
-        st.plotly_chart(chart_funnel(kpis), use_container_width=True, config={"displayModeBar":False}, theme=None)
+        st.markdown(f'<p style="font-size:11px;color:{SILVER} !important;margin-bottom:8px;">Quanto do portfólio mapeado converte em resultado no DRE?</p>', unsafe_allow_html=True)
+        st.plotly_chart(chart_funnel(kpis), use_container_width=True, config={"displayModeBar":False})
     st.markdown('</div>', unsafe_allow_html=True)
 with cga:
     st.markdown('<div class="sc" style="min-height:60px;">', unsafe_allow_html=True)
     if is_fg:
-        st.plotly_chart(chart_gauge(pct_ating), use_container_width=True, config={"displayModeBar":False}, theme=None)
+        st.plotly_chart(chart_gauge(pct_ating), use_container_width=True, config={"displayModeBar":False})
         gap_val = meta - real
         st.markdown(f"""<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
-          <div style="background:{LIGHT};border-radius:8px;padding:12px;text-align:center;">
-            <div style="font-size:9px;font-weight:600;color:{SILVER};text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">GAP para Meta</div>
-            <div style="font-size:16px;font-weight:700;color:{RED};">{fmt_mi(gap_val)}</div>
+          <div style="background:{LIGHT} !important;border-radius:8px;padding:12px;text-align:center;">
+            <div style="font-size:9px;font-weight:600;color:{SILVER} !important;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">GAP para Meta</div>
+            <div style="font-size:16px;font-weight:700;color:{RED} !important;">{fmt_mi(gap_val)}</div>
           </div>
-          <div style="background:{LIGHT};border-radius:8px;padding:12px;text-align:center;">
-            <div style="font-size:9px;font-weight:600;color:{SILVER};text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Validado / Meta</div>
-            <div style="font-size:16px;font-weight:700;color:{NAVY};">{validado/meta*100:.1f}%</div>
+          <div style="background:{LIGHT} !important;border-radius:8px;padding:12px;text-align:center;">
+            <div style="font-size:9px;font-weight:600;color:{SILVER} !important;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Validado / Meta</div>
+            <div style="font-size:16px;font-weight:700;color:{NAVY} !important;">{validado/meta*100:.1f}%</div>
           </div>
         </div>""", unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
@@ -1320,26 +1183,24 @@ with cd1:
     st.markdown('<div class="sc" style="min-height:60px;">', unsafe_allow_html=True)
     if is_dn:
         st.plotly_chart(chart_donut([p["nome"] for p in plantas],[p["meta"] for p in plantas],PAL),
-                        use_container_width=True, config={"displayModeBar":False}, theme=None)
+                        use_container_width=True, config={"displayModeBar":False})
     st.markdown('</div>', unsafe_allow_html=True)
 with cd2:
     st.markdown('<div class="sc" style="min-height:60px;">', unsafe_allow_html=True)
     if is_dn:
         st.plotly_chart(chart_donut([a["nome"] for a in areas],[a["meta"] for a in areas],
                                     [NAVY,GREEN,"#20C997"]),
-                        use_container_width=True, config={"displayModeBar":False}, theme=None)
+                        use_container_width=True, config={"displayModeBar":False})
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ── PILARES ────────────────────────────────────────────────────────────────────
 st.markdown('<div class="sc">', unsafe_allow_html=True)
 is_pil = section_open("pilares", "Distribuição por Tipo de Iniciativa — Grupo")
 
-# Gráfico gerencial com toggles
 def chart_pilares_gerencial(pilares_global, real_total, show_prev, show_val, show_real):
     labels   = [p["nome"] for p in pilares_global]
     previsto = [p["prev"] for p in pilares_global]
     validado_l = [p["val"] for p in pilares_global]
-    # Usa 'real' direto se disponível (lido da tabela 5U), senão estima
     real_est = [p.get("real", 0) for p in pilares_global]
     if all(v == 0 for v in real_est):
         tv = sum(validado_l)
@@ -1374,19 +1235,13 @@ def chart_pilares_gerencial(pilares_global, real_total, show_prev, show_val, sho
     )
     return fig
 
-# build_pilares_grupo — agrupa projetos reais com subtipos Kaizen
 @st.cache_data(show_spinner=False)
 def build_pilares_grupo(fb_key):
-    """
-    Lê DIRETAMENTE da tabela 'Saving Especulado por Pilar' da aba 5 Unidades
-    (rows 12-19, cols 3-7) — fonte única de verdade, mesmos valores do Excel.
-    col3=Pilar, col4=Qtd, col5=Saving(Previsto), col6=Saving Validado, col7=Até o Momento(Real)
-    """
     NAO_DRE_PIL = {"Kaizen - Custo Evitado","Kaizen - Capital de Giro",
                    "Meta Executiva","Meta Executiva "}
     df = D["u5"]
     res = []
-    for ri in range(12, 21):  # rows 12-20 (20 = TOTAL, pular)
+    for ri in range(12, 21):
         nome = str(df.iloc[ri,3]).strip() if pd.notna(df.iloc[ri,3]) else ""
         if not nome or nome in ("TOTAL",""):
             continue
@@ -1409,7 +1264,7 @@ if is_pil:
         p_grupo = build_pilares_grupo(hash(fb))
         fig_pil = chart_pilares_gerencial(p_grupo, real, show_prev, show_val, show_real)
         if fig_pil:
-            st.plotly_chart(fig_pil, use_container_width=True, config={"displayModeBar":False}, theme=None)
+            st.plotly_chart(fig_pil, use_container_width=True, config={"displayModeBar":False})
         else:
             st.info("Selecione ao menos uma série.")
     with cp2:
@@ -1417,26 +1272,26 @@ if is_pil:
                     unsafe_allow_html=True)
         rows_p = ""
         for p in p_grupo:
-            dre_s = f"color:{GREEN};font-size:9px;font-weight:600;" if p["dre"] else f"color:{SILVER};font-size:9px;"
+            dre_s = f"color:{GREEN} !important;font-size:9px;font-weight:600;" if p["dre"] else f"color:{SILVER} !important;font-size:9px;"
             dre_t = "✓ DRE" if p["dre"] else "↷ N/DRE"
-            rows_p += f"""<tr>
-              <td style="font-size:11px;font-weight:600;">{p['nome']}<br>
+            rows_p += f"""<tr style="background:white !important; color:#1C2B4A !important;">
+              <td style="font-size:11px;font-weight:600;color:#1C2B4A !important;">{p['nome']}<br>
                 <span style="{dre_s}">{dre_t}</span></td>
-              <td style="text-align:center;font-size:11px;font-weight:700;">{p['qtd']}</td>
-              <td style="text-align:right;font-size:11px;">{fmt_mi(p['prev'])}</td>
-              <td style="text-align:right;font-size:11px;color:{TEAL};font-weight:600;">{fmt_mi(p['val'])}</td>
-              <td style="text-align:right;font-size:11px;color:{GREEN};font-weight:600;">{fmt_mi(p['real'])}</td>
+              <td style="text-align:center;font-size:11px;font-weight:700;color:#1C2B4A !important;">{p['qtd']}</td>
+              <td style="text-align:right;font-size:11px;color:#1C2B4A !important;">{fmt_mi(p['prev'])}</td>
+              <td style="text-align:right;font-size:11px;color:{TEAL} !important;font-weight:600;">{fmt_mi(p['val'])}</td>
+              <td style="text-align:right;font-size:11px;color:{GREEN} !important;font-weight:600;">{fmt_mi(p['real'])}</td>
             </tr>"""
         tot_qtd_g=sum(p["qtd"] for p in p_grupo)
         tot_prev_g=sum(p["prev"] for p in p_grupo)
         tot_val_g=sum(p["val"] for p in p_grupo)
         tot_real_g=sum(p["real"] for p in p_grupo)
         rows_p += f"""<tr class="tr-tot">
-          <td style="font-size:11px;">TOTAL</td>
-          <td style="text-align:center;font-size:11px;">{tot_qtd_g}</td>
-          <td style="text-align:right;font-size:11px;">{fmt_mi(tot_prev_g)}</td>
-          <td style="text-align:right;font-size:11px;color:{TEAL};">{fmt_mi(tot_val_g)}</td>
-          <td style="text-align:right;font-size:11px;color:{GREEN};">{fmt_mi(tot_real_g)}</td>
+          <td style="font-size:11px;color:#1C2B4A !important;">TOTAL</td>
+          <td style="text-align:center;font-size:11px;color:#1C2B4A !important;">{tot_qtd_g}</td>
+          <td style="text-align:right;font-size:11px;color:#1C2B4A !important;">{fmt_mi(tot_prev_g)}</td>
+          <td style="text-align:right;font-size:11px;color:{TEAL} !important;">{fmt_mi(tot_val_g)}</td>
+          <td style="text-align:right;font-size:11px;color:{GREEN} !important;">{fmt_mi(tot_real_g)}</td>
         </tr>"""
         st.markdown(th("Pilar","Qtd","Saving (R$)","Saving Validado","Até o Momento")+rows_p+"</tbody></table>",
                     unsafe_allow_html=True)
@@ -1446,7 +1301,6 @@ st.markdown('</div>', unsafe_allow_html=True)
 # PLANTAS INDUSTRIAIS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# ─────────────────────────────────────────────────────────────────────────────
 st.markdown('<div class="sc">', unsafe_allow_html=True)
 is_plantas = section_open("plantas", "Plantas Industriais — Performance Consolidada")
 if is_plantas:
@@ -1460,13 +1314,12 @@ for p in plantas:
         n = len(proj)
         if proj:
             proj_v, pilar_html = projetos_por_pilar_html(proj, key_prefix=f"plt_{p['nome']}")
-            st.markdown(f"<p style='font-size:11px;color:{SILVER};margin:4px 0 8px;'>"
+            st.markdown(f"<p style='font-size:11px;color:{SILVER} !important;margin:4px 0 8px;'>"
                         f"<b>{len(proj_v)}</b> de {n} projetos</p>", unsafe_allow_html=True)
             st.markdown(pilar_html, unsafe_allow_html=True)
         else:
             st.markdown("<p style='color:#999;font-size:12px;'>Sem projetos.</p>",
                         unsafe_allow_html=True)
-
 
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1488,7 +1341,7 @@ for a in areas:
         n = len(proj)
         if proj:
             proj_va, pilar_html_a = projetos_por_pilar_html(proj, key_prefix=f"area_{a['nome']}")
-            st.markdown(f"<p style='font-size:11px;color:{SILVER};margin:4px 0 8px;'>"
+            st.markdown(f"<p style='font-size:11px;color:{SILVER} !important;margin:4px 0 8px;'>"
                         f"<b>{len(proj_va)}</b> de {n} projetos</p>", unsafe_allow_html=True)
             st.markdown(pilar_html_a, unsafe_allow_html=True)
         else:
@@ -1511,10 +1364,10 @@ if is_class:
     ]
     for col,cor,icon,titulo,texto,dre,dcor in ganhos:
         with col:
-            st.markdown(f"""<div style="border:2px solid {cor};border-radius:8px;padding:12px 14px;height:100%;">
-              <div style="font-weight:700;color:{cor};margin-bottom:4px;font-size:12px;">{icon} {titulo}</div>
-              <div style="font-size:10px;color:#444;line-height:1.5;margin-bottom:6px;">{texto}</div>
-              <div style="font-size:10px;font-weight:700;color:{dcor};">{dre}</div>
+            st.markdown(f"""<div style="border:2px solid {cor};border-radius:8px;padding:12px 14px;height:100%;background:white !important;">
+              <div style="font-weight:700;color:{cor} !important;margin-bottom:4px;font-size:12px;">{icon} {titulo}</div>
+              <div style="font-size:10px;color:#444444 !important;line-height:1.5;margin-bottom:6px;">{texto}</div>
+              <div style="font-size:10px;font-weight:700;color:{dcor} !important;">{dre}</div>
             </div>""", unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1534,18 +1387,18 @@ if is_rank:
     pf = ranking
     if f_uni: pf = [r for r in pf if r["uni"] in f_uni]
     if f_st:  pf  = [r for r in pf if r["status"] in f_st]
-    st.markdown(f"<p style='font-size:11px;color:{SILVER};margin-bottom:6px;'>"
+    st.markdown(f"<p style='font-size:11px;color:{SILVER} !important;margin-bottom:6px;'>"
                 f"Exibindo {min(int(n_lin),len(pf))} de {len(pf)} projetos</p>",
                 unsafe_allow_html=True)
-    rows_rk = "".join(f"""<tr>
-      <td style="text-align:center;color:{SILVER};font-weight:700;font-size:11px;">{r['pos']}</td>
-      <td style="font-weight:600;font-size:11px;">{r['uni']}</td>
-      <td style="font-size:11px;">{r['nome']}</td>
+    rows_rk = "".join(f"""<tr style="background:white !important; color:#1C2B4A !important;">
+      <td style="text-align:center;color:{SILVER} !important;font-weight:700;font-size:11px;">{r['pos']}</td>
+      <td style="font-weight:600;font-size:11px;color:#1C2B4A !important;">{r['uni']}</td>
+      <td style="font-size:11px;color:#1C2B4A !important;">{r['nome']}</td>
       <td>{bdg_st(r['status'])}</td>
       <td>{bdg_custos(r['custos'])}</td>
-      <td style="text-align:right;font-size:11px;">{fmt_brl(r['prev26'])}</td>
-      <td style="text-align:right;font-size:11px;">{fmt_brl(r['prev_mo'])}</td>
-      <td style="text-align:right;font-weight:700;color:{GREEN};font-size:11px;">{fmt_brl(r['real'])}</td>
+      <td style="text-align:right;font-size:11px;color:#1C2B4A !important;">{fmt_brl(r['prev26'])}</td>
+      <td style="text-align:right;font-size:11px;color:#1C2B4A !important;">{fmt_brl(r['prev_mo'])}</td>
+      <td style="text-align:right;font-weight:700;color:{GREEN} !important;font-size:11px;">{fmt_brl(r['real'])}</td>
     </tr>""" for r in pf[:int(n_lin)])
     st.markdown(th("#","Unidade","Projeto","Status","Custos",
                    "Previsto 2026","Previsto Momento","Real DRE")+rows_rk+"</tbody></table>",
@@ -1557,33 +1410,33 @@ st.markdown('<div class="sc">', unsafe_allow_html=True)
 is_gap = section_open("gap","GAP — Projetos Aguardando Validação de Custos",
                       default_open=False, accent_color=AMBER)
 if is_gap:
-    st.markdown(f'<p style="font-size:11px;color:{SILVER};margin-bottom:10px;">'
+    st.markdown(f'<p style="font-size:11px;color:{SILVER} !important;margin-bottom:10px;">'
                 f'Projetos com valor projetado mas ainda sem validação do depto de Custos.</p>',
                 unsafe_allow_html=True)
     gap = [r for r in ranking if r["custos"] not in ("OK","Não Ok","NOK","Não OK") and r["prev26"]>0]
     by_uni = {}
     for r in gap: by_uni[r["uni"]] = by_uni.get(r["uni"],0)+r["prev26"]
     tot_gap = sum(by_uni.values()) if by_uni else 0
-    rows_gap = "".join(f"""<tr>
-      <td style="font-weight:600;">{u}</td>
-      <td style="text-align:right;color:{AMBER};font-weight:600;">{fmt_brl(v)}</td>
-      <td style="text-align:right;">{v/tot_gap*100:.1f}%</td>
+    rows_gap = "".join(f"""<tr style="background:white !important; color:#1C2B4A !important;">
+      <td style="font-weight:600;color:#1C2B4A !important;">{u}</td>
+      <td style="text-align:right;color:{AMBER} !important;font-weight:600;">{fmt_brl(v)}</td>
+      <td style="text-align:right;color:#1C2B4A !important;">{v/tot_gap*100:.1f}%</td>
     </tr>""" for u,v in sorted(by_uni.items(),key=lambda x:-x[1]))
     rows_gap += f"""<tr class="tr-tot">
-      <td>TOTAL GAP</td>
-      <td style="text-align:right;color:{AMBER};">{fmt_brl(tot_gap)}</td>
-      <td style="text-align:right;">100%</td>
+      <td style="color:#1C2B4A !important;">TOTAL GAP</td>
+      <td style="text-align:right;color:{AMBER} !important;">{fmt_brl(tot_gap)}</td>
+      <td style="text-align:right;color:#1C2B4A !important;">100%</td>
     </tr>"""
-    st.markdown(f"<p style='font-size:11px;color:{SILVER};'>{len(gap)} projetos aguardam validação</p>",
+    st.markdown(f"<p style='font-size:11px;color:{SILVER} !important;'>{len(gap)} projetos aguardam validação</p>",
                 unsafe_allow_html=True)
-    st.markdown(th("Unidade",f'<span style="color:{AMBER}">Previsto 2026 (não validado)</span>',
+    st.markdown(th("Unidade",f'<span style="color:{AMBER} !important">Previsto 2026 (não validado)</span>',
                    "% do Gap")+rows_gap+"</tbody></table>",
                 unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── FOOTER ─────────────────────────────────────────────────────────────────────
 st.markdown(f"""<div style="text-align:center;padding:16px 0;border-top:1px solid #EEF0F3;margin-top:8px;">
-  <span style="font-size:11px;color:{SILVER};">
+  <span style="font-size:11px;color:{SILVER} !important;">
     Dashboard Executivo · Grupo Delga 2026 · Gestão Estratégica de Projetos e Redução de Custos
   </span>
 </div>""", unsafe_allow_html=True)
