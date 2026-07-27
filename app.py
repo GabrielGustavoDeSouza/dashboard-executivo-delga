@@ -13,15 +13,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ── TEMA (claro / escuro) ──────────────────────────────────────────────────
-# Controlado manualmente pelo usuário (botão no topo), NUNCA pelo sistema
-# operacional. Isso resolve o problema do dashboard "ficar preto" quando o
-# Windows está no modo escuro: o Streamlit é travado no tema "light" via
-# .streamlit/config.toml, e o único jeito de mudar a aparência é este botão.
-if "theme" not in st.session_state:
-    st.session_state["theme"] = "light"
-DARK = st.session_state["theme"] == "dark"
-
 # ── PALETA DELGA ──────────────────────────────────────────────────────────────
 NAVY   = "#1C2B4A"
 RED    = "#C8202E"
@@ -32,13 +23,11 @@ GREEN  = "#1A7A3A"
 AMBER  = "#E8A838"
 TEAL   = "#20C997"
 
-# Fundo da "área externa" da página (fora do papel do dashboard).
-# Todos os cards/tabelas internos continuam exatamente iguais (fundo claro),
-# então nenhuma informação perde legibilidade — só o entorno escurece.
-APP_BG   = "#0F131B" if DARK else "#EEF1F6"
+# Fundo sempre branco/claro — fixo, não muda com o modo claro/escuro do
+# sistema operacional do usuário (Windows, macOS, navegador, etc.).
+APP_BG   = "#EEF1F6"
 PAPER_BG = "#FFFFFF"
-PAPER_SHADOW = "0 0 0 1px rgba(255,255,255,.04), 0 30px 60px rgba(0,0,0,.55)" if DARK \
-               else "0 1px 4px rgba(28,43,74,.06), 0 4px 16px rgba(28,43,74,.04)"
+PAPER_SHADOW = "0 1px 4px rgba(28,43,74,.06), 0 4px 16px rgba(28,43,74,.04)"
 
 # ── TIPOS VÁLIDOS DE PROJETO ───────────────────────────────────────────────────
 # Entram no DRE: BSW, Kaizen, Kaizen - Ganho Recorrente, Redução de Custo, Você Resolve
@@ -79,8 +68,8 @@ html,body,[class*="css"]{{font-family:'Inter',sans-serif;}}
 
 /* ── TRAVA DE TEMA ──────────────────────────────────────────────────────────
    Impede que o modo escuro do Windows/navegador altere as cores do app.
-   A aparência do dashboard passa a ser controlada SOMENTE pelo botão
-   ☀️/🌙 no topo da página (via variável Python DARK acima). */
+   O fundo do dashboard é sempre branco/claro, ponto final — não existe
+   alternância nem depende da configuração de tema de quem está acessando. */
 :root, html {{ color-scheme: light !important; }}
 [data-testid="stAppViewContainer"], [data-testid="stAppViewContainer"] > .main,
 body, .stApp {{
@@ -99,10 +88,10 @@ body, .stApp {{
   margin-top:14px;margin-bottom:24px;
 }}
 
-/* Reforço: mesmo sem .streamlit/config.toml, força texto e campos claros
-   dentro do dashboard, independente do tema do sistema operacional.
-   Estilos inline (usados em quase todo o app) continuam tendo prioridade,
-   então nada do que já está colorido manualmente é afetado. */
+/* Trava de fundo: força texto e campos claros dentro do dashboard,
+   independente do tema (claro/escuro) do sistema operacional ou navegador
+   do usuário. Estilos inline (usados em quase todo o app) continuam tendo
+   prioridade, então nada do que já está colorido manualmente é afetado. */
 .block-container, .block-container p, .block-container span,
 .block-container label, .block-container div {{
   color:#1C2B4A;
@@ -114,19 +103,6 @@ body, .stApp {{
 [data-baseweb="popover"], [data-baseweb="menu"] {{
   background-color:#FFFFFF !important;
   color:#1C2B4A !important;
-}}
-
-/* ── BOTÃO DE TEMA (topo) ── */
-.theme-row{{display:flex;justify-content:flex-end;margin:2px 4px 6px 0;}}
-div[data-testid="stButton"] button[kind="secondary"]#themebtn,
-.theme-toggle-wrap button{{
-  border-radius:20px!important;
-  padding:4px 14px!important;
-  font-size:12px!important;font-weight:600!important;
-  border:1px solid {"rgba(255,255,255,.18)" if DARK else "#E2E8F0"}!important;
-  background:{"#1C2433" if DARK else "#FFFFFF"}!important;
-  color:{"#E6E9EF" if DARK else NAVY}!important;
-  box-shadow:0 1px 4px rgba(0,0,0,.08)!important;
 }}
 
 /* ── HEADER ── */
@@ -246,16 +222,6 @@ div[data-testid="stExpander"]>div:first-child{{
   border-radius:8px!important;padding:4px 10px!important;}}
 </style>
 """, unsafe_allow_html=True)
-
-# ── BOTÃO DE TEMA — bem no topo da página, visível inclusive na tela de login ──
-_tcol1, _tcol2 = st.columns([10, 1.6])
-with _tcol2:
-    st.markdown('<div class="theme-toggle-wrap">', unsafe_allow_html=True)
-    _label = "☀️ Modo claro" if DARK else "🌙 Modo escuro"
-    if st.button(_label, key="theme_toggle_btn", use_container_width=True):
-        st.session_state["theme"] = "light" if DARK else "dark"
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # ── SENHA ─────────────────────────────────────────────────────────────────────
 SENHA = "Delga01"
