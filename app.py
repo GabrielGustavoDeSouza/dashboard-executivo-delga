@@ -634,7 +634,7 @@ def chart_funnel(kpis):
         margin=dict(l=130,r=150,t=10,b=10),
         height=310,
         paper_bgcolor="white", plot_bgcolor="white",
-        font=dict(family="Inter"),
+        font=dict(family="Inter", color="#1C2B4A"),
     )
     return fig
 
@@ -655,7 +655,8 @@ def chart_gauge(pct):
         ),
         title=dict(text="<b>Atingimento da Meta</b>",font=dict(size=12,color=SILVER)),
     ))
-    fig.update_layout(margin=dict(l=20,r=20,t=50,b=10),height=280,paper_bgcolor="white")
+    fig.update_layout(margin=dict(l=20,r=20,t=50,b=10),height=280,paper_bgcolor="white",
+                       font=dict(family="Inter", color="#1C2B4A"))
     return fig
 
 def chart_evolucao(ev, series):
@@ -705,16 +706,18 @@ def chart_evolucao(ev, series):
         barmode="group",
         bargap=0.25,
         bargroupgap=0.05,
-        xaxis=dict(showgrid=True, gridcolor="#F0F4F8"),
-        yaxis=dict(tickformat=",.0f", showgrid=True, gridcolor="#F0F4F8", title="R$"),
-        legend=dict(orientation="h", y=1.05, x=0.5, xanchor="center", font=dict(size=11)),
+        xaxis=dict(showgrid=True, gridcolor="#F0F4F8", tickfont=dict(color="#1C2B4A")),
+        yaxis=dict(tickformat=",.0f", showgrid=True, gridcolor="#F0F4F8", title="R$",
+                   tickfont=dict(color="#1C2B4A"), title_font=dict(color="#1C2B4A")),
+        legend=dict(orientation="h", y=1.05, x=0.5, xanchor="center",
+                    font=dict(size=11, color="#1C2B4A")),
         margin=dict(l=80, r=20, t=50, b=40),
         height=420,
         paper_bgcolor="white", plot_bgcolor="white",
         # Hover ordenado do maior para o menor
         hovermode="x unified",
-        hoverlabel=dict(bgcolor="white", font_size=12, font_family="Inter"),
-        font=dict(family="Inter"),
+        hoverlabel=dict(bgcolor="white", font_size=12, font_family="Inter", font_color="#1C2B4A"),
+        font=dict(family="Inter", color="#1C2B4A"),
     )
     # Ordenar hover do maior para o menor por valor
     fig.update_layout(hoversubplots="axis")
@@ -730,12 +733,13 @@ def chart_donut(labels,values,colors):
         marker=dict(colors=colors),textinfo="none",
         hovertemplate="<b>%{label}</b><extra></extra>"))
     fig.update_layout(showlegend=True,
-        legend=dict(orientation="v",y=0.5,x=0.55,yanchor="middle",font=dict(size=11)),
+        legend=dict(orientation="v",y=0.5,x=0.55,yanchor="middle",
+                    font=dict(size=11, color="#1C2B4A")),
         margin=dict(l=10,r=10,t=10,b=30),height=280,
         paper_bgcolor="white",plot_bgcolor="white",
         annotations=[dict(text=f"<b>{fmt_mi(sum(values))}</b>",x=0.22,y=-0.08,
-                          font_size=12,showarrow=False)],
-        font=dict(family="Inter"))
+                          font_size=12,font_color="#1C2B4A",showarrow=False)],
+        font=dict(family="Inter", color="#1C2B4A"))
     return fig
 
 def chart_pilares(pilares_global, real_total):
@@ -750,11 +754,12 @@ def chart_pilares(pilares_global, real_total):
     fig.add_trace(go.Bar(name="Validado",x=labels,y=validado,marker_color=NAVY))
     fig.add_trace(go.Bar(name="Real DRE",x=labels,y=real_est, marker_color=GREEN))
     fig.update_layout(barmode="group",
-        yaxis=dict(tickformat=",.0f",showgrid=True,gridcolor="#F0F4F8"),
-        legend=dict(orientation="h",y=1.05,x=1,xanchor="right",font=dict(size=11)),
+        yaxis=dict(tickformat=",.0f",showgrid=True,gridcolor="#F0F4F8",tickfont=dict(color="#1C2B4A")),
+        xaxis=dict(tickfont=dict(color="#1C2B4A")),
+        legend=dict(orientation="h",y=1.05,x=1,xanchor="right",font=dict(size=11,color="#1C2B4A")),
         margin=dict(l=60,r=20,t=40,b=60),height=300,
         paper_bgcolor="white",plot_bgcolor="white",
-        bargap=0.28,font=dict(family="Inter"))
+        bargap=0.28,font=dict(family="Inter", color="#1C2B4A"))
     return fig
 
 # ── HTML HELPERS ──────────────────────────────────────────────────────────────
@@ -1275,7 +1280,7 @@ if is_ev:
                                   "Previsto Mensal","Real Mensal"],
                          key="ev_sel")
     if sel:
-        st.plotly_chart(chart_evolucao(ev,sel), use_container_width=True, config={"displayModeBar":False})
+        st.plotly_chart(chart_evolucao(ev,sel), use_container_width=True, config={"displayModeBar":False}, theme=None)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── FUNIL + GAUGE — botão único para o par ─────────────────────────────────────
@@ -1287,12 +1292,12 @@ with cfu:
     st.markdown('<div class="sc" style="min-height:60px;">', unsafe_allow_html=True)
     if is_fg:
         st.markdown(f'<p style="font-size:11px;color:{SILVER};margin-bottom:8px;">Quanto do portfólio mapeado converte em resultado no DRE?</p>', unsafe_allow_html=True)
-        st.plotly_chart(chart_funnel(kpis), use_container_width=True, config={"displayModeBar":False})
+        st.plotly_chart(chart_funnel(kpis), use_container_width=True, config={"displayModeBar":False}, theme=None)
     st.markdown('</div>', unsafe_allow_html=True)
 with cga:
     st.markdown('<div class="sc" style="min-height:60px;">', unsafe_allow_html=True)
     if is_fg:
-        st.plotly_chart(chart_gauge(pct_ating), use_container_width=True, config={"displayModeBar":False})
+        st.plotly_chart(chart_gauge(pct_ating), use_container_width=True, config={"displayModeBar":False}, theme=None)
         gap_val = meta - real
         st.markdown(f"""<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
           <div style="background:{LIGHT};border-radius:8px;padding:12px;text-align:center;">
@@ -1315,14 +1320,14 @@ with cd1:
     st.markdown('<div class="sc" style="min-height:60px;">', unsafe_allow_html=True)
     if is_dn:
         st.plotly_chart(chart_donut([p["nome"] for p in plantas],[p["meta"] for p in plantas],PAL),
-                        use_container_width=True, config={"displayModeBar":False})
+                        use_container_width=True, config={"displayModeBar":False}, theme=None)
     st.markdown('</div>', unsafe_allow_html=True)
 with cd2:
     st.markdown('<div class="sc" style="min-height:60px;">', unsafe_allow_html=True)
     if is_dn:
         st.plotly_chart(chart_donut([a["nome"] for a in areas],[a["meta"] for a in areas],
                                     [NAVY,GREEN,"#20C997"]),
-                        use_container_width=True, config={"displayModeBar":False})
+                        use_container_width=True, config={"displayModeBar":False}, theme=None)
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ── PILARES ────────────────────────────────────────────────────────────────────
@@ -1350,22 +1355,22 @@ def chart_pilares_gerencial(pilares_global, real_total, show_prev, show_val, sho
             name=s["name"], y=labels, x=s["x"], orientation="h",
             marker=dict(color=s["color"], line=dict(width=0)),
             text=[fmt_mi(v) for v in s["x"]],
-            textposition="outside", textfont=dict(size=10),
+            textposition="outside", textfont=dict(size=10, color="#1C2B4A"),
             hovertemplate=f"<b>%{{y}}</b><br>{s['name']}: R$ %{{x:,.0f}}<extra></extra>",
         ))
     fig.update_layout(
         barmode="group",
         xaxis=dict(tickformat=",.0f", showgrid=True, gridcolor="#F0F4F8",
-                   tickprefix="R$ ", zeroline=False),
-        yaxis=dict(autorange="reversed", tickfont=dict(size=12, color="#333"),
+                   tickprefix="R$ ", zeroline=False, tickfont=dict(color="#1C2B4A")),
+        yaxis=dict(autorange="reversed", tickfont=dict(size=12, color="#1C2B4A"),
                    gridcolor="#F0F4F8"),
         legend=dict(orientation="h", y=1.06, x=0.5, xanchor="center",
-                    font=dict(size=12), bgcolor="rgba(0,0,0,0)"),
+                    font=dict(size=12, color="#1C2B4A"), bgcolor="rgba(0,0,0,0)"),
         margin=dict(l=160, r=100, t=44, b=20),
         height=max(220, len(labels)*62),
         paper_bgcolor="white", plot_bgcolor="white",
         bargap=0.35, bargroupgap=0.06,
-        font=dict(family="Inter"),
+        font=dict(family="Inter", color="#1C2B4A"),
     )
     return fig
 
@@ -1404,7 +1409,7 @@ if is_pil:
         p_grupo = build_pilares_grupo(hash(fb))
         fig_pil = chart_pilares_gerencial(p_grupo, real, show_prev, show_val, show_real)
         if fig_pil:
-            st.plotly_chart(fig_pil, use_container_width=True, config={"displayModeBar":False})
+            st.plotly_chart(fig_pil, use_container_width=True, config={"displayModeBar":False}, theme=None)
         else:
             st.info("Selecione ao menos uma série.")
     with cp2:
