@@ -78,6 +78,7 @@ html,body,[class*="css"]{{font-family:'Inter',sans-serif;}}
 /* ── KPI CARDS ── */
 .kpi-wrap{{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px;}}
 .kpi-6{{grid-template-columns:repeat(6,1fr);}}
+.kpi-7{{grid-template-columns:repeat(7,1fr);}}
 .kpi-card{{background:white;border-radius:12px;padding:18px 20px;
            border-left:4px solid {NAVY};
            box-shadow:0 1px 4px rgba(28,43,74,.06),0 4px 16px rgba(28,43,74,.04);
@@ -87,6 +88,7 @@ html,body,[class*="css"]{{font-family:'Inter',sans-serif;}}
 .kpi-card.cg{{border-left-color:{GREEN};}}
 .kpi-card.ca{{border-left-color:{AMBER};}}
 .kpi-card.cs{{border-left-color:{SILVER};}}
+.kpi-card.ct{{border-left-color:{TEAL};}}
 .kpi-l{{font-size:9px;font-weight:600;color:{SILVER};text-transform:uppercase;
         letter-spacing:.9px;margin-bottom:6px;}}
 .kpi-v{{font-size:24px;font-weight:700;color:{NAVY};line-height:1.1;margin-bottom:3px;}}
@@ -296,14 +298,15 @@ def load_data(fb):
 def extract_kpis(d):
     df = d["u5"]
     return dict(
-        meta      =safe(df.iloc[6,3]),
-        portfolio =safe(df.iloc[6,5]),
-        prev2026  =safe(df.iloc[6,6]),
-        validado  =safe(df.iloc[6,7]),
-        real      =safe(df.iloc[6,9]),
-        extra_dre =safe(df.iloc[6,10]),
-        pct_ating =safe(df.iloc[6,11]),
-        inic      =int(safe(df.iloc[6,13])),
+        meta       =safe(df.iloc[6,3]),
+        portfolio  =safe(df.iloc[6,4]),   # E — Retorno Previsto (Anual)
+        ret_val_ano=safe(df.iloc[6,5]),   # F — Retorno Validado (Anual)  [NOVO big number]
+        prev2026   =safe(df.iloc[6,6]),
+        validado   =safe(df.iloc[6,7]),
+        real       =safe(df.iloc[6,9]),
+        extra_dre  =safe(df.iloc[6,10]),
+        pct_ating  =safe(df.iloc[6,11]),
+        inic       =int(safe(df.iloc[6,13])),
     )
 
 def extract_plantas(d):
@@ -1151,24 +1154,26 @@ p_glob  = extract_pilares_global(D)
 ev      = extract_evolucao(D)
 ranking = extract_ranking(D)
 
-meta=kpis["meta"]; portfolio=kpis["portfolio"]; prev2026=kpis["prev2026"]
+meta=kpis["meta"]; portfolio=kpis["portfolio"]; ret_val_ano=kpis.get("ret_val_ano",0.0)
+prev2026=kpis["prev2026"]
 validado=kpis["validado"]; real=kpis["real"]; extra_dre=kpis.get("extra_dre",0.0); pct_ating=kpis["pct_ating"]
 
 # ── KPI CARDS ──────────────────────────────────────────────────────────────────
-# ── KPI CARDS ──────────────────────────────────────────────────────────────────
-cob = portfolio/meta*100 if meta>0 else 0
-pp  = prev2026/portfolio*100 if portfolio>0 else 0
-pv  = validado/prev2026*100 if prev2026>0 else 0
+cob  = portfolio/meta*100 if meta>0 else 0
+cova = ret_val_ano/portfolio*100 if portfolio>0 else 0
+pp   = prev2026/portfolio*100 if portfolio>0 else 0
+pv   = validado/prev2026*100 if prev2026>0 else 0
 
 def kpi(cls,lbl,vb,sub,det):
     return (f'<div class="kpi-card {cls}"><div class="kpi-l">{lbl}</div>'
             f'<div class="kpi-v">{vb}</div><div class="kpi-s">{sub}</div>'
             f'<div class="kpi-d">{det}</div></div>')
 
-st.markdown(f"""<div class="kpi-wrap kpi-6">
+st.markdown(f"""<div class="kpi-wrap kpi-7">
   {kpi("","Meta Anual do Grupo (2026)",fmt_mi(meta),"","Objetivo 2026 — 100%")}
-  {kpi("cs","Portfólio Previsto (Anualizado)",fmt_mi(portfolio),"",f"{cob:.1f}% da meta coberta")}
-  {kpi("ca","Previsto 2026",fmt_mi(prev2026),"",f"{pp:.1f}% do portfólio total")}
+  {kpi("cs","Retorno Previsto (Anual)",fmt_mi(portfolio),"",f"{cob:.1f}% da meta coberta")}
+  {kpi("ct","Retorno Validado (Anual)",fmt_mi(ret_val_ano),"",f"{cova:.1f}% do Retorno Previsto")}
+  {kpi("ca","Previsto 2026",fmt_mi(prev2026),"",f"{pp:.1f}% do Retorno Previsto")}
   {kpi("","Validado por Custos (2026)",fmt_mi(validado),"",f"{pv:.1f}% do Previsto 2026")}
   {kpi("cg","Retorno Real (DRE) (2026)",fmt_mi(real),"",f"{pct_ating*100:.1f}% de atingimento")}
   {kpi("cr","Extra DRE (Até o Momento)",fmt_mi(extra_dre),"","Ganho fora do DRE acumulado")}
