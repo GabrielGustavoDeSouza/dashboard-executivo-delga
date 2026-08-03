@@ -523,9 +523,15 @@ def get_proj_vendas(d):
 def build_previsto_custos(fb_key):
     """
     Linha 'Previsto por Custos (2026)' — soma mensal considerando SOMENTE
-    projetos com validação 'OK' do departamento de Custos, usando o valor
-    já validado (Saving Validado) distribuído mês a mês pela planilha.
-    Projetos sem OK (NOK, pendente, vazio) são desconsiderados nesta análise.
+    projetos com validação 'OK' do departamento de Custos E que já possuem
+    um Saving Validado (R$) efetivamente preenchido pelo depto de Custos.
+
+    Importante: quando um projeto está marcado 'OK' mas o campo de Saving
+    Validado ainda está vazio/zerado, a própria planilha usa o Previsto (R$)
+    original da unidade como fallback nas colunas mensais — o que é
+    exatamente o comportamento que essa análise deve EXCLUIR, pois o valor
+    de Custos deve sempre sobrepor o da unidade, nunca o contrário. Por
+    isso, projetos OK sem Saving Validado preenchido contam como 0 aqui.
     """
     meses = [0.0]*12
     plantas_sheets = ["Diadema","Ferraz","São Leopoldo","Jarinu","Anchieta"]
@@ -534,7 +540,9 @@ def build_previsto_custos(fb_key):
     todas_listas.append(get_proj_vendas(D))
     for lista in todas_listas:
         for p in lista:
-            if str(p.get("val_custos","")).strip() == "OK":
+            ok = str(p.get("val_custos","")).strip() == "OK"
+            tem_valor_custos = safe(p.get("val_saving", 0)) > 0
+            if ok and tem_valor_custos:
                 mp = p.get("meses_previsto", [0.0]*12)
                 for idx in range(12):
                     meses[idx] += mp[idx]
@@ -1056,7 +1064,7 @@ def render_macro_table(items, show_expander_fn=None):
     col_names = [
         "Unidade / Área",
         "Meta 2026",
-        "Retorno Previsto (12M)",
+        "Retorno Previsto (Anualizado)",
         f'<span style="color:{AMBER}">Previsto 2026</span>',
         f'<span style="color:{TEAL}">Retorno Validado 2026</span>',
         f'<span style="color:{GREEN}">Retorno Real 2026</span>',
@@ -1241,8 +1249,9 @@ if is_ev:
                          key="ev_sel")
     st.markdown(f'<p style="font-size:10px;color:{SILVER};margin:-6px 0 8px;">'
                 f'<b>Previsto por Custos (2026)</b>: considera apenas projetos com validação '
-                f'<b style="color:{GREEN};">OK</b> do departamento de Custos, usando o valor '
-                f'validado (não o previsto original da unidade) distribuído mês a mês.</p>',
+                f'<b style="color:{GREEN};">OK</b> do departamento de Custos <b>e</b> com Saving '
+                f'Validado (R$) já preenchido — o valor de Custos sempre sobrepõe o previsto '
+                f'original da unidade. Projetos OK sem valor de Custos preenchido não entram nesta linha.</p>',
                 unsafe_allow_html=True)
     if sel:
         st.plotly_chart(chart_evolucao(ev,sel), use_container_width=True, config={"displayModeBar":False})
