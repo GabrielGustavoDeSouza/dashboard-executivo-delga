@@ -400,6 +400,11 @@ def extract_evolucao(d):
                 acum_real=pad(row(59)),
                 proj_meta=pad(row(60)))
 
+# Offsets (relativos à coluna "Total Ano") das 12 colunas mensais individuais
+# de cada linha de projeto — válido para Plantas, Compras e Vendas, pois todas
+# seguem o mesmo padrão: Jan,Fev,Mar,[Tot1Tri],Abr,Mai,Jun,[Tot2Tri],...
+MES_OFFSETS = [-16,-15,-14, -12,-11,-10, -8,-7,-6, -4,-3,-2]
+
 # ── EXTRAÇÃO DE PROJETOS — FUNÇÃO CENTRAL ─────────────────────────────────────
 def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
                      col_termino=7, col_custos=12, col_saving=13,
@@ -447,6 +452,14 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
                 if v_str2 not in ("", "nan"):
                     data_lib = fmt_date(v_dl)
 
+            # 12 colunas mensais da linha "Previsto" — já reflete o valor de
+            # Custos (Saving Validado) quando o projeto tem OK, ou o Previsto
+            # original quando ainda não validado (mesma lógica da planilha).
+            meses_previsto = [
+                safe(df.iloc[i, col_total_ano + off]) if 0 <= col_total_ano + off < df.shape[1] else 0.0
+                for off in MES_OFFSETS
+            ]
+
             res.append(dict(
                 tipo       = tipo,
                 nome       = nome,
@@ -457,6 +470,7 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
                 val_custos = str(df.iloc[i, col_custos]).strip() if pd.notna(df.iloc[i, col_custos]) else "",
                 val_saving = safe(df.iloc[i, col_saving]),
                 status     = str(df.iloc[i, col_status]).strip() if pd.notna(df.iloc[i, col_status]) else "",
+                meses_previsto = meses_previsto,
                 onde_parado= onde_parado,
                 data_lib   = data_lib,
                 entra_dre  = is_dre(tipo),
@@ -504,6 +518,31 @@ def get_proj_vendas(d):
         col_custos=11, col_saving=12, col_status=13,
         col_onde=14, col_data_lib=15,
         col_prev_real=17, col_total_ano=35, col_previsto=7)
+
+@st.cache_data(show_spinner=False)
+def build_previsto_custos(fb_key):
+    """
+    Linha 'Previsto por Custos (2026)' — soma mensal considerando SOMENTE
+    projetos com validação 'OK' do departamento de Custos, usando o valor
+    já validado (Saving Validado) distribuído mês a mês pela planilha.
+    Projetos sem OK (NOK, pendente, vazio) são desconsiderados nesta análise.
+    """
+    meses = [0.0]*12
+    plantas_sheets = ["Diadema","Ferraz","São Leopoldo","Jarinu","Anchieta"]
+    todas_listas = [get_proj_planta(D, sh) for sh in plantas_sheets]
+    todas_listas.append(get_proj_compras(D))
+    todas_listas.append(get_proj_vendas(D))
+    for lista in todas_listas:
+        for p in lista:
+            if str(p.get("val_custos","")).strip() == "OK":
+                mp = p.get("meses_previsto", [0.0]*12)
+                for idx in range(12):
+                    meses[idx] += mp[idx]
+    acum, tot = [], 0.0
+    for v in meses:
+        tot += v
+        acum.append(tot)
+    return meses, acum
 
 def extract_ranking(d):
     df = d["u5"]
@@ -587,11 +626,12 @@ def chart_evolucao(ev, series):
 
     # Configurações de cada série
     cfg = {
-        "Acumulado Previsto": dict(data=ev["acum_prev"], color=NAVY,      dash="solid", type="line"),
-        "Acumulado Real":     dict(data=ev["acum_real"], color=GREEN,     dash="solid", type="line"),
-        "Projeção da Meta":   dict(data=ev["proj_meta"], color=RED,       dash="dash",  type="line"),
-        "Previsto Mensal":    dict(data=ev["prev"],      color="#7EB3D8",              type="bar"),
-        "Real Mensal":        dict(data=ev["real"],      color="#52A97C",              type="bar"),
+        "Acumulado Previsto":         dict(data=ev["acum_prev"],        color=NAVY,      dash="solid", type="line"),
+        "Previsto por Custos (2026)": dict(data=ev["acum_prev_custos"], color="#6C3EB5", dash="dot",   type="line"),
+        "Acumulado Real":             dict(data=ev["acum_real"],        color=GREEN,     dash="solid", type="line"),
+        "Projeção da Meta":           dict(data=ev["proj_meta"],        color=RED,       dash="dash",  type="line"),
+        "Previsto Mensal":            dict(data=ev["prev"],             color="#7EB3D8",               type="bar"),
+        "Real Mensal":                dict(data=ev["real"],             color="#52A97C",               type="bar"),
     }
 
     fig = go.Figure()
@@ -1154,6 +1194,10 @@ p_glob  = extract_pilares_global(D)
 ev      = extract_evolucao(D)
 ranking = extract_ranking(D)
 
+_prev_custos_mensal, _prev_custos_acum = build_previsto_custos(hash(fb))
+ev["prev_custos"]      = _prev_custos_mensal
+ev["acum_prev_custos"] = _prev_custos_acum
+
 meta=kpis["meta"]; portfolio=kpis["portfolio"]; ret_val_ano=kpis.get("ret_val_ano",0.0)
 prev2026=kpis["prev2026"]
 validado=kpis["validado"]; real=kpis["real"]; extra_dre=kpis.get("extra_dre",0.0); pct_ating=kpis["pct_ating"]
@@ -1189,11 +1233,17 @@ st.markdown(f"""<div class="nota">
 st.markdown('<div class="sc">', unsafe_allow_html=True)
 is_ev = section_open("evolucao", "Evolução Mensal — Acumulado Previsto vs Real vs Meta")
 if is_ev:
-    series_all = ["Acumulado Previsto","Acumulado Real","Projeção da Meta","Previsto Mensal","Real Mensal"]
+    series_all = ["Acumulado Previsto","Previsto por Custos (2026)","Acumulado Real",
+                  "Projeção da Meta","Previsto Mensal","Real Mensal"]
     sel = st.multiselect("Séries:", series_all,
-                         default=["Acumulado Previsto","Acumulado Real","Projeção da Meta",
-                                  "Previsto Mensal","Real Mensal"],
+                         default=["Acumulado Previsto","Previsto por Custos (2026)","Acumulado Real",
+                                  "Projeção da Meta","Previsto Mensal","Real Mensal"],
                          key="ev_sel")
+    st.markdown(f'<p style="font-size:10px;color:{SILVER};margin:-6px 0 8px;">'
+                f'<b>Previsto por Custos (2026)</b>: considera apenas projetos com validação '
+                f'<b style="color:{GREEN};">OK</b> do departamento de Custos, usando o valor '
+                f'validado (não o previsto original da unidade) distribuído mês a mês.</p>',
+                unsafe_allow_html=True)
     if sel:
         st.plotly_chart(chart_evolucao(ev,sel), use_container_width=True, config={"displayModeBar":False})
 st.markdown('</div>', unsafe_allow_html=True)
