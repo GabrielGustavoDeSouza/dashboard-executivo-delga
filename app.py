@@ -387,23 +387,21 @@ def extract_pilares_local(projetos):
 def extract_evolucao(d):
     df = d["u5"]
     meses=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"]
-    # v27: col21=label, cols 22-33=dados mensais
-    # row55=Previsto, row56=Real, row58=Acum.Prev, row59=Acum.Real, row60=Projeção Meta
+    # v42: col21=label, cols 22-33=dados mensais
+    # row55=Previsto, row56=Real, row58=Acum.Prev, row59=Acum.Real, row60=Projeção Meta,
+    # row61=Acumulado prev.Custos (NOVO), row62=Custos — mensal não-acumulado (NOVO)
     max_col = min(34, df.shape[1])
     def row(r): return [safe(df.iloc[r,c]) for c in range(22, max_col)]
     def pad(lst): return (lst + [0]*12)[:12]
 
     return dict(meses=meses,
-                prev     =pad(row(55)),
-                real     =pad(row(56)),
-                acum_prev=pad(row(58)),
-                acum_real=pad(row(59)),
-                proj_meta=pad(row(60)))
-
-# Offsets (relativos à coluna "Total Ano") das 12 colunas mensais individuais
-# de cada linha de projeto — válido para Plantas, Compras e Vendas, pois todas
-# seguem o mesmo padrão: Jan,Fev,Mar,[Tot1Tri],Abr,Mai,Jun,[Tot2Tri],...
-MES_OFFSETS = [-16,-15,-14, -12,-11,-10, -8,-7,-6, -4,-3,-2]
+                prev            =pad(row(55)),
+                real            =pad(row(56)),
+                acum_prev       =pad(row(58)),
+                acum_real       =pad(row(59)),
+                proj_meta       =pad(row(60)),
+                acum_prev_custos=pad(row(61)),
+                prev_custos     =pad(row(62)))
 
 # ── EXTRAÇÃO DE PROJETOS — FUNÇÃO CENTRAL ─────────────────────────────────────
 def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
@@ -452,14 +450,6 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
                 if v_str2 not in ("", "nan"):
                     data_lib = fmt_date(v_dl)
 
-            # 12 colunas mensais da linha "Previsto" — já reflete o valor de
-            # Custos (Saving Validado) quando o projeto tem OK, ou o Previsto
-            # original quando ainda não validado (mesma lógica da planilha).
-            meses_previsto = [
-                safe(df.iloc[i, col_total_ano + off]) if 0 <= col_total_ano + off < df.shape[1] else 0.0
-                for off in MES_OFFSETS
-            ]
-
             res.append(dict(
                 tipo       = tipo,
                 nome       = nome,
@@ -470,7 +460,6 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
                 val_custos = str(df.iloc[i, col_custos]).strip() if pd.notna(df.iloc[i, col_custos]) else "",
                 val_saving = safe(df.iloc[i, col_saving]),
                 status     = str(df.iloc[i, col_status]).strip() if pd.notna(df.iloc[i, col_status]) else "",
-                meses_previsto = meses_previsto,
                 onde_parado= onde_parado,
                 data_lib   = data_lib,
                 entra_dre  = is_dre(tipo),
@@ -518,39 +507,6 @@ def get_proj_vendas(d):
         col_custos=11, col_saving=12, col_status=13,
         col_onde=14, col_data_lib=15,
         col_prev_real=17, col_total_ano=35, col_previsto=7)
-
-@st.cache_data(show_spinner=False)
-def build_previsto_custos(fb_key):
-    """
-    Linha 'Previsto por Custos (2026)' — soma mensal considerando SOMENTE
-    projetos com validação 'OK' do departamento de Custos E que já possuem
-    um Saving Validado (R$) efetivamente preenchido pelo depto de Custos.
-
-    Importante: quando um projeto está marcado 'OK' mas o campo de Saving
-    Validado ainda está vazio/zerado, a própria planilha usa o Previsto (R$)
-    original da unidade como fallback nas colunas mensais — o que é
-    exatamente o comportamento que essa análise deve EXCLUIR, pois o valor
-    de Custos deve sempre sobrepor o da unidade, nunca o contrário. Por
-    isso, projetos OK sem Saving Validado preenchido contam como 0 aqui.
-    """
-    meses = [0.0]*12
-    plantas_sheets = ["Diadema","Ferraz","São Leopoldo","Jarinu","Anchieta"]
-    todas_listas = [get_proj_planta(D, sh) for sh in plantas_sheets]
-    todas_listas.append(get_proj_compras(D))
-    todas_listas.append(get_proj_vendas(D))
-    for lista in todas_listas:
-        for p in lista:
-            ok = str(p.get("val_custos","")).strip() == "OK"
-            tem_valor_custos = safe(p.get("val_saving", 0)) > 0
-            if ok and tem_valor_custos:
-                mp = p.get("meses_previsto", [0.0]*12)
-                for idx in range(12):
-                    meses[idx] += mp[idx]
-    acum, tot = [], 0.0
-    for v in meses:
-        tot += v
-        acum.append(tot)
-    return meses, acum
 
 def extract_ranking(d):
     df = d["u5"]
@@ -1199,12 +1155,8 @@ kpis    = extract_kpis(D)
 plantas = extract_plantas(D)
 areas   = extract_areas(D)
 p_glob  = extract_pilares_global(D)
-ev      = extract_evolucao(D)
+ev      = extract_evolucao(D)   # já inclui acum_prev_custos / prev_custos (linhas nativas da planilha)
 ranking = extract_ranking(D)
-
-_prev_custos_mensal, _prev_custos_acum = build_previsto_custos(hash(fb))
-ev["prev_custos"]      = _prev_custos_mensal
-ev["acum_prev_custos"] = _prev_custos_acum
 
 meta=kpis["meta"]; portfolio=kpis["portfolio"]; ret_val_ano=kpis.get("ret_val_ano",0.0)
 prev2026=kpis["prev2026"]
@@ -1248,10 +1200,8 @@ if is_ev:
                                   "Projeção da Meta","Previsto Mensal","Real Mensal"],
                          key="ev_sel")
     st.markdown(f'<p style="font-size:10px;color:{SILVER};margin:-6px 0 8px;">'
-                f'<b>Previsto por Custos (2026)</b>: considera apenas projetos com validação '
-                f'<b style="color:{GREEN};">OK</b> do departamento de Custos <b>e</b> com Saving '
-                f'Validado (R$) já preenchido — o valor de Custos sempre sobrepõe o previsto '
-                f'original da unidade. Projetos OK sem valor de Custos preenchido não entram nesta linha.</p>',
+                f'<b>Previsto por Custos (2026)</b>: valor validado pelo departamento de Custos, '
+                f'distribuído mês a mês diretamente na planilha (linha "Acumulado prev.Custos").</p>',
                 unsafe_allow_html=True)
     if sel:
         st.plotly_chart(chart_evolucao(ev,sel), use_container_width=True, config={"displayModeBar":False})
