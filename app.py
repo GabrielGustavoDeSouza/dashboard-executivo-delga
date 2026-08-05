@@ -404,6 +404,11 @@ def extract_evolucao(d):
                 prev_custos     =pad(row(62)))
 
 # ── EXTRAÇÃO DE PROJETOS — FUNÇÃO CENTRAL ─────────────────────────────────────
+# Offsets (relativos à coluna "Total Ano") das 12 colunas mensais individuais
+# de cada linha de projeto — válido para Plantas, Compras e Vendas (mesmo padrão:
+# Jan,Fev,Mar,[Tot1Tri],Abr,Mai,Jun,[Tot2Tri],Jul,Ago,Set,[Tot3Tri],Out,Nov,Dez,[Tot4Tri],TotalAno)
+MES_OFFSETS = [-16,-15,-14, -12,-11,-10, -8,-7,-6, -4,-3,-2]
+
 def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
                      col_termino=7, col_custos=12, col_saving=13,
                      col_status=14, col_onde=15, col_data_lib=16,
@@ -415,7 +420,15 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
       - Linha Previsto: col_tipo in VALID_TIPOS + col_nome preenchido + col_prev_real='Previsto'
       - Linha Real: row+1, col_prev_real='Real', col_total_ano = valor real acumulado
     Para antes de qualquer tipo não reconhecido (seção SPD, etc.)
+
+    Também replica, por projeto, as mesmas fórmulas auxiliares (AU/AV) que a
+    planilha usa nos KPIs oficiais:
+      previsto_2026  = (Previsto/12) * Qtd.Meses com retorno   [= coluna AU]
+      validado_anual = (Saving Validado/Qtd.Meses) * 12        [= coluna AV]
+    A coluna "Quantidade de meses com retorno" fica sempre 2 posições à
+    direita da coluna "Previsto (R$)" no layout original da planilha.
     """
+    col_qtd_meses = col_previsto + 2
     res = []
     i = start_row
     max_row = min(start_row + 600, df.shape[0] - 1)
@@ -426,15 +439,28 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
 
         if tipo in VALID_TIPOS and nome not in ("", "nan") and c_pr == "Previsto":
             # V.Previsto = col8 (PREVISTO R$ original do projeto)
-            tot_prev = safe(df.iloc[i, col_previsto])
+            tot_prev  = safe(df.iloc[i, col_previsto])
+            qtd_meses = safe(df.iloc[i, col_qtd_meses]) if df.shape[1] > col_qtd_meses else 0.0
+            val_saving_i = safe(df.iloc[i, col_saving])
+            previsto_2026  = (tot_prev/12)*qtd_meses if qtd_meses else 0.0
+            validado_anual = (val_saving_i/qtd_meses)*12 if qtd_meses else 0.0
+
+            meses_previsto = [
+                safe(df.iloc[i, col_total_ano+off]) if 0 <= col_total_ano+off < df.shape[1] else 0.0
+                for off in MES_OFFSETS
+            ]
 
             # Linha Real (row+1)
             tot_real = 0.0
-            impede = ""
+            meses_real = [0.0]*12
             if i+1 <= max_row:
                 c_pr_next = str(df.iloc[i+1, col_prev_real]).strip() if df.shape[1] > col_prev_real else ""
                 if c_pr_next == "Real":
                     tot_real = safe(df.iloc[i+1, col_total_ano])
+                    meses_real = [
+                        safe(df.iloc[i+1, col_total_ano+off]) if 0 <= col_total_ano+off < df.shape[1] else 0.0
+                        for off in MES_OFFSETS
+                    ]
 
             # Onde está parado (col15) e Data de liberação (col16)
             onde_parado = ""
@@ -451,18 +477,22 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
                     data_lib = fmt_date(v_dl)
 
             res.append(dict(
-                tipo       = tipo,
-                nome       = nome,
-                resp       = str(df.iloc[i, col_resp]).strip() if pd.notna(df.iloc[i, col_resp]) else "—",
-                termino    = fmt_date(df.iloc[i, col_termino]),
-                previsto   = tot_prev,
-                real_ano   = tot_real,
-                val_custos = str(df.iloc[i, col_custos]).strip() if pd.notna(df.iloc[i, col_custos]) else "",
-                val_saving = safe(df.iloc[i, col_saving]),
-                status     = str(df.iloc[i, col_status]).strip() if pd.notna(df.iloc[i, col_status]) else "",
-                onde_parado= onde_parado,
-                data_lib   = data_lib,
-                entra_dre  = is_dre(tipo),
+                tipo           = tipo,
+                nome           = nome,
+                resp           = str(df.iloc[i, col_resp]).strip() if pd.notna(df.iloc[i, col_resp]) else "—",
+                termino        = fmt_date(df.iloc[i, col_termino]),
+                previsto       = tot_prev,
+                previsto_2026  = previsto_2026,
+                validado_anual = validado_anual,
+                real_ano       = tot_real,
+                val_custos     = str(df.iloc[i, col_custos]).strip() if pd.notna(df.iloc[i, col_custos]) else "",
+                val_saving     = val_saving_i,
+                status         = str(df.iloc[i, col_status]).strip() if pd.notna(df.iloc[i, col_status]) else "",
+                meses_previsto = meses_previsto,
+                meses_real     = meses_real,
+                onde_parado    = onde_parado,
+                data_lib       = data_lib,
+                entra_dre      = is_dre(tipo),
             ))
             i += 2  # pula Previsto + Real
         elif tipo not in ("", "nan") and tipo not in VALID_TIPOS:
@@ -507,6 +537,106 @@ def get_proj_vendas(d):
         col_custos=11, col_saving=12, col_status=13,
         col_onde=14, col_data_lib=15,
         col_prev_real=17, col_total_ano=35, col_previsto=7)
+
+# ── VISÃO GERAL / BSW — camada de agregação bottom-up ─────────────────────────
+UNIDADE_SHEETS_PLANTAS = ["Diadema","Ferraz","São Leopoldo","Jarinu","Anchieta"]
+
+@st.cache_data(show_spinner=False)
+def get_todos_projetos(fb_key):
+    """
+    Lista unificada de TODOS os projetos (todas as unidades e áreas), cada um
+    tagueado com sua 'unidade' de origem. É a base do modo de visão BSW, que
+    filtra esta mesma lista por tipo=='BSW' e recalcula tudo a partir dela,
+    usando as MESMAS fórmulas (inclusive as auxiliares AU/AV de Previsto 2026
+    e Retorno Validado Anualizado) que a planilha usa nos KPIs oficiais.
+    Validado projeto a projeto contra a tabela nativa "SAVING ESPECULADO POR
+    PILAR" da aba 5 Unidades — bate exato (Previsto, Saving Validado e Real).
+    """
+    todos = []
+    for sh in UNIDADE_SHEETS_PLANTAS:
+        for p in get_proj_planta(D, sh):
+            p = dict(p); p['unidade'] = sh
+            todos.append(p)
+    for p in get_proj_compras(D):
+        p = dict(p); p['unidade'] = "Compras"
+        todos.append(p)
+    for p in get_proj_vendas(D):
+        p = dict(p); p['unidade'] = "Vendas"
+        todos.append(p)
+    return todos
+
+def compute_kpis_bottom_up(projetos, meta):
+    """
+    Recalcula os big numbers a partir de uma lista de projetos já filtrada
+    (ex.: só tipo=='BSW'). Meta NUNCA é recalculada aqui — é sempre a meta
+    do grupo, inalterada pelo filtro Geral/BSW (única exceção pedida).
+    """
+    portfolio   = sum(p['previsto'] for p in projetos)
+    ret_val_ano = sum(p['validado_anual'] for p in projetos)
+    prev2026    = sum(p['previsto_2026'] for p in projetos)
+    validado    = sum(p['val_saving'] for p in projetos)
+    real        = sum(p['real_ano'] for p in projetos if p['entra_dre'])
+    extra_dre   = sum(p['real_ano'] for p in projetos if not p['entra_dre'])
+    pct_ating   = real/meta if meta > 0 else 0.0
+    return dict(meta=meta, portfolio=portfolio, ret_val_ano=ret_val_ano,
+                prev2026=prev2026, validado=validado, real=real,
+                extra_dre=extra_dre, pct_ating=pct_ating, inic=len(projetos))
+
+def compute_evolucao_bottom_up(projetos, ev_geral):
+    """
+    Recalcula as séries mensais do gráfico de Evolução somando as colunas
+    mensais 'Previsto' e 'Real' de cada projeto filtrado. 'Projeção da Meta'
+    é sempre a linha global (a meta não muda com o filtro).
+    """
+    prev = [0.0]*12
+    real = [0.0]*12
+    for p in projetos:
+        mp = p.get('meses_previsto', [0.0]*12)
+        mr = p.get('meses_real', [0.0]*12)
+        for i in range(12):
+            prev[i] += mp[i]
+            real[i] += mr[i]
+    acum_prev, acum_real, tp, tr = [], [], 0.0, 0.0
+    for i in range(12):
+        tp += prev[i]; tr += real[i]
+        acum_prev.append(tp); acum_real.append(tr)
+
+    # Previsto por Custos (2026) — mesma regra usada na linha nativa da
+    # planilha: só projetos com OK de Custos e Saving Validado preenchido.
+    prev_custos = [0.0]*12
+    for p in projetos:
+        if str(p.get('val_custos','')).strip() == "OK" and safe(p.get('val_saving',0)) > 0:
+            mp = p.get('meses_previsto', [0.0]*12)
+            for i in range(12):
+                prev_custos[i] += mp[i]
+    acum_prev_custos, tc = [], 0.0
+    for v in prev_custos:
+        tc += v
+        acum_prev_custos.append(tc)
+
+    return dict(meses=ev_geral["meses"], prev=prev, real=real,
+                acum_prev=acum_prev, acum_real=acum_real,
+                proj_meta=ev_geral["proj_meta"],
+                prev_custos=prev_custos, acum_prev_custos=acum_prev_custos)
+
+def compute_macro_bottom_up(projetos, lista_geral):
+    """
+    Recalcula as linhas da tabela macro (Plantas/Áreas) a partir da lista de
+    projetos filtrada, mantendo a Meta de cada unidade inalterada (exceção).
+    """
+    res = []
+    for it in lista_geral:
+        proj_unidade = [p for p in projetos if p.get('unidade') == it['nome']]
+        prev     = sum(p['previsto'] for p in proj_unidade)
+        prev2026 = sum(p['previsto_2026'] for p in proj_unidade)
+        val      = sum(p['val_saving'] for p in proj_unidade)
+        real     = sum(p['real_ano'] for p in proj_unidade if p['entra_dre'])
+        extra    = sum(p['real_ano'] for p in proj_unidade if not p['entra_dre'])
+        pct      = real/it['meta'] if it['meta'] > 0 else 0.0
+        res.append(dict(nome=it['nome'], sheet=it.get('sheet'), meta=it['meta'],
+                         prev=prev, prev2026=prev2026, val=val, real=real,
+                         extra=extra, pct=pct))
+    return res
 
 def extract_ranking(d):
     df = d["u5"]
@@ -1158,9 +1288,46 @@ p_glob  = extract_pilares_global(D)
 ev      = extract_evolucao(D)   # já inclui acum_prev_custos / prev_custos (linhas nativas da planilha)
 ranking = extract_ranking(D)
 
-meta=kpis["meta"]; portfolio=kpis["portfolio"]; ret_val_ano=kpis.get("ret_val_ano",0.0)
-prev2026=kpis["prev2026"]
-validado=kpis["validado"]; real=kpis["real"]; extra_dre=kpis.get("extra_dre",0.0); pct_ating=kpis["pct_ating"]
+# ── TOGGLE GERAL / BSW ─────────────────────────────────────────────────────────
+st.markdown(f"""<style>
+div[data-testid="stRadio"] > div{{gap:6px;background:{LIGHT};padding:4px;border-radius:10px;
+  display:inline-flex;width:fit-content;}}
+div[data-testid="stRadio"] label{{background:transparent;border-radius:8px;padding:6px 18px!important;
+  margin:0!important;font-weight:600;font-size:13px;transition:all .15s;}}
+div[data-testid="stRadio"] label:has(input:checked){{background:{NAVY};}}
+div[data-testid="stRadio"] label:has(input:checked) p{{color:white!important;}}
+div[data-testid="stRadio"] input{{display:none;}}
+</style>""", unsafe_allow_html=True)
+
+modo_visao = st.radio("Visão:", ["🏢 Geral", "🔵 BSW"], horizontal=True,
+                       key="modo_visao", label_visibility="collapsed")
+is_bsw = modo_visao.endswith("BSW")
+
+todos_projetos = get_todos_projetos(hash(fb))
+projetos_bsw   = [p for p in todos_projetos if p["tipo"] == "BSW"]
+
+if is_bsw:
+    st.markdown(f"""<div style="background:#EDE7F9;border-left:3px solid #6C3EB5;border-radius:6px;
+        padding:8px 16px;font-size:11px;color:#444;margin-bottom:16px;">
+      🔵 <b>Modo BSW ativo</b> — todos os valores, gráficos e tabelas abaixo mostram <b>apenas</b>
+      projetos do pilar BSW ({len(projetos_bsw)} projetos), exceto a Meta Anual do Grupo (referência fixa).
+      Os painéis <b>Ranking</b> e <b>GAP</b> não são filtrados por este modo.
+    </div>""", unsafe_allow_html=True)
+    kpis_view = compute_kpis_bottom_up(projetos_bsw, kpis["meta"])
+    ev_view   = compute_evolucao_bottom_up(projetos_bsw, ev)
+    plantas_view = compute_macro_bottom_up(projetos_bsw, plantas)
+    areas_view   = compute_macro_bottom_up(projetos_bsw, areas)
+else:
+    kpis_view    = dict(meta=kpis["meta"], portfolio=kpis["portfolio"], ret_val_ano=kpis.get("ret_val_ano",0.0),
+                         prev2026=kpis["prev2026"], validado=kpis["validado"], real=kpis["real"],
+                         extra_dre=kpis.get("extra_dre",0.0), pct_ating=kpis["pct_ating"], inic=kpis.get("inic",0))
+    ev_view      = ev
+    plantas_view = plantas
+    areas_view   = areas
+
+meta=kpis_view["meta"]; portfolio=kpis_view["portfolio"]; ret_val_ano=kpis_view["ret_val_ano"]
+prev2026=kpis_view["prev2026"]
+validado=kpis_view["validado"]; real=kpis_view["real"]; extra_dre=kpis_view["extra_dre"]; pct_ating=kpis_view["pct_ating"]
 
 # ── KPI CARDS ──────────────────────────────────────────────────────────────────
 cob  = portfolio/meta*100 if meta>0 else 0
@@ -1173,6 +1340,7 @@ def kpi(cls,lbl,vb,sub,det):
             f'<div class="kpi-v">{vb}</div><div class="kpi-s">{sub}</div>'
             f'<div class="kpi-d">{det}</div></div>')
 
+extra_dre_sub = "Ganho fora do DRE acumulado" if not is_bsw else "BSW é 100% DRE — não se aplica"
 st.markdown(f"""<div class="kpi-wrap kpi-7">
   {kpi("","Meta Anual do Grupo (2026)",fmt_mi(meta),"","Objetivo 2026 — 100%")}
   {kpi("cs","Retorno Previsto (Anual)",fmt_mi(portfolio),"",f"{cob:.1f}% da meta coberta")}
@@ -1180,7 +1348,7 @@ st.markdown(f"""<div class="kpi-wrap kpi-7">
   {kpi("ca","Previsto 2026",fmt_mi(prev2026),"",f"{pp:.1f}% do Retorno Previsto")}
   {kpi("","Validado por Custos (2026)",fmt_mi(validado),"",f"{pv:.1f}% do Previsto 2026")}
   {kpi("cg","Retorno Real (DRE) (2026)",fmt_mi(real),"",f"{pct_ating*100:.1f}% de atingimento")}
-  {kpi("cr","Extra DRE (Até o Momento)",fmt_mi(extra_dre),"","Ganho fora do DRE acumulado")}
+  {kpi("cr","Extra DRE (Até o Momento)",fmt_mi(extra_dre),"",extra_dre_sub)}
 </div>""", unsafe_allow_html=True)
 
 st.markdown(f"""<div class="nota">
@@ -1204,7 +1372,7 @@ if is_ev:
                 f'distribuído mês a mês diretamente na planilha (linha "Acumulado prev.Custos").</p>',
                 unsafe_allow_html=True)
     if sel:
-        st.plotly_chart(chart_evolucao(ev,sel), use_container_width=True, config={"displayModeBar":False})
+        st.plotly_chart(chart_evolucao(ev_view,sel), use_container_width=True, config={"displayModeBar":False})
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── FUNIL + GAUGE — botão único para o par ─────────────────────────────────────
@@ -1216,7 +1384,7 @@ with cfu:
     st.markdown('<div class="sc" style="min-height:60px;">', unsafe_allow_html=True)
     if is_fg:
         st.markdown(f'<p style="font-size:11px;color:{SILVER};margin-bottom:8px;">Quanto do portfólio mapeado converte em resultado no DRE?</p>', unsafe_allow_html=True)
-        st.plotly_chart(chart_funnel(kpis), use_container_width=True, config={"displayModeBar":False})
+        st.plotly_chart(chart_funnel(kpis_view), use_container_width=True, config={"displayModeBar":False})
     st.markdown('</div>', unsafe_allow_html=True)
 with cga:
     st.markdown('<div class="sc" style="min-height:60px;">', unsafe_allow_html=True)
@@ -1331,6 +1499,8 @@ if is_pil:
         with _t2: show_val  = st.toggle("Validado",  value=True,  key="tog_val")
         with _t3: show_real = st.toggle("Real DRE",  value=False, key="tog_real")
         p_grupo = build_pilares_grupo(hash(fb))
+        if is_bsw:
+            p_grupo = [p for p in p_grupo if p["nome"] == "BSW"]
         fig_pil = chart_pilares_gerencial(p_grupo, real, show_prev, show_val, show_real)
         if fig_pil:
             st.plotly_chart(fig_pil, use_container_width=True, config={"displayModeBar":False})
@@ -1374,14 +1544,16 @@ st.markdown('</div>', unsafe_allow_html=True)
 st.markdown('<div class="sc">', unsafe_allow_html=True)
 is_plantas = section_open("plantas", "Plantas Industriais — Performance Consolidada")
 if is_plantas:
-    st.markdown(render_macro_table(plantas), unsafe_allow_html=True)
+    st.markdown(render_macro_table(plantas_view), unsafe_allow_html=True)
 
-for p in plantas:
+for p in plantas_view:
     if not is_plantas:
         break
     with st.expander(f"＋  Ver projetos de {p['nome']}", expanded=False):
         proj = get_proj_planta(D, p["sheet"])
         n = len(proj)
+        if is_bsw:
+            proj = [x for x in proj if x["tipo"] == "BSW"]
         if proj:
             proj_v, pilar_html = projetos_por_pilar_html(proj, key_prefix=f"plt_{p['nome']}")
             st.markdown(f"<p style='font-size:11px;color:{SILVER};margin:4px 0 8px;'>"
@@ -1401,15 +1573,17 @@ st.markdown('<div class="sc">', unsafe_allow_html=True)
 is_areas = section_open("areas", "Áreas Funcionais — Performance Consolidada")
 area_fn = {"Compras": get_proj_compras, "Vendas": get_proj_vendas}
 if is_areas:
-    st.markdown(render_macro_table(areas), unsafe_allow_html=True)
+    st.markdown(render_macro_table(areas_view), unsafe_allow_html=True)
 
-for a in areas:
+for a in areas_view:
     if not is_areas:
         break
     with st.expander(f"＋  Ver projetos de {a['nome']}", expanded=False):
         fn = area_fn.get(a["nome"])
         proj = fn(D) if fn else []
         n = len(proj)
+        if is_bsw:
+            proj = [x for x in proj if x["tipo"] == "BSW"]
         if proj:
             proj_va, pilar_html_a = projetos_por_pilar_html(proj, key_prefix=f"area_{a['nome']}")
             st.markdown(f"<p style='font-size:11px;color:{SILVER};margin:4px 0 8px;'>"
