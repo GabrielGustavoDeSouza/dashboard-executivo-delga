@@ -1609,8 +1609,10 @@ st.markdown(f"""<div class="kpi-wrap kpi-7">
 </div>""", unsafe_allow_html=True)
 
 _aguard_gap = f' <span style="color:{RED};">({n_aguard_vazio} projeto(s) sem essa célula preenchida)</span>' if n_aguard_vazio else ""
-st.markdown(f"""<div class="nota" style="display:flex;gap:28px;align-items:center;">
+st.markdown(f"""<div class="nota" style="display:flex;gap:28px;align-items:center;flex-wrap:wrap;">
   <span><b>Total de Projetos:</b> {n_total_proj}</span>
+  <span><b style="color:{GREEN};">Custos OK:</b> {n_validado}</span>
+  <span><b style="color:{RED};">Custos Não OK:</b> {n_nao_validado}</span>
   <span><b style="color:{AMBER};">Aguardando Custos:</b> {n_aguard_sim}</span>
   <span style="color:{SILVER};font-size:10px;">(coluna "Aguardando Custos ?" — Sim: {n_aguard_sim} · Não: {n_aguard_nao}{_aguard_gap})</span>
 </div>""", unsafe_allow_html=True)
