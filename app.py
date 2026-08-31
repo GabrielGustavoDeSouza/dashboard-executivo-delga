@@ -1445,6 +1445,7 @@ projetos_bsw   = [p for p in todos_projetos if p["tipo"] == "BSW"]
 # ── STATUS DE VALIDAÇÃO POR CUSTOS (Validado / Não Validado / Em Branco) ──────
 projetos_status_view = projetos_bsw if is_bsw else todos_projetos
 status_custos_view   = compute_status_custos(projetos_status_view)
+n_total_proj    = sum(v["total"]         for v in status_custos_view.values())
 n_validado      = sum(v["validado"]      for v in status_custos_view.values())
 n_nao_validado  = sum(v["nao_validado"]  for v in status_custos_view.values())
 n_em_branco     = sum(v["em_branco"]     for v in status_custos_view.values())
@@ -1491,7 +1492,9 @@ st.markdown(f"""<div class="kpi-wrap kpi-7">
   {kpi("cs","Retorno Previsto (Anual)",fmt_mi(portfolio),"",f"{cob:.1f}% da meta coberta")}
   {kpi("ct","Retorno Validado (Anual)",fmt_mi(ret_val_ano),"",f"{cova:.1f}% do Retorno Previsto")}
   {kpi("ca","Previsto 2026",fmt_mi(prev2026),"",f"{pp:.1f}% do Retorno Previsto")}
-  {kpi("","Validado por Custos (2026)",fmt_mi(validado),"",f"{pv:.1f}% do Previsto 2026 · {n_validado} iniciativas validadas")}
+  {kpi("","Validado por Custos (2026)",fmt_mi(validado),
+       f"{pv:.1f}% do Previsto 2026",
+       f"{n_validado} de {n_total_proj} iniciativas validadas")}
   {kpi("cg","Retorno Real (DRE) (2026)",fmt_mi(real),"",f"{pct_ating*100:.1f}% de atingimento")}
   {kpi("cr","Extra DRE (Até o Momento)",fmt_mi(extra_dre),"",extra_dre_sub)}
 </div>""", unsafe_allow_html=True)
