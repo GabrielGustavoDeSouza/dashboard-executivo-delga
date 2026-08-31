@@ -1574,6 +1574,12 @@ n_aguard_sim_nota   = sum(1 for p in projetos_nota if p.get("val_aguardando") ==
 n_aguard_nao_nota   = sum(1 for p in projetos_nota if p.get("val_aguardando") == "Não")
 n_aguard_vazio_nota = sum(1 for p in projetos_nota if p.get("val_aguardando") not in ("Sim", "Não"))
 
+# "Não formalizados com Custos": Total menos (OK + Não OK + Aguardando=Sim).
+# São os projetos que a própria unidade ainda nem formalizou/enviou pra
+# Custos — não estão aprovados, não estão reprovados, e nem sequer marcados
+# como "Sim" (aguardando) na coluna "Aguardando Custos ?".
+n_nao_formalizado_nota = n_total_proj_nota - (n_validado_nota + n_nao_validado_nota + n_aguard_sim_nota)
+
 if is_bsw:
     st.markdown(f"""<div style="background:#EDE7F9;border-left:3px solid #6C3EB5;border-radius:6px;
         padding:8px 16px;font-size:11px;color:#444;margin-bottom:16px;">
@@ -1629,6 +1635,7 @@ st.markdown(f"""<div class="nota" style="display:flex;flex-direction:column;gap:
     <span><b style="color:{GREEN};">Custos OK:</b> {n_validado_nota}</span>
     <span><b style="color:{RED};">Custos Não OK:</b> {n_nao_validado_nota}</span>
     <span><b style="color:{AMBER};">Aguardando Custos:</b> {n_aguard_sim_nota}</span>
+    <span><b style="color:{NAVY};">Não Formalizados com Custos:</b> {n_nao_formalizado_nota}</span>
     <span style="color:{SILVER};font-size:10px;">(coluna "Aguardando Custos ?" — Sim: {n_aguard_sim_nota} · Não: {n_aguard_nao_nota}{_aguard_gap_nota})</span>
   </div>
   <div style="color:{SILVER};font-size:10px;">Considerando as 5 Unidades (Diadema, Ferraz, São Leopoldo, Jarinu, Anchieta) + Compras — não inclui Vendas nem Corporativo.</div>
