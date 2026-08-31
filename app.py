@@ -409,12 +409,20 @@ def extract_evolucao(d):
 # Jan,Fev,Mar,[Tot1Tri],Abr,Mai,Jun,[Tot2Tri],Jul,Ago,Set,[Tot3Tri],Out,Nov,Dez,[Tot4Tri],TotalAno)
 MES_OFFSETS = [-16,-15,-14, -12,-11,-10, -8,-7,-6, -4,-3,-2]
 
+def norm_sim_nao(v):
+    """Normaliza célula 'Sim/Não' -> 'Sim', 'Não' ou '' (em branco/não preenchido)."""
+    s = str(v).strip().upper() if pd.notna(v) else ""
+    if s in ("SIM", "S", "YES", "Y"): return "Sim"
+    if s in ("NÃO", "NAO", "N"):      return "Não"
+    return ""
+
 def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
                      col_termino=7, col_custos=12, col_saving=13,
                      col_status=14, col_onde=15, col_data_lib=16,
                      col_prev_real=18,  # col com 'Previsto'/'Real'
                      col_total_ano=36,  # col com Total Ano (linha Real = V.Real acumulado)
-                     col_previsto=8):   # col com PREVISTO(R$) original do projeto
+                     col_previsto=8,    # col com PREVISTO(R$) original do projeto
+                     col_aguardando=None):  # col com 'Aguardando Custos ?' (Sim/Não)
     """
     Extrai projetos de uma aba usando a lógica:
       - Linha Previsto: col_tipo in VALID_TIPOS + col_nome preenchido + col_prev_real='Previsto'
@@ -476,6 +484,13 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
                 if v_str2 not in ("", "nan"):
                     data_lib = fmt_date(v_dl)
 
+            # "Aguardando Custos ?" (Sim/Não) — coluna nova entre o checklist e o
+            # validador de Custos. Se a coluna não existir na planilha (versões
+            # antigas), fica "" e simplesmente não entra nas contagens.
+            val_aguardando = ""
+            if col_aguardando is not None and df.shape[1] > col_aguardando:
+                val_aguardando = norm_sim_nao(df.iloc[i, col_aguardando])
+
             res.append(dict(
                 row0           = i,   # linha (0-based, pandas) da linha "Previsto" — usada p/ casar checkboxes
                 tipo           = tipo,
@@ -494,6 +509,7 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
                 onde_parado    = onde_parado,
                 data_lib       = data_lib,
                 entra_dre      = is_dre(tipo),
+                val_aguardando = val_aguardando,   # "Sim" / "Não" / ""
             ))
             i += 2  # pula Previsto + Real
         elif tipo not in ("", "nan") and tipo not in VALID_TIPOS:
@@ -502,42 +518,80 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
             i += 1
     return res
 
+# ── VALIDAÇÃO DE LAYOUT ────────────────────────────────────────────────────────
+# A planilha já mudou de layout uma vez nesta versão (inserção da coluna
+# "Aguardando Custos ?", que empurrou Custos/Saving/Status/etc. uma posição
+# pra direita). Pra não voltar a ler dado errado silenciosamente se isso
+# acontecer de novo, cada get_proj_* confere se o cabeçalho esperado realmente
+# está na posição esperada e acumula um aviso aqui se não bater.
+LAYOUT_WARNINGS = []
+
+def _check_header(df, header_row0, col, expected_substr, sheet_label, field_label):
+    ok = False
+    if col is not None and header_row0 < df.shape[0] and col < df.shape[1]:
+        v = df.iloc[header_row0, col]
+        if pd.notna(v):
+            txt = str(v).replace("\n", " ").strip().upper()
+            ok = expected_substr.upper() in txt
+    if not ok:
+        msg = (f"{sheet_label}: coluna \"{field_label}\" não encontrada na posição esperada "
+               f"(col {col}) — a planilha pode ter mudado de layout, confira os números dessa aba.")
+        if msg not in LAYOUT_WARNINGS:
+            LAYOUT_WARNINGS.append(msg)
+    return ok
+
 def get_proj_planta(d, sheet_key):
     df = d.get(sheet_key)
     if df is None: return []
-    # Plantas v9: col0=tipo, col2=nome, col5=resp, col7=term,
-    #             col12=custos, col13=saving, col14=status,
-    #             col15=onde_parado, col16=data_lib,
-    #             col18=Previsto/Real, col36=Total Ano
+    # Plantas v10 (col nova "Aguardando Custos ?" inserida em 08/2026):
+    #   col0=tipo, col2=nome, col5=resp, col7=term,
+    #   col12=Aguardando Custos?, col13=custos, col14=saving, col15=status,
+    #   col16=onde_parado, col17=data_lib,
+    #   col19=Previsto/Real, col37=Total Ano
+    hr = 53  # linha de cabeçalho (Excel row 54, 0-based)
+    _check_header(df, hr, 12, "Aguardando Custos", sheet_key, "Aguardando Custos ?")
+    _check_header(df, hr, 13, "VALIDADOR", sheet_key, "Validador OK/NOK Custos")
+    _check_header(df, hr, 14, "SAVING VALIDADO", sheet_key, "Saving Validado")
     return extract_projetos(df, start_row=54,
         col_tipo=0, col_nome=2, col_resp=5, col_termino=7,
-        col_custos=12, col_saving=13, col_status=14,
-        col_onde=15, col_data_lib=16,
-        col_prev_real=18, col_total_ano=36, col_previsto=8)
+        col_aguardando=12, col_custos=13, col_saving=14, col_status=15,
+        col_onde=16, col_data_lib=17,
+        col_prev_real=19, col_total_ano=37, col_previsto=8)
 
 def get_proj_compras(d):
     df = d.get("Compras ")
     if df is None: return []
-    # Compras v9: col0=tipo,col3=nome,col5=resp,col7=term,col12=custos,col13=saving,
-    #             col14=status,col15=onde,col16=data_lib,col19=Prev/Real,col36=TotalAno
+    # Compras v10 (mesma inserção de coluna que as plantas):
+    #   col0=tipo,col3=nome,col5=resp,col7=term,
+    #   col12=Aguardando Custos?,col13=custos,col14=saving,col15=status,
+    #   col16=onde,col17=data_lib,col20=Prev/Real,col38=TotalAno
+    hr = 29  # linha de cabeçalho (Excel row 30, 0-based)
+    _check_header(df, hr, 12, "Aguardando Custos", "Compras", "Aguardando Custos ?")
+    _check_header(df, hr, 13, "VALIDADOR", "Compras", "Validador OK/NOK Custos")
+    _check_header(df, hr, 14, "SAVING VALIDADO", "Compras", "Saving Validado")
     return extract_projetos(df, start_row=30,
         col_tipo=0, col_nome=3, col_resp=5, col_termino=7,
-        col_custos=12, col_saving=13, col_status=14,
-        col_onde=15, col_data_lib=16,
-        col_prev_real=19, col_total_ano=37, col_previsto=8)
+        col_aguardando=12, col_custos=13, col_saving=14, col_status=15,
+        col_onde=16, col_data_lib=17,
+        col_prev_real=20, col_total_ano=38, col_previsto=8)
 
 def get_proj_vendas(d):
     df = d.get("Vendas")
     if df is None: return []
-    # Vendas v12: row32=header, projetos start row33
+    # Vendas v13 (mesma inserção de coluna, ponto de inserção 1 coluna antes
+    # por causa do layout mais estreito dessa aba):
     # col0=tipo, col1=nome, col4=resp, col6=termino, col7=previsto,
-    # col11=custos, col12=saving, col13=status, col14=onde, col15=data_lib,
-    # col17=Previsto/Real, col35=Total Ano
+    # col11=Aguardando Custos?, col12=custos, col13=saving, col14=status,
+    # col15=onde, col16=data_lib, col18=Previsto/Real, col36=Total Ano
+    hr = 32  # linha de cabeçalho (Excel row 33, 0-based)
+    _check_header(df, hr, 11, "Aguardando Custos", "Vendas", "Aguardando Custos ?")
+    _check_header(df, hr, 12, "VALIDADOR", "Vendas", "Validador OK/NOK Custos")
+    _check_header(df, hr, 13, "SAVING VALIDADO", "Vendas", "Saving Validado")
     return extract_projetos(df, start_row=33,
         col_tipo=0, col_nome=1, col_resp=4, col_termino=6,
-        col_custos=11, col_saving=12, col_status=13,
-        col_onde=14, col_data_lib=15,
-        col_prev_real=17, col_total_ano=35, col_previsto=7)
+        col_aguardando=11, col_custos=12, col_saving=13, col_status=14,
+        col_onde=15, col_data_lib=16,
+        col_prev_real=18, col_total_ano=36, col_previsto=7)
 
 # ── CHECKLIST DE 3 ETAPAS (pré-requisito p/ enviar o projeto a Custos) ────────
 # Cada unidade preenche, por projeto, 3 checkboxes de formulário na coluna do
@@ -1442,6 +1496,10 @@ is_bsw = modo_visao.endswith("BSW")
 todos_projetos = get_todos_projetos(fb)
 projetos_bsw   = [p for p in todos_projetos if p["tipo"] == "BSW"]
 
+if LAYOUT_WARNINGS:
+    st.warning("⚠️ **A planilha pode ter mudado de layout — confira estes pontos:**\n\n" +
+               "\n".join(f"- {w}" for w in LAYOUT_WARNINGS))
+
 # ── STATUS DE VALIDAÇÃO POR CUSTOS (Validado / Não Validado / Em Branco) ──────
 projetos_status_view = projetos_bsw if is_bsw else todos_projetos
 status_custos_view   = compute_status_custos(projetos_status_view)
@@ -1451,6 +1509,14 @@ n_nao_validado  = sum(v["nao_validado"]  for v in status_custos_view.values())
 n_em_branco     = sum(v["em_branco"]     for v in status_custos_view.values())
 n_falta_custos  = sum(v["falta_custos"]  for v in status_custos_view.values())
 n_falta_unidade = sum(v["falta_unidade"] for v in status_custos_view.values())
+
+# ── "AGUARDANDO CUSTOS ?" (coluna nova, preenchida Sim/Não por projeto) ───────
+# Pedido do usuário: contar Sim/Não dessa coluna — a soma das duas é a
+# quantidade real de projetos. Quando não fecha com n_total_proj, sobraram
+# projetos sem essa célula preenchida (mostramos isso explicitamente).
+n_aguard_sim   = sum(1 for p in projetos_status_view if p.get("val_aguardando") == "Sim")
+n_aguard_nao   = sum(1 for p in projetos_status_view if p.get("val_aguardando") == "Não")
+n_aguard_vazio = sum(1 for p in projetos_status_view if p.get("val_aguardando") not in ("Sim", "Não"))
 
 if is_bsw:
     st.markdown(f"""<div style="background:#EDE7F9;border-left:3px solid #6C3EB5;border-radius:6px;
@@ -1498,6 +1564,13 @@ st.markdown(f"""<div class="kpi-wrap kpi-7">
        f"{pct_iniciativas_validadas:.1f}% das iniciativas aprovadas")}
   {kpi("cg","Retorno Real (DRE) (2026)",fmt_mi(real),"",f"{pct_ating*100:.1f}% de atingimento")}
   {kpi("cr","Extra DRE (Até o Momento)",fmt_mi(extra_dre),"",extra_dre_sub)}
+</div>""", unsafe_allow_html=True)
+
+_aguard_gap = f' <span style="color:{RED};">({n_aguard_vazio} projeto(s) sem essa célula preenchida)</span>' if n_aguard_vazio else ""
+st.markdown(f"""<div class="nota" style="display:flex;gap:28px;align-items:center;">
+  <span><b>Total de Projetos:</b> {n_total_proj}</span>
+  <span><b style="color:{AMBER};">Aguardando Custos:</b> {n_aguard_sim}</span>
+  <span style="color:{SILVER};font-size:10px;">(coluna "Aguardando Custos ?" — Sim: {n_aguard_sim} · Não: {n_aguard_nao}{_aguard_gap})</span>
 </div>""", unsafe_allow_html=True)
 
 st.markdown(f"""<div class="nota">
