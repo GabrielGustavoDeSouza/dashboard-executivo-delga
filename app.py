@@ -1495,7 +1495,7 @@ st.markdown(f"""<div class="kpi-wrap kpi-7">
   {kpi("ca","Previsto 2026",fmt_mi(prev2026),"",f"{pp:.1f}% do Retorno Previsto")}
   {kpi("","Validado por Custos (2026)",fmt_mi(validado),
        f"{pv:.1f}% do Previsto 2026",
-       f"{pct_iniciativas_validadas:.1f}% das iniciativas aprovadas ({n_validado} de {n_total_proj})")}
+       f"{pct_iniciativas_validadas:.1f}% das iniciativas aprovadas")}
   {kpi("cg","Retorno Real (DRE) (2026)",fmt_mi(real),"",f"{pct_ating*100:.1f}% de atingimento")}
   {kpi("cr","Extra DRE (Até o Momento)",fmt_mi(extra_dre),"",extra_dre_sub)}
 </div>""", unsafe_allow_html=True)
