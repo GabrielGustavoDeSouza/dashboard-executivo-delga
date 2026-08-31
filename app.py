@@ -1560,6 +1560,20 @@ n_aguard_sim   = sum(1 for p in projetos_status_view if p.get("val_aguardando") 
 n_aguard_nao   = sum(1 for p in projetos_status_view if p.get("val_aguardando") == "Não")
 n_aguard_vazio = sum(1 for p in projetos_status_view if p.get("val_aguardando") not in ("Sim", "Não"))
 
+# ── Nota de Total de Projetos: só 5 Unidades + Compras ────────────────────────
+# Pedido do usuário: essa nota específica não deve contar Vendas nem
+# Corporativo (Vendas/Corporativo têm layout e coluna "Aguardando Custos ?"
+# diferentes/ausentes, o que confundia a leitura). Restrita a essas 6 abas.
+UNIDADES_NOTA = UNIDADE_SHEETS_PLANTAS + ["Compras"]
+projetos_nota    = [p for p in projetos_status_view if p.get("unidade") in UNIDADES_NOTA]
+status_nota_view = {k: v for k, v in status_custos_view.items() if k in UNIDADES_NOTA}
+n_total_proj_nota    = sum(v["total"]        for v in status_nota_view.values())
+n_validado_nota      = sum(v["validado"]     for v in status_nota_view.values())
+n_nao_validado_nota  = sum(v["nao_validado"] for v in status_nota_view.values())
+n_aguard_sim_nota   = sum(1 for p in projetos_nota if p.get("val_aguardando") == "Sim")
+n_aguard_nao_nota   = sum(1 for p in projetos_nota if p.get("val_aguardando") == "Não")
+n_aguard_vazio_nota = sum(1 for p in projetos_nota if p.get("val_aguardando") not in ("Sim", "Não"))
+
 if is_bsw:
     st.markdown(f"""<div style="background:#EDE7F9;border-left:3px solid #6C3EB5;border-radius:6px;
         padding:8px 16px;font-size:11px;color:#444;margin-bottom:16px;">
@@ -1608,13 +1622,16 @@ st.markdown(f"""<div class="kpi-wrap kpi-7">
   {kpi("cr","Extra DRE (Até o Momento)",fmt_mi(extra_dre),"",extra_dre_sub)}
 </div>""", unsafe_allow_html=True)
 
-_aguard_gap = f' <span style="color:{RED};">({n_aguard_vazio} projeto(s) sem essa célula preenchida)</span>' if n_aguard_vazio else ""
-st.markdown(f"""<div class="nota" style="display:flex;gap:28px;align-items:center;flex-wrap:wrap;">
-  <span><b>Total de Projetos:</b> {n_total_proj}</span>
-  <span><b style="color:{GREEN};">Custos OK:</b> {n_validado}</span>
-  <span><b style="color:{RED};">Custos Não OK:</b> {n_nao_validado}</span>
-  <span><b style="color:{AMBER};">Aguardando Custos:</b> {n_aguard_sim}</span>
-  <span style="color:{SILVER};font-size:10px;">(coluna "Aguardando Custos ?" — Sim: {n_aguard_sim} · Não: {n_aguard_nao}{_aguard_gap})</span>
+_aguard_gap_nota = f' <span style="color:{RED};">({n_aguard_vazio_nota} projeto(s) sem essa célula preenchida)</span>' if n_aguard_vazio_nota else ""
+st.markdown(f"""<div class="nota" style="display:flex;flex-direction:column;gap:4px;">
+  <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap;">
+    <span><b>Total de Projetos:</b> {n_total_proj_nota}</span>
+    <span><b style="color:{GREEN};">Custos OK:</b> {n_validado_nota}</span>
+    <span><b style="color:{RED};">Custos Não OK:</b> {n_nao_validado_nota}</span>
+    <span><b style="color:{AMBER};">Aguardando Custos:</b> {n_aguard_sim_nota}</span>
+    <span style="color:{SILVER};font-size:10px;">(coluna "Aguardando Custos ?" — Sim: {n_aguard_sim_nota} · Não: {n_aguard_nao_nota}{_aguard_gap_nota})</span>
+  </div>
+  <div style="color:{SILVER};font-size:10px;">Considerando as 5 Unidades (Diadema, Ferraz, São Leopoldo, Jarinu, Anchieta) + Compras — não inclui Vendas nem Corporativo.</div>
 </div>""", unsafe_allow_html=True)
 
 st.markdown(f"""<div class="nota">
