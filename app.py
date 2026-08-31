@@ -28,7 +28,7 @@ TEAL   = "#20C997"
 # NÃO entram no DRE: Kaizen - Custo Evitado, Kaizen - Capital de Giro
 DRE_TIPOS = {
     'BSW', 'Kaizen', 'Kaizen - Ganho Recorrente',
-    'Redução de custo', 'Redução de Custo', 'Redução de Custo ',
+    'Redução de custo', 'Redução de Custo', 'Redução de Custo ', 'Redução de Custos',
     'Você Resolve', 'Você resolve',
     'Estratégia Comercial', 'kaizen'
 }
@@ -445,7 +445,15 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
         nome = str(df.iloc[i, col_nome]).replace("\n"," ").replace("\r"," ").strip()
         c_pr = str(df.iloc[i, col_prev_real]).strip() if df.shape[1] > col_prev_real else ""
 
-        if tipo in VALID_TIPOS and nome not in ("", "nan") and c_pr == "Previsto":
+        if tipo in VALID_TIPOS and nome not in ("", "nan") and c_pr != "Real":
+            # Normalmente a linha "Previsto" tem essa palavra escrita na coluna
+            # de rótulo (c_pr == "Previsto"). Mas em pelo menos um projeto
+            # (Diadema, linha do item 13 "Redução de Componente") essa célula
+            # de rótulo veio corrompida/zerada na planilha (mostra 0 em vez do
+            # texto "Previsto") — como a linha "Real" (row+1) NUNCA tem Tipo/
+            # Nome preenchidos, basta garantir que não é literalmente "Real"
+            # pra não perder projetos legítimos com esse tipo de falha de
+            # digitação/preenchimento na planilha de origem.
             # V.Previsto = col8 (PREVISTO R$ original do projeto)
             tot_prev  = safe(df.iloc[i, col_previsto])
             qtd_meses = safe(df.iloc[i, col_qtd_meses]) if df.shape[1] > col_qtd_meses else 0.0
@@ -513,7 +521,20 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
             ))
             i += 2  # pula Previsto + Real
         elif tipo not in ("", "nan") and tipo not in VALID_TIPOS:
-            break   # seção SPD ou outro bloco diferente — para
+            # "SPD"/"Adesão" é o marcador real de fim da tabela de projetos
+            # em todas as abas (confirmado). Qualquer OUTRO texto não
+            # reconhecido aqui é, na prática, erro de digitação no "Tipo" do
+            # projeto (ex.: "Redução de Custos" com "s" a mais) — se a gente
+            # simplesmente parasse a extração ali, TODO o resto da planilha
+            # abaixo dessa linha seria descartado silenciosamente. Por isso
+            # só paramos de verdade em "SPD"; qualquer outro texto estranho
+            # é pulado (não vira projeto) e registrado como aviso.
+            if "SPD" in tipo.upper() or "ADESÃO" in tipo.upper() or "ADESAO" in tipo.upper():
+                break
+            msg = f'tipo de projeto não reconhecido, linha ignorada: "{tipo}" (verifique a coluna Tipo)'
+            if msg not in LAYOUT_WARNINGS:
+                LAYOUT_WARNINGS.append(msg)
+            i += 1
         else:
             i += 1
     return res
@@ -593,6 +614,23 @@ def get_proj_vendas(d):
         col_onde=15, col_data_lib=16,
         col_prev_real=18, col_total_ano=36, col_previsto=7)
 
+def get_proj_corporativo(d):
+    df = d.get("Corporativo")
+    if df is None: return []
+    # Corporativo: NÃO recebeu a coluna nova "Aguardando Custos ?" (fica
+    # sem esse dado, val_aguardando="" pra esses projetos).
+    # col0=tipo, col1=nome, col4=resp, col6=termino, col7=previsto,
+    # col11=custos, col12=saving, col13=status, col14=onde, col15=data_lib,
+    # col17=Previsto/Real, col35=Total Ano
+    hr = 19  # linha de cabeçalho (Excel row 20, 0-based)
+    _check_header(df, hr, 11, "VALIDADOR", "Corporativo", "Validador OK/NOK Custos")
+    _check_header(df, hr, 12, "SAVING VALIDADO", "Corporativo", "Saving Validado")
+    return extract_projetos(df, start_row=20,
+        col_tipo=0, col_nome=1, col_resp=4, col_termino=6,
+        col_custos=11, col_saving=12, col_status=13,
+        col_onde=14, col_data_lib=15,
+        col_prev_real=17, col_total_ano=35, col_previsto=7)
+
 # ── CHECKLIST DE 3 ETAPAS (pré-requisito p/ enviar o projeto a Custos) ────────
 # Cada unidade preenche, por projeto, 3 checkboxes de formulário na coluna do
 # "Processo de entrega do projeto a custos":
@@ -602,7 +640,7 @@ def get_proj_vendas(d):
 # Esses checkboxes NÃO são valores de célula — são objetos de desenho (legacy
 # VML/Form Controls) e por isso não aparecem via pandas/openpyxl cell.value.
 # O estado (marcado/desmarcado) é lido direto do XML interno do .xlsx.
-CHECKLIST_SHEETS   = ["Diadema","Ferraz","São Leopoldo","Jarinu","Anchieta","Compras ","Vendas"]
+CHECKLIST_SHEETS   = ["Diadema","Ferraz","São Leopoldo","Jarinu","Anchieta","Compras ","Vendas","Corporativo"]
 CHECKLIST_CAPTIONS = {"a3": "a3", "mem": "memoria", "formaliz": "formalizado"}
 
 @st.cache_data(show_spinner=False)
@@ -719,6 +757,10 @@ def get_todos_projetos(fb):
     for p in get_proj_vendas(D):
         p = dict(p); p['unidade'] = "Vendas"
         attach_checklist(p, checklist.get("Vendas", {}))
+        todos.append(p)
+    for p in get_proj_corporativo(D):
+        p = dict(p); p['unidade'] = "Corporativo"
+        attach_checklist(p, checklist.get("Corporativo", {}))
         todos.append(p)
     return todos
 
@@ -1917,7 +1959,7 @@ if is_valcust:
       <b style="color:{NAVY};">📋 Falta unidade enviar</b> = ainda falta pelo menos 1 das 3 etapas.
     </div>""", unsafe_allow_html=True)
 
-    ORDEM_UNIDADES = UNIDADE_SHEETS_PLANTAS + ["Compras", "Vendas"]
+    ORDEM_UNIDADES = UNIDADE_SHEETS_PLANTAS + ["Compras", "Vendas", "Corporativo"]
     itens_vc = [u for u in ORDEM_UNIDADES if u in status_custos_view] + \
                [u for u in status_custos_view if u not in ORDEM_UNIDADES]
 
