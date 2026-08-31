@@ -477,6 +477,7 @@ def extract_projetos(df, start_row, col_tipo=0, col_nome=2, col_resp=5,
                     data_lib = fmt_date(v_dl)
 
             res.append(dict(
+                row0           = i,   # linha (0-based, pandas) da linha "Previsto" — usada p/ casar checkboxes
                 tipo           = tipo,
                 nome           = nome,
                 resp           = str(df.iloc[i, col_resp]).strip() if pd.notna(df.iloc[i, col_resp]) else "—",
@@ -538,11 +539,109 @@ def get_proj_vendas(d):
         col_onde=14, col_data_lib=15,
         col_prev_real=17, col_total_ano=35, col_previsto=7)
 
+# ── CHECKLIST DE 3 ETAPAS (pré-requisito p/ enviar o projeto a Custos) ────────
+# Cada unidade preenche, por projeto, 3 checkboxes de formulário na coluna do
+# "Processo de entrega do projeto a custos":
+#   1) A3 e Estrutura Desenvolvido
+#   2) Memória de Cálculo desenvolvido
+#   3) Formalizado com Dep de Custos
+# Esses checkboxes NÃO são valores de célula — são objetos de desenho (legacy
+# VML/Form Controls) e por isso não aparecem via pandas/openpyxl cell.value.
+# O estado (marcado/desmarcado) é lido direto do XML interno do .xlsx.
+CHECKLIST_SHEETS   = ["Diadema","Ferraz","São Leopoldo","Jarinu","Anchieta","Compras ","Vendas"]
+CHECKLIST_CAPTIONS = {"a3": "a3", "mem": "memoria", "formaliz": "formalizado"}
+
+@st.cache_data(show_spinner=False)
+def parse_checklist_custos(fb):
+    """
+    Extrai, para cada aba de unidade, o estado dos 3 checkboxes de checklist
+    por linha de projeto ("row0" = linha 0-based da linha "Previsto", mesma
+    indexação usada em extract_projetos).
+
+    Retorna: {sheet_name: {row0: {"a3":bool, "memoria":bool, "formalizado":bool}}}
+    Em caso de qualquer erro de parsing (planilha sem esses controles, versão
+    diferente do Excel, etc.) retorna {} silenciosamente — o dashboard segue
+    funcionando normalmente, só sem o detalhamento do checklist.
+    """
+    import zipfile, re as _re, io as _io
+    out = {}
+    try:
+        z = zipfile.ZipFile(_io.BytesIO(fb))
+        wb_xml  = z.read("xl/workbook.xml").decode("utf-8", "ignore")
+        wb_rels = z.read("xl/_rels/workbook.xml.rels").decode("utf-8", "ignore")
+        rel_map = dict(_re.findall(r'Id="(rId\d+)"[^>]*Target="([^"]+)"', wb_rels))
+
+        sheet_path = {}
+        for m in _re.finditer(r'<sheet[^>]*name="([^"]+)"[^>]*r:id="(rId\d+)"', wb_xml):
+            name, rid = m.group(1), m.group(2)
+            target = rel_map.get(rid)
+            if target:
+                sheet_path[name] = "xl/" + target.lstrip("/")
+
+        for sheet_name in CHECKLIST_SHEETS:
+            sp = sheet_path.get(sheet_name)
+            if not sp or sp not in z.namelist():
+                continue
+            sheet_file = sp.split("/")[-1]
+            rels_path = f"xl/worksheets/_rels/{sheet_file}.rels"
+            if rels_path not in z.namelist():
+                continue
+            rels_xml = z.read(rels_path).decode("utf-8", "ignore")
+            vml_m = _re.search(r'Target="([^"]*vmlDrawing[^"]*)"', rels_xml)
+            if not vml_m:
+                continue
+            vml_path = "xl/drawings/" + vml_m.group(1).split("/")[-1]
+            if vml_path not in z.namelist():
+                continue
+            vml = z.read(vml_path).decode("utf-8", "ignore")
+
+            shapes = _re.findall(r'<v:shape\b[^>]*type="#_x0000_t201".*?</v:shape>', vml, _re.S)
+            per_row = {}
+            for s in shapes:
+                if 'ObjectType="Checkbox"' not in s:
+                    continue
+                tb = _re.search(r'<v:textbox.*?<div[^>]*>(.*?)</div>', s, _re.S)
+                caption = _re.sub(r'<[^>]+>', ' ', tb.group(1)) if tb else ""
+                caption = _re.sub(r'\s+', ' ', caption).strip().lower()
+                am = _re.search(r'<x:Anchor>\s*([\d,\s]+)</x:Anchor>', s)
+                if not am:
+                    continue
+                anchor_vals = [v.strip() for v in am.group(1).split(',')]
+                if len(anchor_vals) < 3:
+                    continue
+                row0 = int(anchor_vals[2])   # linha inicial (0-based) do shape
+                checked = '<x:Checked>1</x:Checked>' in s
+                key = next((v for k, v in CHECKLIST_CAPTIONS.items() if k in caption), None)
+                if key is None:
+                    continue
+                per_row.setdefault(row0, {})[key] = checked
+            out[sheet_name] = per_row
+    except Exception:
+        return {}
+    return out
+
+def attach_checklist(p, sheet_checklist):
+    """
+    Anexa ao projeto p o estado do checklist de 3 etapas, usando p['row0'].
+    Os 3 checkboxes de um projeto ficam ancorados na própria linha "Previsto"
+    (row0) e/ou na linha "Real" seguinte (row0+1) — juntamos as duas.
+    """
+    data = {}
+    i = p.get('row0')
+    if i is not None and sheet_checklist:
+        data.update(sheet_checklist.get(i, {}))
+        data.update(sheet_checklist.get(i + 1, {}))
+    p['chk_a3']          = bool(data.get('a3', False))
+    p['chk_memoria']     = bool(data.get('memoria', False))
+    p['chk_formalizado'] = bool(data.get('formalizado', False))
+    p['chk_completo']    = p['chk_a3'] and p['chk_memoria'] and p['chk_formalizado']
+    return p
+
 # ── VISÃO GERAL / BSW — camada de agregação bottom-up ─────────────────────────
 UNIDADE_SHEETS_PLANTAS = ["Diadema","Ferraz","São Leopoldo","Jarinu","Anchieta"]
 
 @st.cache_data(show_spinner=False)
-def get_todos_projetos(fb_key):
+def get_todos_projetos(fb):
     """
     Lista unificada de TODOS os projetos (todas as unidades e áreas), cada um
     tagueado com sua 'unidade' de origem. É a base do modo de visão BSW, que
@@ -552,18 +651,55 @@ def get_todos_projetos(fb_key):
     Validado projeto a projeto contra a tabela nativa "SAVING ESPECULADO POR
     PILAR" da aba 5 Unidades — bate exato (Previsto, Saving Validado e Real).
     """
+    checklist = parse_checklist_custos(fb)
     todos = []
     for sh in UNIDADE_SHEETS_PLANTAS:
         for p in get_proj_planta(D, sh):
             p = dict(p); p['unidade'] = sh
+            attach_checklist(p, checklist.get(sh, {}))
             todos.append(p)
     for p in get_proj_compras(D):
         p = dict(p); p['unidade'] = "Compras"
+        attach_checklist(p, checklist.get("Compras ", {}))
         todos.append(p)
     for p in get_proj_vendas(D):
         p = dict(p); p['unidade'] = "Vendas"
+        attach_checklist(p, checklist.get("Vendas", {}))
         todos.append(p)
     return todos
+
+def compute_status_custos(projetos):
+    """
+    Agrega, por unidade, quantos projetos estão:
+      - validado     : Custos = OK
+      - nao_validado : Custos = Não Ok / NOK
+      - em_branco    : Custos ainda sem validação (célula vazia)
+    E, dentro de 'em_branco', usa o checklist de 3 etapas (A3/Estrutura,
+    Memória de Cálculo, Formalizado com Custos) pra indicar o motivo:
+      - checklist completo (3/3) e projeto entra no DRE -> falta_custos
+        (unidade já fez a parte dela, falta só Custos aprovar)
+      - checklist incompleto (ou não entra no DRE)       -> falta_unidade
+        (unidade ainda precisa terminar e enviar pra Custos)
+    """
+    from collections import defaultdict
+    res = defaultdict(lambda: dict(total=0, validado=0, nao_validado=0, em_branco=0,
+                                    falta_custos=0, falta_unidade=0))
+    for p in projetos:
+        u = p.get('unidade', '—')
+        r = res[u]
+        r['total'] += 1
+        custos = str(p.get('val_custos', '')).strip()
+        if custos == "OK":
+            r['validado'] += 1
+        elif custos in ("Não Ok", "NOK", "Não OK"):
+            r['nao_validado'] += 1
+        else:
+            r['em_branco'] += 1
+            if p.get('chk_completo') and p.get('entra_dre'):
+                r['falta_custos'] += 1
+            else:
+                r['falta_unidade'] += 1
+    return dict(res)
 
 def compute_kpis_bottom_up(projetos, meta):
     """
@@ -1303,8 +1439,17 @@ modo_visao = st.radio("Visão:", ["🏢 Geral", "🔵 BSW"], horizontal=True,
                        key="modo_visao", label_visibility="collapsed")
 is_bsw = modo_visao.endswith("BSW")
 
-todos_projetos = get_todos_projetos(hash(fb))
+todos_projetos = get_todos_projetos(fb)
 projetos_bsw   = [p for p in todos_projetos if p["tipo"] == "BSW"]
+
+# ── STATUS DE VALIDAÇÃO POR CUSTOS (Validado / Não Validado / Em Branco) ──────
+projetos_status_view = projetos_bsw if is_bsw else todos_projetos
+status_custos_view   = compute_status_custos(projetos_status_view)
+n_validado      = sum(v["validado"]      for v in status_custos_view.values())
+n_nao_validado  = sum(v["nao_validado"]  for v in status_custos_view.values())
+n_em_branco     = sum(v["em_branco"]     for v in status_custos_view.values())
+n_falta_custos  = sum(v["falta_custos"]  for v in status_custos_view.values())
+n_falta_unidade = sum(v["falta_unidade"] for v in status_custos_view.values())
 
 if is_bsw:
     st.markdown(f"""<div style="background:#EDE7F9;border-left:3px solid #6C3EB5;border-radius:6px;
@@ -1346,7 +1491,7 @@ st.markdown(f"""<div class="kpi-wrap kpi-7">
   {kpi("cs","Retorno Previsto (Anual)",fmt_mi(portfolio),"",f"{cob:.1f}% da meta coberta")}
   {kpi("ct","Retorno Validado (Anual)",fmt_mi(ret_val_ano),"",f"{cova:.1f}% do Retorno Previsto")}
   {kpi("ca","Previsto 2026",fmt_mi(prev2026),"",f"{pp:.1f}% do Retorno Previsto")}
-  {kpi("","Validado por Custos (2026)",fmt_mi(validado),"",f"{pv:.1f}% do Previsto 2026")}
+  {kpi("","Validado por Custos (2026)",fmt_mi(validado),"",f"{pv:.1f}% do Previsto 2026 · {n_validado} iniciativas validadas")}
   {kpi("cg","Retorno Real (DRE) (2026)",fmt_mi(real),"",f"{pct_ating*100:.1f}% de atingimento")}
   {kpi("cr","Extra DRE (Até o Momento)",fmt_mi(extra_dre),"",extra_dre_sub)}
 </div>""", unsafe_allow_html=True)
@@ -1676,6 +1821,76 @@ if is_gap:
                 unsafe_allow_html=True)
     st.markdown(th("Unidade",f'<span style="color:{AMBER}">Previsto 2026 (não validado)</span>',
                    "% do Gap")+rows_gap+"</tbody></table>",
+                unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ── VALIDAÇÃO DE CUSTOS POR UNIDADE/DEPARTAMENTO ───────────────────────────────
+st.markdown('<div class="sc">', unsafe_allow_html=True)
+is_valcust = section_open("valcust", "Validação de Custos por Unidade/Departamento",
+                          default_open=False, accent_color=AMBER)
+if is_valcust:
+    st.markdown(f"""<div class="nota" style="margin-top:0;">
+      <b>Como ler:</b>&nbsp; <b style="color:{GREEN};">Validado</b> = Custos marcou "OK".&nbsp;
+      <b style="color:{RED};">Não Validado</b> = Custos marcou "Não Ok"/"NOK".&nbsp;
+      <b style="color:{SILVER};">Em Branco</b> = Custos ainda não se posicionou. Dentro de "Em Branco", cada
+      projeto tem um checklist de 3 etapas (A3/Estrutura desenvolvido, Memória de Cálculo desenvolvido,
+      Formalizado com Dep. de Custos):&nbsp;
+      <b style="color:{AMBER};">⏳ Falta Custos aprovar</b> = as 3 etapas estão marcadas e o projeto entra no DRE
+      (a unidade já fez a parte dela, falta só Custos validar).&nbsp;
+      <b style="color:{NAVY};">📋 Falta unidade enviar</b> = ainda falta pelo menos 1 das 3 etapas.
+    </div>""", unsafe_allow_html=True)
+
+    ORDEM_UNIDADES = UNIDADE_SHEETS_PLANTAS + ["Compras", "Vendas"]
+    itens_vc = [u for u in ORDEM_UNIDADES if u in status_custos_view] + \
+               [u for u in status_custos_view if u not in ORDEM_UNIDADES]
+
+    rows_vc = ""
+    for u in itens_vc:
+        s = status_custos_view[u]
+        pct_v = s["validado"] / s["total"] if s["total"] > 0 else 0.0
+        rows_vc += f"""<tr style="border-bottom:1px solid #EEF0F3;">
+          <td style="padding:10px 12px;font-weight:600;font-size:12px;">{u}</td>
+          <td style="padding:10px 12px;text-align:center;font-size:12px;">{s['total']}</td>
+          <td style="padding:10px 12px;text-align:center;font-size:12px;color:{GREEN};font-weight:700;">{s['validado']}</td>
+          <td style="padding:10px 12px;text-align:center;font-size:12px;color:{RED};font-weight:700;">{s['nao_validado']}</td>
+          <td style="padding:10px 12px;text-align:center;font-size:12px;color:{SILVER};font-weight:700;">{s['em_branco']}</td>
+          <td style="padding:10px 12px;text-align:center;font-size:12px;color:{AMBER};font-weight:700;">{s['falta_custos']}</td>
+          <td style="padding:10px 12px;text-align:center;font-size:12px;color:{NAVY};font-weight:700;">{s['falta_unidade']}</td>
+          <td style="padding:10px 12px;">{pbar_html(pct_v)}</td>
+        </tr>"""
+
+    tot_total = sum(s["total"] for s in status_custos_view.values())
+    tot_val   = sum(s["validado"] for s in status_custos_view.values())
+    tot_nval  = sum(s["nao_validado"] for s in status_custos_view.values())
+    tot_branco= sum(s["em_branco"] for s in status_custos_view.values())
+    tot_fc    = sum(s["falta_custos"] for s in status_custos_view.values())
+    tot_fu    = sum(s["falta_unidade"] for s in status_custos_view.values())
+    pct_tot   = tot_val / tot_total if tot_total > 0 else 0.0
+    rows_vc += f"""<tr class="tr-tot">
+      <td style="padding:10px 12px;font-size:12px;">TOTAL</td>
+      <td style="padding:10px 12px;text-align:center;font-size:12px;">{tot_total}</td>
+      <td style="padding:10px 12px;text-align:center;font-size:12px;color:{GREEN};">{tot_val}</td>
+      <td style="padding:10px 12px;text-align:center;font-size:12px;color:{RED};">{tot_nval}</td>
+      <td style="padding:10px 12px;text-align:center;font-size:12px;color:{SILVER};">{tot_branco}</td>
+      <td style="padding:10px 12px;text-align:center;font-size:12px;color:{AMBER};">{tot_fc}</td>
+      <td style="padding:10px 12px;text-align:center;font-size:12px;color:{NAVY};">{tot_fu}</td>
+      <td style="padding:10px 12px;">{pbar_html(pct_tot)}</td>
+    </tr>"""
+
+    header_vc = "".join(
+        f'<th style="background:{NAVY};color:white;padding:10px 12px;font-size:11px;font-weight:600;text-align:left;">{c}</th>'
+        for c in ["Unidade / Departamento", "Total", "✓ Validado", "✗ Não Validado", "Em Branco",
+                  "⏳ Falta Custos Aprovar", "📋 Falta Unidade Enviar", "% Validado"]
+    )
+    st.markdown(
+        f'<table style="width:100%;border-collapse:collapse;">'
+        f'<thead><tr>{header_vc}</tr></thead><tbody>{rows_vc}</tbody></table>',
+        unsafe_allow_html=True
+    )
+    st.markdown(f"<p style='font-size:10px;color:{SILVER};margin-top:8px;'>"
+                f"{n_em_branco} projetos ainda sem posição de Custos — {n_falta_custos} já prontos "
+                f"aguardando aprovação e {n_falta_unidade} ainda precisam ser finalizados pela unidade. "
+                f"Corporativo não tem extração de projeto a projeto na planilha atual, por isso não aparece aqui.</p>",
                 unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
