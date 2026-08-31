@@ -1480,6 +1480,7 @@ cob  = portfolio/meta*100 if meta>0 else 0
 cova = ret_val_ano/portfolio*100 if portfolio>0 else 0
 pp   = prev2026/portfolio*100 if portfolio>0 else 0
 pv   = validado/prev2026*100 if prev2026>0 else 0
+pct_iniciativas_validadas = n_validado/n_total_proj*100 if n_total_proj>0 else 0
 
 def kpi(cls,lbl,vb,sub,det):
     return (f'<div class="kpi-card {cls}"><div class="kpi-l">{lbl}</div>'
@@ -1494,7 +1495,7 @@ st.markdown(f"""<div class="kpi-wrap kpi-7">
   {kpi("ca","Previsto 2026",fmt_mi(prev2026),"",f"{pp:.1f}% do Retorno Previsto")}
   {kpi("","Validado por Custos (2026)",fmt_mi(validado),
        f"{pv:.1f}% do Previsto 2026",
-       f"{n_validado} de {n_total_proj} iniciativas validadas")}
+       f"{pct_iniciativas_validadas:.1f}% das iniciativas aprovadas ({n_validado} de {n_total_proj})")}
   {kpi("cg","Retorno Real (DRE) (2026)",fmt_mi(real),"",f"{pct_ating*100:.1f}% de atingimento")}
   {kpi("cr","Extra DRE (Até o Momento)",fmt_mi(extra_dre),"",extra_dre_sub)}
 </div>""", unsafe_allow_html=True)
