@@ -1440,6 +1440,53 @@ def render_macro_table(items, show_expander_fn=None):
     html += "</tbody></table>"
     return html
 
+# ── RESUMO POR UNIDADE/DEPARTAMENTO — Anualizado vs 2026, lado a lado ─────────
+RU_GREEN_BG = "#E7F7EE"
+def render_resumo_unidades(items):
+    """
+    Tabela única (Plantas + Áreas juntas) comparando Meta / Previsto / Validado /
+    % de Atingimento nas duas bases: Anualizado e 2026. % de atingimento =
+    Validado / Meta em cada base. Célula fica verde quando >= 80%.
+    """
+    col_names = ["Unidade / Dep.", "Meta",
+                 f'<span style="color:#F39C12;">Previsto Anualizado</span>',
+                 f'<span style="color:{TEAL};">Validado Anualizado</span>',
+                 "% Ating. Anualizado",
+                 f'<span style="color:{AMBER};">Previsto 2026</span>',
+                 f'<span style="color:{TEAL};">Validado 2026</span>',
+                 "% Ating. 2026"]
+    widths = ["16%","10%","13%","13%","12%","13%","13%","10%"]
+    ths = "".join(
+        f'<th style="background:{NAVY};color:white;padding:10px 12px;'
+        f'font-size:11px;font-weight:600;width:{w};text-align:left;">{c}</th>'
+        for c,w in zip(col_names, widths)
+    )
+    html = f'<table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px;"><thead><tr>{ths}</tr></thead><tbody>'
+    for it in items:
+        meta_u    = it.get('meta', 0.0)
+        prev_a    = it.get('prev', 0.0)
+        val_a     = it.get('validado_anual', 0.0)
+        prev26    = it.get('prev2026', 0.0)
+        val26     = it.get('val', 0.0)
+        pct_a     = val_a/meta_u*100  if meta_u>0 else 0.0
+        pct_26    = val26/meta_u*100  if meta_u>0 else 0.0
+        ok_a  = pct_a  >= 80
+        ok_26 = pct_26 >= 80
+        cell_a  = f'background:{RU_GREEN_BG};color:{GREEN};font-weight:700;' if ok_a  else f'color:{NAVY};font-weight:700;'
+        cell_26 = f'background:{RU_GREEN_BG};color:{GREEN};font-weight:700;' if ok_26 else f'color:{NAVY};font-weight:700;'
+        html += f"""<tr style="border-bottom:1px solid #EEF0F3;">
+          <td style="padding:10px 12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{it['nome']}</td>
+          <td style="padding:10px 12px;">{fmt_brl(meta_u)}</td>
+          <td style="padding:10px 12px;color:#F39C12;">{fmt_brl(prev_a)}</td>
+          <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(val_a)}</td>
+          <td style="padding:10px 12px;text-align:center;{cell_a}">{pct_a:.1f}%</td>
+          <td style="padding:10px 12px;color:{AMBER};">{fmt_brl(prev26)}</td>
+          <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(val26)}</td>
+          <td style="padding:10px 12px;text-align:center;{cell_26}">{pct_26:.1f}%</td>
+        </tr>"""
+    html += "</tbody></table>"
+    return html
+
 # Compat shims — mantidos para não quebrar código legado
 def mc_header(): return ""
 def mc_row(it): return ""
@@ -1639,6 +1686,23 @@ _pot_areas   = _compute_valor_potencial(projetos_status_view, areas_view)
 for it in plantas_view: it['potencial'] = _pot_plantas.get(it['nome'], 0.0)
 for it in areas_view:   it['potencial'] = _pot_areas.get(it['nome'], 0.0)
 
+# ── VALIDADO ANUALIZADO por unidade — não existe célula nativa por unidade pra
+# isso na planilha (só existe o big number do grupo, "Retorno Validado (Anual)"),
+# então é sempre bottom-up: soma de validado_anual = (Saving Validado/Qtd.Meses)*12
+# por projeto. Mesmo recorte (todos os tipos, não só DRE) que "Retorno Validado
+# 2026" já usa nessas mesmas tabelas.
+def _compute_validado_anual(projetos, lista_unidades):
+    res = {}
+    for it in lista_unidades:
+        proj_unidade = [p for p in projetos if p.get('unidade') == it['nome']]
+        res[it['nome']] = sum(p.get('validado_anual', 0.0) for p in proj_unidade)
+    return res
+
+_va_plantas = _compute_validado_anual(projetos_status_view, plantas_view)
+_va_areas   = _compute_validado_anual(projetos_status_view, areas_view)
+for it in plantas_view: it['validado_anual'] = _va_plantas.get(it['nome'], 0.0)
+for it in areas_view:   it['validado_anual'] = _va_areas.get(it['nome'], 0.0)
+
 meta=kpis_view["meta"]; portfolio=kpis_view["portfolio"]; ret_val_ano=kpis_view["ret_val_ano"]
 prev2026=kpis_view["prev2026"]
 validado=kpis_view["validado"]; real=kpis_view["real"]; extra_dre=kpis_view["extra_dre"]; pct_ating=kpis_view["pct_ating"]
@@ -1764,6 +1828,18 @@ if is_notas:
       <b style="color:{GREEN};">✓ DRE</b>: BSW · Kaizen · Kaizen GR · Redução de Custo · Você Resolve — impacto direto e mensurável no DRE.&nbsp;
       <b style="color:{SILVER};">↷ Não DRE</b>: Kaizen Custo Evitado · Kaizen Capital de Giro · Meta Executiva — geram valor operacional mas não reduzem GGF no DRE.
     </div>""", unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ── RESUMO POR UNIDADE/DEPARTAMENTO — Anualizado vs 2026 ────────────────────────
+st.markdown(f'<div class="{sc_class("resumo_unidades", False)}">', unsafe_allow_html=True)
+is_resumo = section_open("resumo_unidades", "Resumo por Unidade/Departamento — Anualizado vs 2026", default_open=False)
+if is_resumo:
+    st.markdown(render_resumo_unidades(plantas_view + areas_view), unsafe_allow_html=True)
+    st.markdown(f'<div style="font-size:10px;color:{SILVER};margin-top:6px;">'
+                f'% de Atingimento = Validado / Meta em cada base · verde a partir de 80%. '
+                f'"Validado Anualizado" não tem célula nativa na planilha — é sempre calculado '
+                f'projeto a projeto ((Saving Validado / Qtd.Meses) × 12), mesmo recorte '
+                f'(todos os tipos) da coluna "Validado 2026".</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── EVOLUÇÃO ───────────────────────────────────────────────────────────────────
