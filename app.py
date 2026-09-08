@@ -1634,56 +1634,43 @@ st.markdown(f"""<div class="kpi-wrap kpi-7">
 </div>""", unsafe_allow_html=True)
 
 # ── PROJEÇÃO DE FECHAMENTO — DEZEMBRO 2026 ─────────────────────────────────────
-# Lê o funil de cima para baixo (Retorno Previsto → Previsto 2026 → Validado por
-# Custos → Real DRE) e usa as taxas de conversão já existentes entre essas
-# etapas para estimar uma faixa de fechamento do ano:
-#   piso  = Real DRE de hoje (o que já está garantido, caso nada mais avance)
-#   teto  = Validado por Custos (2026) — já passou por memória de cálculo e
-#           aprovação formal, então tende a se converter em Real ao longo do
-#           ano; funciona como cenário-base de fechamento em dezembro.
-pct_prev2026_de_prev     = prev2026/portfolio*100 if portfolio>0 else 0
-pct_validado_de_prev2026 = validado/prev2026*100  if prev2026>0  else 0
-pct_real_de_validado     = real/validado*100      if validado>0  else 0
-pct_validado_de_meta     = validado/meta*100      if meta>0      else 0
+# Metodologia (taxa de conversão histórica, aplicada só ao que falta):
+#   1) Entre os projetos DRE que Custos JÁ validou (Saving Validado > 0),
+#      compara o que foi validado com o que a própria unidade previu para
+#      ESSES MESMOS projetos (Previsto 2026) -> taxa de conversão observada.
+#   2) Separa o que falta em dois grupos: reprovado (Não OK — sai da conta,
+#      já foi julgado e não passa) e ainda sem posição de Custos (nem OK
+#      nem Não OK — é o que realmente falta julgar).
+#   3) Aplica a MESMA taxa de conversão só ao valor "ainda sem posição" para
+#      projetar quanto disso deve virar Validado por Custos até dezembro.
+# Tudo na mesma base de projetos (DRE, view Geral/BSW ativa) — sem misturar
+# escopos diferentes.
+_dre_view      = [p for p in projetos_status_view if p.get('entra_dre')]
+_com_saving    = [p for p in _dre_view if p['val_saving'] > 0]
+_sem_saving    = [p for p in _dre_view if p['val_saving'] <= 0]
+_reprovados    = [p for p in _sem_saving if str(p.get('val_custos','')).strip() in ("Não Ok","NOK","Não OK")]
+_sem_posicao   = [p for p in _sem_saving if str(p.get('val_custos','')).strip() not in ("Não Ok","NOK","Não OK")]
 
-# Quebra do que falta validar em "já formalizado, aguardando aprovação de
-# Custos" x "ainda precisa ser formalizado pela unidade" x "reprovado
-# (Não OK)" — usando a MESMA base de projetos da nota "Total de Projetos"
-# abaixo (5 Unidades + Compras, apenas DRE — única base onde a coluna
-# "Aguardando Custos ?" é confiável; Vendas/Corporativo ficam de fora, por
-# isso o Previsto 2026 desse recorte é menor que o valor do grupo todo lá
-# em cima). Os 4 valores somam exatamente o Previsto 2026 desse recorte —
-# história fecha sozinha, sem misturar com o gap do grupo todo.
-_v_ok     = sum(p['previsto_2026'] for p in projetos_nota if str(p.get('val_custos','')).strip()=="OK")
-_v_nok    = sum(p['previsto_2026'] for p in projetos_nota if str(p.get('val_custos','')).strip() in ("Não Ok","NOK","Não OK"))
-_v_aguard = sum(p['previsto_2026'] for p in projetos_nota if p.get('val_aguardando')=="Sim")
-_v_total_nota = sum(p['previsto_2026'] for p in projetos_nota)
-valor_validado_nota       = _v_ok
-valor_reprovado_nota      = _v_nok
-valor_aguardando_custos   = _v_aguard
-valor_falta_formalizar    = max(_v_total_nota - _v_ok - _v_nok - _v_aguard, 0)
-gap_nota_scope            = _v_total_nota - _v_ok   # = reprovado + aguardando + falta_formalizar
+prev2026_validados   = sum(p['previsto_2026'] for p in _com_saving)   # o que a unidade previu p/ quem já validou
+valor_reprovado       = sum(p['previsto_2026'] for p in _reprovados)   # já julgado e reprovado — sai da conta
+valor_sem_posicao     = sum(p['previsto_2026'] for p in _sem_posicao)  # o que realmente falta julgar
+n_reprovados, n_sem_posicao = len(_reprovados), len(_sem_posicao)
+
+taxa_conversao = validado/prev2026_validados if prev2026_validados > 0 else 0
+projecao_adicional     = valor_sem_posicao * taxa_conversao
+total_projetado_validado = validado + projecao_adicional
+pct_validado_meta      = validado/meta*100 if meta>0 else 0
+pct_projetado_meta     = total_projetado_validado/meta*100 if meta>0 else 0
 
 st.markdown(f"""<div class="nota" style="border-left-color:{TEAL};">
   📈 <b>Projeção de Fechamento — Dezembro 2026:</b>&nbsp;
-  Das oportunidades mapeadas pelas unidades e áreas (<b>{fmt_mi(portfolio)}</b>), <b>{fmt_mi(prev2026)}</b>
-  ({pct_prev2026_de_prev:.1f}%) têm retorno previsto ainda dentro de 2026. Desse Previsto 2026, o time de Custos
-  já validou tecnicamente <b>{fmt_mi(validado)}</b> ({pct_validado_de_prev2026:.1f}%) — e, desse valor validado,
-  <b>{fmt_mi(real)}</b> ({pct_real_de_validado:.1f}%) já viraram resultado real no DRE.
-  Como o valor validado por Custos já passou por memória de cálculo e aprovação formal, a tendência é que se
-  realize integralmente até o fim do ano: no ritmo atual, a estimativa é <b>fechar dezembro entre {fmt_mi(real)}
-  (piso, caso nada mais avance) e {fmt_mi(validado)} (cenário-base, com todo o validado convertido em real)</b> —
-  entre {pct_ating*100:.1f}% e {pct_validado_de_meta:.1f}% da Meta Anual do Grupo ({fmt_mi(meta)}).
-  <br><span style="font-size:10px;color:{SILVER};">Detalhando o que falta validar — apenas nas 5 Unidades +
-  Compras, mesma base da nota "Total de Projetos" abaixo (Vendas e Corporativo ficam fora por não terem a coluna
-  "Aguardando Custos ?" confiável; Previsto 2026 desse recorte: {fmt_mi(_v_total_nota)}, vs. {fmt_mi(prev2026)} do
-  grupo todo lá em cima, que também inclui Vendas e Corporativo): {fmt_mi(valor_validado_nota)} já validado (OK); dos
-  {fmt_mi(gap_nota_scope)} ainda não validados, <b style="color:{AMBER};">{fmt_mi(valor_aguardando_custos)}</b>
-  ({n_aguard_sim_nota} projetos) já foram formalizados pela unidade e aguardam aprovação de Custos,
-  <b style="color:{NAVY};">{fmt_mi(valor_falta_formalizar)}</b> ({n_nao_formalizado_nota} projetos) ainda
-  precisam ser formalizados pela unidade antes de sequer entrar na fila de Custos, e
-  <b style="color:{RED};">{fmt_mi(valor_reprovado_nota)}</b> ({n_nao_validado_nota} projetos) já foram
-  analisados e reprovados (Não OK).</span>
+  Custos já validou <b>{fmt_mi(validado)}</b> ({pct_validado_meta:.1f}% da Meta), sobre um Previsto 2026 de
+  <b>{fmt_mi(prev2026_validados)}</b> nesses mesmos projetos — uma taxa de conversão de <b>{taxa_conversao*100:.1f}%</b>.
+  <b style="color:{RED};">{fmt_mi(valor_reprovado)}</b> ({n_reprovados} projetos) já foram julgados e reprovados,
+  saindo da conta. O que falta: <b style="color:{NAVY};">{fmt_mi(valor_sem_posicao)}</b> ({n_sem_posicao} projetos)
+  ainda sem posição de Custos. Aplicando a mesma taxa de conversão observada, a expectativa é de mais
+  <b>{fmt_mi(projecao_adicional)}</b> validados até dezembro — levando o total de Validado por Custos a
+  <b>{fmt_mi(total_projetado_validado)} ({pct_projetado_meta:.1f}% da Meta Anual do Grupo)</b>.
 </div>""", unsafe_allow_html=True)
 
 _aguard_gap_nota = f' <span style="color:{RED};">({n_aguard_vazio_nota} projeto(s) sem essa célula preenchida)</span>' if n_aguard_vazio_nota else ""
