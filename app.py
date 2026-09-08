@@ -1633,44 +1633,74 @@ st.markdown(f"""<div class="kpi-wrap kpi-7">
   {kpi("cr","Extra DRE (Até o Momento)",fmt_mi(extra_dre),"",extra_dre_sub)}
 </div>""", unsafe_allow_html=True)
 
-# ── PROJEÇÃO DE FECHAMENTO — DEZEMBRO 2026 ─────────────────────────────────────
-# Metodologia (taxa de conversão histórica, aplicada só ao que falta):
+# ── PROJEÇÃO 2026 / PROJEÇÃO ANUALIZADO ────────────────────────────────────────
+# Metodologia (taxa de conversão histórica, aplicada só ao que falta), feita
+# nas duas bases em paralelo — "2026" (previsto_2026 / validado) e "Anual"
+# (previsto bruto / validado_anual):
 #   1) Entre os projetos DRE que Custos JÁ validou (Saving Validado > 0),
 #      compara o que foi validado com o que a própria unidade previu para
-#      ESSES MESMOS projetos (Previsto 2026) -> taxa de conversão observada.
-#   2) Separa o que falta em dois grupos: reprovado (Não OK — sai da conta,
-#      já foi julgado e não passa) e ainda sem posição de Custos (nem OK
-#      nem Não OK — é o que realmente falta julgar).
+#      ESSES MESMOS projetos -> taxa de conversão observada.
+#   2) Separa o que falta em dois grupos: reprovado (Não OK — já foi julgado
+#      e não passa, sai da conta) e ainda sem posição de Custos (nem OK nem
+#      Não OK — é o que realmente falta julgar).
 #   3) Aplica a MESMA taxa de conversão só ao valor "ainda sem posição" para
-#      projetar quanto disso deve virar Validado por Custos até dezembro.
-# Tudo na mesma base de projetos (DRE, view Geral/BSW ativa) — sem misturar
-# escopos diferentes.
+#      projetar quanto disso deve virar Validado até dezembro.
+# Tudo restrito a projetos DRE (view Geral/BSW ativa) — só o que entra no DRE
+# conta pra bater a Meta. Por isso a soma de validados+reprovados+sem_posição
+# fica no Previsto (DRE) do recorte, que é MENOR que o Previsto (Anual)/
+# Previsto 2026 do card lá em cima (esses incluem também os tipos fora do
+# DRE, que nunca são "Validados por Custos" nesse sentido).
 _dre_view      = [p for p in projetos_status_view if p.get('entra_dre')]
 _com_saving    = [p for p in _dre_view if p['val_saving'] > 0]
 _sem_saving    = [p for p in _dre_view if p['val_saving'] <= 0]
 _reprovados    = [p for p in _sem_saving if str(p.get('val_custos','')).strip() in ("Não Ok","NOK","Não OK")]
 _sem_posicao   = [p for p in _sem_saving if str(p.get('val_custos','')).strip() not in ("Não Ok","NOK","Não OK")]
-
-prev2026_validados   = sum(p['previsto_2026'] for p in _com_saving)   # o que a unidade previu p/ quem já validou
-valor_reprovado       = sum(p['previsto_2026'] for p in _reprovados)   # já julgado e reprovado — sai da conta
-valor_sem_posicao     = sum(p['previsto_2026'] for p in _sem_posicao)  # o que realmente falta julgar
 n_reprovados, n_sem_posicao = len(_reprovados), len(_sem_posicao)
 
+# — base 2026 —
+prev2026_validados = sum(p['previsto_2026'] for p in _com_saving)
+valor_reprovado     = sum(p['previsto_2026'] for p in _reprovados)
+valor_sem_posicao   = sum(p['previsto_2026'] for p in _sem_posicao)
+prev2026_dre_total  = prev2026_validados + valor_reprovado + valor_sem_posicao
+prev2026_nao_dre    = max(prev2026 - prev2026_dre_total, 0)
+
 taxa_conversao = validado/prev2026_validados if prev2026_validados > 0 else 0
-projecao_adicional     = valor_sem_posicao * taxa_conversao
+projecao_adicional       = valor_sem_posicao * taxa_conversao
 total_projetado_validado = validado + projecao_adicional
-pct_validado_meta      = validado/meta*100 if meta>0 else 0
-pct_projetado_meta     = total_projetado_validado/meta*100 if meta>0 else 0
+pct_validado_meta        = validado/meta*100 if meta>0 else 0
+pct_projetado_meta       = total_projetado_validado/meta*100 if meta>0 else 0
+
+# — base Anual (mesma lógica, com previsto bruto / validado_anual) —
+prev_anual_validados = sum(p['previsto'] for p in _com_saving)
+valor_reprovado_anual   = sum(p['previsto'] for p in _reprovados)
+valor_sem_posicao_anual = sum(p['previsto'] for p in _sem_posicao)
+
+taxa_conversao_anual = ret_val_ano/prev_anual_validados if prev_anual_validados > 0 else 0
+projecao_adicional_anual       = valor_sem_posicao_anual * taxa_conversao_anual
+total_projetado_anual          = ret_val_ano + projecao_adicional_anual
+pct_projetado_anual_meta       = total_projetado_anual/meta*100 if meta>0 else 0
+
+st.markdown(f"""<div class="kpi-wrap" style="grid-template-columns:repeat(2,1fr);margin-top:-6px;">
+  {kpi("ct","Projeção 2026 (Validado por Custos)",fmt_mi(total_projetado_validado),
+       f"{pct_projetado_meta:.1f}% da Meta Anual do Grupo",
+       f"{fmt_mi(validado)} já validado + {fmt_mi(projecao_adicional)} projetado sobre o que falta julgar")}
+  {kpi("cg","Projeção Anualizado (Validado por Custos)",fmt_mi(total_projetado_anual),
+       f"{pct_projetado_anual_meta:.1f}% da Meta Anual do Grupo",
+       f"{fmt_mi(ret_val_ano)} já validado (anual) + {fmt_mi(projecao_adicional_anual)} projetado sobre o que falta julgar")}
+</div>""", unsafe_allow_html=True)
 
 st.markdown(f"""<div class="nota" style="border-left-color:{TEAL};">
-  📈 <b>Projeção de Fechamento — Dezembro 2026:</b>&nbsp;
+  📈 <b>Como calculamos a Projeção 2026:</b>&nbsp;
   Custos já validou <b>{fmt_mi(validado)}</b> ({pct_validado_meta:.1f}% da Meta), sobre um Previsto 2026 de
   <b>{fmt_mi(prev2026_validados)}</b> nesses mesmos projetos — uma taxa de conversão de <b>{taxa_conversao*100:.1f}%</b>.
+  Do Previsto 2026 dos projetos DRE (<b>{fmt_mi(prev2026_dre_total)}</b> — dos {fmt_mi(prev2026)} do card lá em
+  cima, {fmt_mi(prev2026_nao_dre)} são de tipos fora do DRE, que nunca entram nessa conta):
   <b style="color:{RED};">{fmt_mi(valor_reprovado)}</b> ({n_reprovados} projetos) já foram julgados e reprovados,
   saindo da conta. O que falta: <b style="color:{NAVY};">{fmt_mi(valor_sem_posicao)}</b> ({n_sem_posicao} projetos)
   ainda sem posição de Custos. Aplicando a mesma taxa de conversão observada, a expectativa é de mais
-  <b>{fmt_mi(projecao_adicional)}</b> validados até dezembro — levando o total de Validado por Custos a
-  <b>{fmt_mi(total_projetado_validado)} ({pct_projetado_meta:.1f}% da Meta Anual do Grupo)</b>.
+  <b>{fmt_mi(projecao_adicional)}</b> validados até dezembro — total projetado: <b>{fmt_mi(total_projetado_validado)}
+  ({pct_projetado_meta:.1f}% da Meta)</b>. A Projeção Anualizado segue a mesma lógica, na base Retorno Previsto
+  (Anual) / Retorno Validado (Anual).
 </div>""", unsafe_allow_html=True)
 
 _aguard_gap_nota = f' <span style="color:{RED};">({n_aguard_vazio_nota} projeto(s) sem essa célula preenchida)</span>' if n_aguard_vazio_nota else ""
