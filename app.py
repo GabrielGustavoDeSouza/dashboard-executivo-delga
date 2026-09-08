@@ -1560,16 +1560,21 @@ n_aguard_sim   = sum(1 for p in projetos_status_view if p.get("val_aguardando") 
 n_aguard_nao   = sum(1 for p in projetos_status_view if p.get("val_aguardando") == "Não")
 n_aguard_vazio = sum(1 for p in projetos_status_view if p.get("val_aguardando") not in ("Sim", "Não"))
 
-# ── Nota de Total de Projetos: só 5 Unidades + Compras ────────────────────────
+# ── Nota de Total de Projetos: só 5 Unidades + Compras, apenas DRE ────────────
 # Pedido do usuário: essa nota específica não deve contar Vendas nem
 # Corporativo (Vendas/Corporativo têm layout e coluna "Aguardando Custos ?"
 # diferentes/ausentes, o que confundia a leitura). Restrita a essas 6 abas.
+# Também só entram projetos com entra_dre=True (BSW, Kaizen, Kaizen GR,
+# Redução de Custo, Você Resolve, Estratégia Comercial) — Kaizen Custo
+# Evitado, Kaizen Capital de Giro e Meta Executiva ficam fora da contagem.
 UNIDADES_NOTA = UNIDADE_SHEETS_PLANTAS + ["Compras"]
-projetos_nota    = [p for p in projetos_status_view if p.get("unidade") in UNIDADES_NOTA]
-status_nota_view = {k: v for k, v in status_custos_view.items() if k in UNIDADES_NOTA}
-n_total_proj_nota    = sum(v["total"]        for v in status_nota_view.values())
-n_validado_nota      = sum(v["validado"]     for v in status_nota_view.values())
-n_nao_validado_nota  = sum(v["nao_validado"] for v in status_nota_view.values())
+projetos_nota = [p for p in projetos_status_view
+                  if p.get("unidade") in UNIDADES_NOTA and p.get("entra_dre")]
+n_total_proj_nota    = len(projetos_nota)
+n_validado_nota      = sum(1 for p in projetos_nota
+                            if str(p.get("val_custos", "")).strip() == "OK")
+n_nao_validado_nota  = sum(1 for p in projetos_nota
+                            if str(p.get("val_custos", "")).strip() in ("Não Ok", "NOK", "Não OK"))
 n_aguard_sim_nota   = sum(1 for p in projetos_nota if p.get("val_aguardando") == "Sim")
 n_aguard_nao_nota   = sum(1 for p in projetos_nota if p.get("val_aguardando") == "Não")
 n_aguard_vazio_nota = sum(1 for p in projetos_nota if p.get("val_aguardando") not in ("Sim", "Não"))
@@ -1628,6 +1633,34 @@ st.markdown(f"""<div class="kpi-wrap kpi-7">
   {kpi("cr","Extra DRE (Até o Momento)",fmt_mi(extra_dre),"",extra_dre_sub)}
 </div>""", unsafe_allow_html=True)
 
+# ── PROJEÇÃO DE FECHAMENTO — DEZEMBRO 2026 ─────────────────────────────────────
+# Lê o funil de cima para baixo (Retorno Previsto → Previsto 2026 → Validado por
+# Custos → Real DRE) e usa as taxas de conversão já existentes entre essas
+# etapas para estimar uma faixa de fechamento do ano:
+#   piso  = Real DRE de hoje (o que já está garantido, caso nada mais avance)
+#   teto  = Validado por Custos (2026) — já passou por memória de cálculo e
+#           aprovação formal, então tende a se converter em Real ao longo do
+#           ano; funciona como cenário-base de fechamento em dezembro.
+pct_prev2026_de_prev     = prev2026/portfolio*100 if portfolio>0 else 0
+pct_validado_de_prev2026 = validado/prev2026*100  if prev2026>0  else 0
+pct_real_de_validado     = real/validado*100      if validado>0  else 0
+pct_validado_de_meta     = validado/meta*100      if meta>0      else 0
+gap_validacao_pendente   = max(prev2026-validado, 0)
+
+st.markdown(f"""<div class="nota" style="border-left-color:{TEAL};">
+  📈 <b>Projeção de Fechamento — Dezembro 2026:</b>&nbsp;
+  Das oportunidades mapeadas pelas unidades e áreas (<b>{fmt_mi(portfolio)}</b>), <b>{fmt_mi(prev2026)}</b>
+  ({pct_prev2026_de_prev:.1f}%) têm retorno previsto ainda dentro de 2026. Desse Previsto 2026, o time de Custos
+  já validou tecnicamente <b>{fmt_mi(validado)}</b> ({pct_validado_de_prev2026:.1f}%) — e, desse valor validado,
+  <b>{fmt_mi(real)}</b> ({pct_real_de_validado:.1f}%) já viraram resultado real no DRE.
+  Como o valor validado por Custos já passou por memória de cálculo e aprovação formal, a tendência é que se
+  realize integralmente até o fim do ano: no ritmo atual, a estimativa é <b>fechar dezembro entre {fmt_mi(real)}
+  (piso, caso nada mais avance) e {fmt_mi(validado)} (cenário-base, com todo o validado convertido em real)</b> —
+  entre {pct_ating*100:.1f}% e {pct_validado_de_meta:.1f}% da Meta Anual do Grupo ({fmt_mi(meta)}).
+  Para alcançar a meta integral, ainda restam <b>{fmt_mi(gap_validacao_pendente)}</b> do Previsto 2026 aguardando
+  validação de Custos.
+</div>""", unsafe_allow_html=True)
+
 _aguard_gap_nota = f' <span style="color:{RED};">({n_aguard_vazio_nota} projeto(s) sem essa célula preenchida)</span>' if n_aguard_vazio_nota else ""
 st.markdown(f"""<div class="nota" style="display:flex;flex-direction:column;gap:4px;">
   <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap;">
@@ -1638,7 +1671,7 @@ st.markdown(f"""<div class="nota" style="display:flex;flex-direction:column;gap:
     <span><b style="color:{NAVY};">Não Formalizados com Custos:</b> {n_nao_formalizado_nota}</span>
     <span style="color:{SILVER};font-size:10px;">(coluna "Aguardando Custos ?" — Sim: {n_aguard_sim_nota} · Não: {n_aguard_nao_nota}{_aguard_gap_nota})</span>
   </div>
-  <div style="color:{SILVER};font-size:10px;">Considerando as 5 Unidades (Diadema, Ferraz, São Leopoldo, Jarinu, Anchieta) + Compras — não inclui Vendas nem Corporativo.</div>
+  <div style="color:{SILVER};font-size:10px;">Considerando apenas projetos que entram no DRE, nas 5 Unidades (Diadema, Ferraz, São Leopoldo, Jarinu, Anchieta) + Compras — não inclui Vendas nem Corporativo.</div>
 </div>""", unsafe_allow_html=True)
 
 st.markdown(f"""<div class="nota">
