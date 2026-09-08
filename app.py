@@ -1645,22 +1645,24 @@ pct_prev2026_de_prev     = prev2026/portfolio*100 if portfolio>0 else 0
 pct_validado_de_prev2026 = validado/prev2026*100  if prev2026>0  else 0
 pct_real_de_validado     = real/validado*100      if validado>0  else 0
 pct_validado_de_meta     = validado/meta*100      if meta>0      else 0
-gap_validacao_pendente   = max(prev2026-validado, 0)
 
 # Quebra do que falta validar em "já formalizado, aguardando aprovação de
-# Custos" x "ainda precisa ser formalizado pela unidade" — usando a MESMA
-# base de projetos (5 Unidades + Compras, apenas DRE, coluna "Aguardando
-# Custos ?" confiável) e a MESMA lógica de subtração da nota "Total de
-# Projetos" abaixo, pra bater exatamente com as contagens de lá (19
-# aguardando / 74 não formalizados). Não usamos o gap_validacao_pendente
-# (grupo todo, inclui Vendas/Corporativo) aqui porque essas duas abas não
-# têm a coluna "Aguardando Custos ?" confiável — ver nota abaixo.
+# Custos" x "ainda precisa ser formalizado pela unidade" x "reprovado
+# (Não OK)" — usando a MESMA base de projetos da nota "Total de Projetos"
+# abaixo (5 Unidades + Compras, apenas DRE — única base onde a coluna
+# "Aguardando Custos ?" é confiável; Vendas/Corporativo ficam de fora, por
+# isso o Previsto 2026 desse recorte é menor que o valor do grupo todo lá
+# em cima). Os 4 valores somam exatamente o Previsto 2026 desse recorte —
+# história fecha sozinha, sem misturar com o gap do grupo todo.
 _v_ok     = sum(p['previsto_2026'] for p in projetos_nota if str(p.get('val_custos','')).strip()=="OK")
 _v_nok    = sum(p['previsto_2026'] for p in projetos_nota if str(p.get('val_custos','')).strip() in ("Não Ok","NOK","Não OK"))
 _v_aguard = sum(p['previsto_2026'] for p in projetos_nota if p.get('val_aguardando')=="Sim")
 _v_total_nota = sum(p['previsto_2026'] for p in projetos_nota)
+valor_validado_nota       = _v_ok
+valor_reprovado_nota      = _v_nok
 valor_aguardando_custos   = _v_aguard
 valor_falta_formalizar    = max(_v_total_nota - _v_ok - _v_nok - _v_aguard, 0)
+gap_nota_scope            = _v_total_nota - _v_ok   # = reprovado + aguardando + falta_formalizar
 
 st.markdown(f"""<div class="nota" style="border-left-color:{TEAL};">
   📈 <b>Projeção de Fechamento — Dezembro 2026:</b>&nbsp;
@@ -1672,13 +1674,16 @@ st.markdown(f"""<div class="nota" style="border-left-color:{TEAL};">
   realize integralmente até o fim do ano: no ritmo atual, a estimativa é <b>fechar dezembro entre {fmt_mi(real)}
   (piso, caso nada mais avance) e {fmt_mi(validado)} (cenário-base, com todo o validado convertido em real)</b> —
   entre {pct_ating*100:.1f}% e {pct_validado_de_meta:.1f}% da Meta Anual do Grupo ({fmt_mi(meta)}).
-  Para chegar mais perto da meta integral, ainda faltam <b>{fmt_mi(gap_validacao_pendente)}</b> do Previsto 2026
-  avançar no funil — nem todo esse valor está "na fila" de Custos hoje.
-  <br><span style="font-size:10px;color:{SILVER};">Só nas 5 Unidades + Compras, mesma base da nota "Total de
-  Projetos" abaixo: <b style="color:{AMBER};">{fmt_mi(valor_aguardando_custos)}</b> ({n_aguard_sim_nota} projetos)
-  já foram formalizados pela unidade e aguardam aprovação de Custos; <b style="color:{NAVY};">
-  {fmt_mi(valor_falta_formalizar)}</b> ({n_nao_formalizado_nota} projetos) ainda precisam ser formalizados pela
-  unidade antes de sequer entrar na fila de Custos.</span>
+  <br><span style="font-size:10px;color:{SILVER};">Detalhando o que falta validar — apenas nas 5 Unidades +
+  Compras, mesma base da nota "Total de Projetos" abaixo (Vendas e Corporativo ficam fora por não terem a coluna
+  "Aguardando Custos ?" confiável; Previsto 2026 desse recorte: {fmt_mi(_v_total_nota)}, vs. {fmt_mi(prev2026)} do
+  grupo todo lá em cima, que também inclui Vendas e Corporativo): {fmt_mi(valor_validado_nota)} já validado (OK); dos
+  {fmt_mi(gap_nota_scope)} ainda não validados, <b style="color:{AMBER};">{fmt_mi(valor_aguardando_custos)}</b>
+  ({n_aguard_sim_nota} projetos) já foram formalizados pela unidade e aguardam aprovação de Custos,
+  <b style="color:{NAVY};">{fmt_mi(valor_falta_formalizar)}</b> ({n_nao_formalizado_nota} projetos) ainda
+  precisam ser formalizados pela unidade antes de sequer entrar na fila de Custos, e
+  <b style="color:{RED};">{fmt_mi(valor_reprovado_nota)}</b> ({n_nao_validado_nota} projetos) já foram
+  analisados e reprovados (Não OK).</span>
 </div>""", unsafe_allow_html=True)
 
 _aguard_gap_nota = f' <span style="color:{RED};">({n_aguard_vazio_nota} projeto(s) sem essa célula preenchida)</span>' if n_aguard_vazio_nota else ""
