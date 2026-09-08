@@ -98,10 +98,13 @@ html,body,[class*="css"]{{font-family:'Inter',sans-serif;}}
 /* ── SECTION CARD ── */
 .sc{{background:white;border-radius:12px;padding:20px 22px;
      box-shadow:0 1px 4px rgba(28,43,74,.06),0 4px 16px rgba(28,43,74,.04);
-     margin-bottom:16px;}}
+     margin-bottom:16px;transition:padding .15s ease,box-shadow .15s ease;}}
+.sc.sc-min{{padding:13px 22px;box-shadow:0 1px 3px rgba(28,43,74,.05);}}
+.sc.sc-min .st{{margin-bottom:0;opacity:.75;}}
 .st{{font-size:11px;font-weight:700;color:{NAVY};text-transform:uppercase;
      letter-spacing:.7px;border-bottom:2px solid {RED};
-     padding-bottom:7px;margin-bottom:14px;display:inline-block;}}
+     padding-bottom:7px;margin-bottom:14px;display:inline-block;
+     transition:opacity .15s ease,margin .15s ease;}}
 
 /* ── NOTA ── */
 .nota{{background:#FFFBF0;border-left:3px solid {AMBER};border-radius:6px;
@@ -149,22 +152,23 @@ html,body,[class*="css"]{{font-family:'Inter',sans-serif;}}
 [data-testid="stToggle"] label {{white-space:nowrap!important;font-size:12px!important;font-weight:500!important;}}
 [data-testid="stToggle"] {{align-items:center!important;}}
 
-/* ── SECTION TOGGLE — botão − / + minimalista (sem círculo) ── */
+/* ── SECTION TOGGLE — chip circular leve, com + / − ── */
 [data-testid="stColumn"]:last-child button[kind="secondary"]{{
-  font-size:18px!important;font-weight:200!important;
-  color:{SILVER}!important;
-  background:transparent!important;
-  border:none!important;
-  border-bottom:1.5px solid #DDE2EA!important;
-  border-radius:0!important;
-  width:24px!important;height:24px!important;
+  font-size:15px!important;font-weight:400!important;
+  color:{NAVY}!important;
+  background:{LIGHT}!important;
+  border:1px solid #E4E9F0!important;
+  border-radius:50%!important;
+  width:26px!important;height:26px!important;
   padding:0!important;min-width:unset!important;
   line-height:1!important;
   display:flex!important;align-items:center!important;justify-content:center!important;
-  margin-top:4px;transition:color .15s,border-color .15s;
+  margin-top:2px;transition:all .15s ease;
+  box-shadow:0 1px 2px rgba(28,43,74,.05);
 }}
 [data-testid="stColumn"]:last-child button[kind="secondary"]:hover{{
-  color:{NAVY}!important;border-bottom-color:{NAVY}!important;
+  color:white!important;background:{NAVY}!important;border-color:{NAVY}!important;
+  box-shadow:0 3px 8px rgba(28,43,74,.22);transform:scale(1.06);
 }}
 
 /* ── LOGIN ── */
@@ -1476,6 +1480,16 @@ def paired_section_open(key, title_left, title_right, default_open=True, accent_
             st.rerun()
     return st.session_state[sk]
 
+def sc_class(key, default_open=True):
+    """
+    Classe do card '.sc' ANTES dele ser renderizado por section_open /
+    paired_section_open — dá um respiro visual mais enxuto ('sc-min') pro
+    card quando a seção já está fechada, em vez do card grande e quase vazio.
+    """
+    sk = f"sec_{key}"
+    is_open = st.session_state.get(sk, default_open)
+    return "sc" if is_open else "sc sc-min"
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # INTERFACE PRINCIPAL
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1694,8 +1708,8 @@ st.markdown(f"""<div style="text-align:center;font-size:11px;color:{SILVER};marg
   formalizados com Custos ou não.
 </div>""", unsafe_allow_html=True)
 
-st.markdown('<div class="sc">', unsafe_allow_html=True)
-is_notas = section_open("notas_grupo", "Notas — Projeção, Total de Projetos e Metodologia")
+st.markdown(f'<div class="{sc_class("notas_grupo", False)}">', unsafe_allow_html=True)
+is_notas = section_open("notas_grupo", "Notas — Projeção, Total de Projetos e Metodologia", default_open=False)
 if is_notas:
     st.markdown(f"""<div class="nota" style="border-left-color:{TEAL};">
       📈 <b>Como calculamos a Projeção 2026:</b>&nbsp;
@@ -1732,8 +1746,8 @@ if is_notas:
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── EVOLUÇÃO ───────────────────────────────────────────────────────────────────
-st.markdown('<div class="sc">', unsafe_allow_html=True)
-is_ev = section_open("evolucao", "Evolução Mensal — Acumulado Previsto vs Real vs Meta")
+st.markdown(f'<div class="{sc_class("evolucao", False)}">', unsafe_allow_html=True)
+is_ev = section_open("evolucao", "Evolução Mensal — Acumulado Previsto vs Real vs Meta", default_open=False)
 if is_ev:
     series_all = ["Acumulado Previsto","Previsto por Custos (2026)","Acumulado Real",
                   "Projeção da Meta","Previsto Mensal","Real Mensal"]
@@ -1752,16 +1766,17 @@ st.markdown('</div>', unsafe_allow_html=True)
 # ── FUNIL + GAUGE — botão único para o par ─────────────────────────────────────
 is_fg = paired_section_open("funil_gauge",
                              "Funil de Conversão — Portfólio → DRE",
-                             "Atingimento da Meta")
+                             "Atingimento da Meta", default_open=False)
+_fg_cls = sc_class("funil_gauge", False)
 cfu, cga = st.columns([3, 2])
 with cfu:
-    st.markdown('<div class="sc" style="min-height:60px;">', unsafe_allow_html=True)
+    st.markdown(f'<div class="{_fg_cls}" style="min-height:60px;">', unsafe_allow_html=True)
     if is_fg:
         st.markdown(f'<p style="font-size:11px;color:{SILVER};margin-bottom:8px;">Quanto do portfólio mapeado converte em resultado no DRE?</p>', unsafe_allow_html=True)
         st.plotly_chart(chart_funnel(kpis_view), use_container_width=True, config={"displayModeBar":False})
     st.markdown('</div>', unsafe_allow_html=True)
 with cga:
-    st.markdown('<div class="sc" style="min-height:60px;">', unsafe_allow_html=True)
+    st.markdown(f'<div class="{_fg_cls}" style="min-height:60px;">', unsafe_allow_html=True)
     if is_fg:
         st.plotly_chart(chart_gauge(pct_ating), use_container_width=True, config={"displayModeBar":False})
         gap_val = meta - real
@@ -1780,16 +1795,17 @@ with cga:
 # ── DONUTS — botão único para o par ────────────────────────────────────────────
 is_dn = paired_section_open("donuts",
                              "Representatividade — Plantas",
-                             "Representatividade — Áreas Funcionais")
+                             "Representatividade — Áreas Funcionais", default_open=False)
+_dn_cls = sc_class("donuts", False)
 cd1, cd2 = st.columns(2)
 with cd1:
-    st.markdown('<div class="sc" style="min-height:60px;">', unsafe_allow_html=True)
+    st.markdown(f'<div class="{_dn_cls}" style="min-height:60px;">', unsafe_allow_html=True)
     if is_dn:
         st.plotly_chart(chart_donut([p["nome"] for p in plantas],[p["meta"] for p in plantas],PAL),
                         use_container_width=True, config={"displayModeBar":False})
     st.markdown('</div>', unsafe_allow_html=True)
 with cd2:
-    st.markdown('<div class="sc" style="min-height:60px;">', unsafe_allow_html=True)
+    st.markdown(f'<div class="{_dn_cls}" style="min-height:60px;">', unsafe_allow_html=True)
     if is_dn:
         st.plotly_chart(chart_donut([a["nome"] for a in areas],[a["meta"] for a in areas],
                                     [NAVY,GREEN,"#20C997"]),
@@ -1797,8 +1813,8 @@ with cd2:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ── PILARES ────────────────────────────────────────────────────────────────────
-st.markdown('<div class="sc">', unsafe_allow_html=True)
-is_pil = section_open("pilares", "Distribuição por Tipo de Iniciativa — Grupo")
+st.markdown(f'<div class="{sc_class("pilares", False)}">', unsafe_allow_html=True)
+is_pil = section_open("pilares", "Distribuição por Tipo de Iniciativa — Grupo", default_open=False)
 
 # Gráfico gerencial com toggles
 def chart_pilares_gerencial(pilares_global, real_total, show_prev, show_val, show_real):
@@ -1915,8 +1931,8 @@ st.markdown('</div>', unsafe_allow_html=True)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # ─────────────────────────────────────────────────────────────────────────────
-st.markdown('<div class="sc">', unsafe_allow_html=True)
-is_plantas = section_open("plantas", "Plantas Industriais — Performance Consolidada")
+st.markdown(f'<div class="{sc_class("plantas", False)}">', unsafe_allow_html=True)
+is_plantas = section_open("plantas", "Plantas Industriais — Performance Consolidada", default_open=False)
 if is_plantas:
     st.markdown(render_macro_table(plantas_view), unsafe_allow_html=True)
 
@@ -1943,8 +1959,8 @@ st.markdown('</div>', unsafe_allow_html=True)
 # ═══════════════════════════════════════════════════════════════════════════════
 # ÁREAS FUNCIONAIS
 # ═══════════════════════════════════════════════════════════════════════════════
-st.markdown('<div class="sc">', unsafe_allow_html=True)
-is_areas = section_open("areas", "Áreas Funcionais — Performance Consolidada")
+st.markdown(f'<div class="{sc_class("areas", False)}">', unsafe_allow_html=True)
+is_areas = section_open("areas", "Áreas Funcionais — Performance Consolidada", default_open=False)
 area_fn = {"Compras": get_proj_compras, "Vendas": get_proj_vendas}
 if is_areas:
     st.markdown(render_macro_table(areas_view), unsafe_allow_html=True)
@@ -1970,7 +1986,7 @@ for a in areas_view:
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── CLASSIFICAÇÃO DE GANHOS ────────────────────────────────────────────────────
-st.markdown('<div class="sc">', unsafe_allow_html=True)
+st.markdown(f'<div class="{sc_class("classificacao", False)}">', unsafe_allow_html=True)
 is_class = section_open("classificacao","Classificação de Ganhos — Impacto no DRE",default_open=False)
 if is_class:
     cc1,cc2,cc3,cc4,cc5 = st.columns(5)
@@ -1991,7 +2007,7 @@ if is_class:
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── RANKING ────────────────────────────────────────────────────────────────────
-st.markdown('<div class="sc">', unsafe_allow_html=True)
+st.markdown(f'<div class="{sc_class("ranking", False)}">', unsafe_allow_html=True)
 is_rank = section_open("ranking","Ranking de Projetos — Todos os Pilares",default_open=False)
 if is_rank:
     rk1,rk2,rk3 = st.columns([2,2,1])
@@ -2025,7 +2041,7 @@ if is_rank:
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── GAP ────────────────────────────────────────────────────────────────────────
-st.markdown('<div class="sc">', unsafe_allow_html=True)
+st.markdown(f'<div class="{sc_class("gap", False)}">', unsafe_allow_html=True)
 is_gap = section_open("gap","GAP — Projetos Aguardando Validação de Custos",
                       default_open=False, accent_color=AMBER)
 if is_gap:
@@ -2054,7 +2070,7 @@ if is_gap:
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── VALIDAÇÃO DE CUSTOS POR UNIDADE/DEPARTAMENTO ───────────────────────────────
-st.markdown('<div class="sc">', unsafe_allow_html=True)
+st.markdown(f'<div class="{sc_class("valcust", False)}">', unsafe_allow_html=True)
 is_valcust = section_open("valcust", "Validação de Custos por Unidade/Departamento",
                           default_open=False, accent_color=AMBER)
 if is_valcust:
