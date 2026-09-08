@@ -1716,10 +1716,10 @@ total_projetado_anual          = ret_val_ano + projecao_adicional_anual
 pct_projetado_anual_meta       = total_projetado_anual/meta*100 if meta>0 else 0
 
 st.markdown(f"""<div class="kpi-wrap" style="grid-template-columns:repeat(2,1fr);margin-top:-6px;">
-  {kpi("ct","Projeção 2026 (Validado por Custos)",fmt_mi(total_projetado_validado),
+  {kpi("ct","Valor potencial 2026",fmt_mi(total_projetado_validado),
        f"{pct_projetado_meta:.1f}% da Meta Anual do Grupo",
        f"{fmt_mi(validado)} já validado + {fmt_mi(projecao_adicional)} projetado sobre o que falta julgar")}
-  {kpi("cg","Projeção Anualizado (Validado por Custos)",fmt_mi(total_projetado_anual),
+  {kpi("cg","Valor potencial ANUALIZADO",fmt_mi(total_projetado_anual),
        f"{pct_projetado_anual_meta:.1f}% da Meta Anual do Grupo",
        f"{fmt_mi(ret_val_ano)} já validado (anual) + {fmt_mi(projecao_adicional_anual)} projetado sobre o que falta julgar")}
 </div>""", unsafe_allow_html=True)
