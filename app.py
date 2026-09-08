@@ -1689,38 +1689,47 @@ st.markdown(f"""<div class="kpi-wrap" style="grid-template-columns:repeat(2,1fr)
        f"{fmt_mi(ret_val_ano)} já validado (anual) + {fmt_mi(projecao_adicional_anual)} projetado sobre o que falta julgar")}
 </div>""", unsafe_allow_html=True)
 
-st.markdown(f"""<div class="nota" style="border-left-color:{TEAL};">
-  📈 <b>Como calculamos a Projeção 2026:</b>&nbsp;
-  Custos já validou <b>{fmt_mi(validado)}</b> ({pct_validado_meta:.1f}% da Meta), sobre um Previsto 2026 de
-  <b>{fmt_mi(prev2026_validados)}</b> nesses mesmos projetos — uma taxa de conversão de <b>{taxa_conversao*100:.1f}%</b>.
-  Do Previsto 2026 dos projetos DRE (<b>{fmt_mi(prev2026_dre_total)}</b> — dos {fmt_mi(prev2026)} do card lá em
-  cima, {fmt_mi(prev2026_nao_dre)} são de tipos fora do DRE, que nunca entram nessa conta):
-  <b style="color:{RED};">{fmt_mi(valor_reprovado)}</b> ({n_reprovados} projetos) já foram julgados e reprovados,
-  saindo da conta. O que falta: <b style="color:{NAVY};">{fmt_mi(valor_sem_posicao)}</b> ({n_sem_posicao} projetos)
-  ainda sem posição de Custos. Aplicando a mesma taxa de conversão observada, a expectativa é de mais
-  <b>{fmt_mi(projecao_adicional)}</b> validados até dezembro — total projetado: <b>{fmt_mi(total_projetado_validado)}
-  ({pct_projetado_meta:.1f}% da Meta)</b>. A Projeção Anualizado segue a mesma lógica, na base Retorno Previsto
-  (Anual) / Retorno Validado (Anual).
+st.markdown(f"""<div style="text-align:center;font-size:11px;color:{SILVER};margin:-2px 0 16px;">
+  <b style="color:{NAVY};">{n_sem_posicao}</b> projetos ainda faltam validar — independente de já estarem
+  formalizados com Custos ou não.
 </div>""", unsafe_allow_html=True)
 
-_aguard_gap_nota = f' <span style="color:{RED};">({n_aguard_vazio_nota} projeto(s) sem essa célula preenchida)</span>' if n_aguard_vazio_nota else ""
-st.markdown(f"""<div class="nota" style="display:flex;flex-direction:column;gap:4px;">
-  <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap;">
-    <span><b>Total de Projetos:</b> {n_total_proj_nota}</span>
-    <span><b style="color:{GREEN};">Custos OK:</b> {n_validado_nota}</span>
-    <span><b style="color:{RED};">Custos Não OK:</b> {n_nao_validado_nota}</span>
-    <span><b style="color:{AMBER};">Aguardando Custos:</b> {n_aguard_sim_nota}</span>
-    <span><b style="color:{NAVY};">Não Formalizados com Custos:</b> {n_nao_formalizado_nota}</span>
-    <span style="color:{SILVER};font-size:10px;">(coluna "Aguardando Custos ?" — Sim: {n_aguard_sim_nota} · Não: {n_aguard_nao_nota}{_aguard_gap_nota})</span>
-  </div>
-  <div style="color:{SILVER};font-size:10px;">Considerando apenas projetos que entram no DRE, nas 5 Unidades (Diadema, Ferraz, São Leopoldo, Jarinu, Anchieta) + Compras — não inclui Vendas nem Corporativo.</div>
-</div>""", unsafe_allow_html=True)
+st.markdown('<div class="sc">', unsafe_allow_html=True)
+is_notas = section_open("notas_grupo", "Notas — Projeção, Total de Projetos e Metodologia")
+if is_notas:
+    st.markdown(f"""<div class="nota" style="border-left-color:{TEAL};">
+      📈 <b>Como calculamos a Projeção 2026:</b>&nbsp;
+      Custos já validou <b>{fmt_mi(validado)}</b> ({pct_validado_meta:.1f}% da Meta), sobre um Previsto 2026 de
+      <b>{fmt_mi(prev2026_validados)}</b> nesses mesmos projetos — uma taxa de conversão de <b>{taxa_conversao*100:.1f}%</b>.
+      Do Previsto 2026 dos projetos DRE (<b>{fmt_mi(prev2026_dre_total)}</b> — dos {fmt_mi(prev2026)} do card lá em
+      cima, {fmt_mi(prev2026_nao_dre)} são de tipos fora do DRE, que nunca entram nessa conta):
+      <b style="color:{RED};">{fmt_mi(valor_reprovado)}</b> ({n_reprovados} projetos) já foram julgados e reprovados,
+      saindo da conta. O que falta: <b style="color:{NAVY};">{fmt_mi(valor_sem_posicao)}</b> ({n_sem_posicao} projetos)
+      ainda sem posição de Custos. Aplicando a mesma taxa de conversão observada, a expectativa é de mais
+      <b>{fmt_mi(projecao_adicional)}</b> validados até dezembro — total projetado: <b>{fmt_mi(total_projetado_validado)}
+      ({pct_projetado_meta:.1f}% da Meta)</b>. A Projeção Anualizado segue a mesma lógica, na base Retorno Previsto
+      (Anual) / Retorno Validado (Anual).
+    </div>""", unsafe_allow_html=True)
 
-st.markdown(f"""<div class="nota">
-  <b>Metodologia:</b>&nbsp;
-  <b style="color:{GREEN};">✓ DRE</b>: BSW · Kaizen · Kaizen GR · Redução de Custo · Você Resolve — impacto direto e mensurável no DRE.&nbsp;
-  <b style="color:{SILVER};">↷ Não DRE</b>: Kaizen Custo Evitado · Kaizen Capital de Giro · Meta Executiva — geram valor operacional mas não reduzem GGF no DRE.
-</div>""", unsafe_allow_html=True)
+    _aguard_gap_nota = f' <span style="color:{RED};">({n_aguard_vazio_nota} projeto(s) sem essa célula preenchida)</span>' if n_aguard_vazio_nota else ""
+    st.markdown(f"""<div class="nota" style="display:flex;flex-direction:column;gap:4px;">
+      <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap;">
+        <span><b>Total de Projetos:</b> {n_total_proj_nota}</span>
+        <span><b style="color:{GREEN};">Custos OK:</b> {n_validado_nota}</span>
+        <span><b style="color:{RED};">Custos Não OK:</b> {n_nao_validado_nota}</span>
+        <span><b style="color:{AMBER};">Aguardando Custos:</b> {n_aguard_sim_nota}</span>
+        <span><b style="color:{NAVY};">Não Formalizados com Custos:</b> {n_nao_formalizado_nota}</span>
+        <span style="color:{SILVER};font-size:10px;">(coluna "Aguardando Custos ?" — Sim: {n_aguard_sim_nota} · Não: {n_aguard_nao_nota}{_aguard_gap_nota})</span>
+      </div>
+      <div style="color:{SILVER};font-size:10px;">Considerando apenas projetos que entram no DRE, nas 5 Unidades (Diadema, Ferraz, São Leopoldo, Jarinu, Anchieta) + Compras — não inclui Vendas nem Corporativo.</div>
+    </div>""", unsafe_allow_html=True)
+
+    st.markdown(f"""<div class="nota">
+      <b>Metodologia:</b>&nbsp;
+      <b style="color:{GREEN};">✓ DRE</b>: BSW · Kaizen · Kaizen GR · Redução de Custo · Você Resolve — impacto direto e mensurável no DRE.&nbsp;
+      <b style="color:{SILVER};">↷ Não DRE</b>: Kaizen Custo Evitado · Kaizen Capital de Giro · Meta Executiva — geram valor operacional mas não reduzem GGF no DRE.
+    </div>""", unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ── EVOLUÇÃO ───────────────────────────────────────────────────────────────────
 st.markdown('<div class="sc">', unsafe_allow_html=True)
