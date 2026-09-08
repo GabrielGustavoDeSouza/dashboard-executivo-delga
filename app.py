@@ -1376,7 +1376,8 @@ def pilar_resumo_html(projetos):
 
 # Cabeçalho macro-tabela
 # Larguras fixas por coluna — garante alinhamento header/rows/total
-MC_WIDTHS = ["16%","8%","8%","9%","9%","9%","8%","7%","6%"]
+MC_WIDTHS = ["15%","7%","8%","8%","8%","8%","8%","7%","6%","6%"]
+POTENCIAL_COLOR = "#2C5F8A"
 
 def render_macro_table(items, show_expander_fn=None):
     """
@@ -1390,6 +1391,7 @@ def render_macro_table(items, show_expander_fn=None):
         f'<span style="color:{AMBER}">Previsto 2026</span>',
         f'<span style="color:{TEAL}">Retorno Validado 2026</span>',
         f'<span style="color:{GREEN}">Retorno Real 2026</span>',
+        f'<span style="color:{POTENCIAL_COLOR}">Valor Potencial</span>',
         f'<span style="color:#9B59B6">Extra DRE</span>',
         "% Meta","Status"
     ]
@@ -1410,16 +1412,18 @@ def render_macro_table(items, show_expander_fn=None):
           <td style="padding:10px 12px;color:{AMBER};">{fmt_brl(it.get('prev2026',0))}</td>
           <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(it['val'])}</td>
           <td style="padding:10px 12px;color:{GREEN};font-weight:600;">{fmt_brl(it['real'])}</td>
+          <td style="padding:10px 12px;color:{POTENCIAL_COLOR};font-weight:600;">{fmt_brl(it.get('potencial',0))}</td>
           <td style="padding:10px 12px;color:#9B59B6;">{fmt_brl(it.get('extra',0))}</td>
           <td style="padding:10px 12px;">{pbar_html(it['pct'])}</td>
           <td style="padding:10px 12px;">{bdg_status(it['pct'])}</td>
         </tr>"""
 
     # Total
-    tm=tp=tp26=tv=tr=te=0
+    tm=tp=tp26=tv=tr=tpot=te=0
     for it in items:
         tm+=it["meta"];tp+=it.get("prev",0);tp26+=it.get("prev2026",0)
         tv+=it["val"];tr+=it["real"];te+=it.get("extra",0)
+        tpot+=it.get("potencial",0)
     pt = tr/tm if tm>0 else 0
     html += f"""<tr style="background:{LIGHT};border-top:2px solid {NAVY};font-weight:700;">
       <td style="padding:10px 12px;">TOTAL</td>
@@ -1428,6 +1432,7 @@ def render_macro_table(items, show_expander_fn=None):
       <td style="padding:10px 12px;color:{AMBER};">{fmt_brl(tp26)}</td>
       <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(tv)}</td>
       <td style="padding:10px 12px;color:{GREEN};">{fmt_brl(tr)}</td>
+      <td style="padding:10px 12px;color:{POTENCIAL_COLOR};">{fmt_brl(tpot)}</td>
       <td style="padding:10px 12px;color:#9B59B6;">{fmt_brl(te)}</td>
       <td style="padding:10px 12px;">{pbar_html(pt)}</td>
       <td style="padding:10px 12px;"></td>
@@ -1617,6 +1622,22 @@ else:
     ev_view      = ev
     plantas_view = plantas
     areas_view   = areas
+
+# ── VALOR POTENCIAL — Saving Validado dos projetos que já têm ganho Real ──────
+# Não existe célula nativa pra isso na planilha — sempre calculado bottom-up,
+# nas mesmas unidades/áreas da tabela macro. Mesma base da coluna "Retorno
+# Validado 2026" já existente nessa tabela (todos os tipos, não só DRE).
+def _compute_valor_potencial(projetos, lista_unidades):
+    res = {}
+    for it in lista_unidades:
+        proj_unidade = [p for p in projetos if p.get('unidade') == it['nome']]
+        res[it['nome']] = sum(p['val_saving'] for p in proj_unidade if p.get('real_ano', 0) > 0)
+    return res
+
+_pot_plantas = _compute_valor_potencial(projetos_status_view, plantas_view)
+_pot_areas   = _compute_valor_potencial(projetos_status_view, areas_view)
+for it in plantas_view: it['potencial'] = _pot_plantas.get(it['nome'], 0.0)
+for it in areas_view:   it['potencial'] = _pot_areas.get(it['nome'], 0.0)
 
 meta=kpis_view["meta"]; portfolio=kpis_view["portfolio"]; ret_val_ano=kpis_view["ret_val_ano"]
 prev2026=kpis_view["prev2026"]
