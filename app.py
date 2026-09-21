@@ -1484,6 +1484,32 @@ def render_resumo_unidades(items):
           <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(val26)}</td>
           <td style="padding:10px 12px;text-align:center;{cell_26}">{pct_26:.1f}%</td>
         </tr>"""
+
+    # TOTAL — soma bruta de cada coluna; os % são recalculados sobre as somas
+    # (Total Validado / Total Meta), não a média dos % de cada linha, pra
+    # garantir que "% Ating." do TOTAL sempre bate com Validado/Meta batidos
+    # ali do lado.
+    tot_meta  = sum(it.get('meta', 0.0)               for it in items)
+    tot_preva = sum(it.get('prev', 0.0)                for it in items)
+    tot_vala  = sum(it.get('validado_anual', 0.0)      for it in items)
+    tot_p26   = sum(it.get('prev2026', 0.0)            for it in items)
+    tot_v26   = sum(it.get('val', 0.0)                 for it in items)
+    tot_pct_a  = tot_vala/tot_meta*100 if tot_meta>0 else 0.0
+    tot_pct_26 = tot_v26/tot_meta*100  if tot_meta>0 else 0.0
+    tot_ok_a  = tot_pct_a  >= 80
+    tot_ok_26 = tot_pct_26 >= 80
+    tot_cell_a  = f'background:{RU_GREEN_BG};color:{GREEN};font-weight:700;' if tot_ok_a  else f'color:{NAVY};font-weight:700;'
+    tot_cell_26 = f'background:{RU_GREEN_BG};color:{GREEN};font-weight:700;' if tot_ok_26 else f'color:{NAVY};font-weight:700;'
+    html += f"""<tr style="background:{LIGHT};border-top:2px solid {NAVY};font-weight:700;">
+      <td style="padding:10px 12px;">TOTAL</td>
+      <td style="padding:10px 12px;">{fmt_brl(tot_meta)}</td>
+      <td style="padding:10px 12px;color:#F39C12;">{fmt_brl(tot_preva)}</td>
+      <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(tot_vala)}</td>
+      <td style="padding:10px 12px;text-align:center;{tot_cell_a}">{tot_pct_a:.1f}%</td>
+      <td style="padding:10px 12px;color:{AMBER};">{fmt_brl(tot_p26)}</td>
+      <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(tot_v26)}</td>
+      <td style="padding:10px 12px;text-align:center;{tot_cell_26}">{tot_pct_26:.1f}%</td>
+    </tr>"""
     html += "</tbody></table>"
     return html
 
@@ -1835,11 +1861,21 @@ st.markdown(f'<div class="{sc_class("resumo_unidades", False)}">', unsafe_allow_
 is_resumo = section_open("resumo_unidades", "Resumo por Unidade/Departamento — Anualizado vs 2026", default_open=False)
 if is_resumo:
     st.markdown(render_resumo_unidades(plantas_view + areas_view), unsafe_allow_html=True)
+    _tot_vala_check = sum(it.get('validado_anual', 0.0) for it in plantas_view + areas_view)
+    _gap_va = _tot_vala_check - ret_val_ano
+    _gap_nota = ""
+    if abs(_gap_va) > 1000:
+        _gap_nota = (f' O TOTAL de <b>Validado Anualizado</b> ({fmt_mi(_tot_vala_check)}) é a soma pura das '
+                     f'linhas acima e por isso difere em {fmt_mi(abs(_gap_va))} do card '
+                     f'"Retorno Validado (Anual)" lá em cima ({fmt_mi(ret_val_ano)}), que vem de uma célula '
+                     f'nativa da planilha com metodologia própria — as outras 3 colunas de TOTAL (Meta, '
+                     f'Previsto 2026, Validado 2026) batem exatamente com os cards e KPIs correspondentes.')
     st.markdown(f'<div style="font-size:10px;color:{SILVER};margin-top:6px;">'
-                f'% de Atingimento = Validado / Meta em cada base · verde a partir de 80%. '
+                f'% de Atingimento (linha a linha e no TOTAL) = Validado / Meta em cada base — nunca a '
+                f'média dos %, sempre soma/soma — garantindo que os números batam · verde a partir de 80%. '
                 f'"Validado Anualizado" não tem célula nativa na planilha — é sempre calculado '
                 f'projeto a projeto ((Saving Validado / Qtd.Meses) × 12), mesmo recorte '
-                f'(todos os tipos) da coluna "Validado 2026".</div>', unsafe_allow_html=True)
+                f'(todos os tipos) da coluna "Validado 2026".{_gap_nota}</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── EVOLUÇÃO ───────────────────────────────────────────────────────────────────
