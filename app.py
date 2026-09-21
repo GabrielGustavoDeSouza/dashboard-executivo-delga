@@ -345,6 +345,79 @@ def extract_areas(d):
             extra   =safe(df.iloc[28,col])))  # row28 = Extra DRE (nova linha v27)
     return res
 
+# ── PAINEL "DASHBOARD EXECUTIVO" — cada aba de unidade/área tem seu próprio
+# mini-painel de KPIs no topo (linha com rótulo "META DA UNIDADE"/"META DA
+# ÁREA" + linha de valores logo abaixo). Achado ao investigar por que uma
+# atualização feita direto no Corporativo não refletia na tabela: essa aba
+# tem seu PRÓPRIO "PREVISTO 2026" nativo (que a aba "5 Unidades +" não tem
+# corretamente — lá a linha equivalente é "PREVISTO (Concluído)", outra
+# métrica). Testado e confirmado: a soma desse painel das 8 abas bate
+# EXATAMENTE, célula por célula, com os 7 KPI cards do topo (linha 6 da aba
+# "5 Unidades +") — é a fonte mais confiável pra tabela por unidade, mais
+# até que a aba "5 Unidades +" (que tem um pequeno desvio próprio interno
+# da planilha). Único item que essa aba NÃO tem: nada — ela cobre Meta,
+# Previsto Anual, Validado Anual, Previsto 2026, Validado 2026, Real e
+# Extra DRE, todos nativos.
+def extract_unit_kpi_panel(df, max_scan=10):
+    """Localiza e lê o mini-painel 'DASHBOARD EXECUTIVO' no topo da aba de
+    uma unidade/área. Retorna a sequência ordenada (rótulo, valor, coluna)
+    da linha de dados, pra quem chama decidir os rótulos ambíguos (duas
+    colunas podem ter o mesmo texto 'RETORNO VALIDADO' — uma é a anual,
+    outra a de 2026 — a ordem/posição é o que distingue, não o texto)."""
+    if df is None: return []
+    for i in range(max_scan):
+        row = df.iloc[i, 0:24].tolist() if df.shape[1] > 0 else []
+        if any(isinstance(v, str) and v.strip().upper().startswith("META DA") for v in row):
+            headers = df.iloc[i, 0:24].tolist()
+            vals    = df.iloc[i+1, 0:24].tolist() if i+1 < df.shape[0] else []
+            seq = []
+            for c, h in enumerate(headers):
+                if isinstance(h, str) and h.strip() and c < len(vals):
+                    seq.append((h.strip(), vals[c], c))
+            return seq
+    return []
+
+def parse_unit_kpi_panel(seq):
+    meta = prev = prev2026 = val2026 = valanual = real = extra = 0.0
+    prev2026_col = None
+    for h, v, c in seq:
+        hu = h.upper()
+        if "META EXECUTIV" in hu:
+            continue  # sub-bloco à parte (ex.: Vendas "Meta Executiva") — ignora
+        if hu.startswith("META DA"):
+            meta = safe(v)
+        elif "PREVISTO" in hu and "2026" in hu:
+            prev2026 = safe(v); prev2026_col = c
+        elif "RETORNO PREVISTO" in hu:
+            prev = safe(v)
+        elif "EXTRA DRE" in hu:
+            extra = safe(v)
+        elif "RETORNO REAL" in hu:
+            real = safe(v)
+        elif "RETORNO VALIDADO" in hu:
+            # duas colunas podem usar o mesmo texto de rótulo — a que vem
+            # DEPOIS de "PREVISTO 2026" na ordem da linha é a de 2026; a que
+            # vem antes (ou não há "PREVISTO 2026" na frente) é a anual.
+            if prev2026_col is not None and c > prev2026_col:
+                val2026 = safe(v)
+            else:
+                valanual = safe(v)
+    return dict(meta=meta, prev=prev, prev2026=prev2026, val=val2026,
+                validado_anual=valanual, real=real, extra=extra)
+
+UNIT_SHEET_KEY = {  # nome (como usado em plantas/areas) -> chave da aba em d[]
+    "Diadema": "Diadema", "Ferraz": "Ferraz", "São Leopoldo": "São Leopoldo",
+    "Jarinu": "Jarinu", "Anchieta": "Anchieta",
+    "Corporativo": "Corporativo", "Compras": "Compras ", "Vendas": "Vendas",
+}
+def extract_unit_panels(d):
+    """{nome: painel} pras 8 unidades/áreas, lido direto da aba de cada uma."""
+    res = {}
+    for nome, sheet_key in UNIT_SHEET_KEY.items():
+        seq = extract_unit_kpi_panel(d.get(sheet_key))
+        res[nome] = parse_unit_kpi_panel(seq)
+    return res
+
 def extract_pilares_global(d):
     """Pilares do painel 5 Unidades (rows 12-16)."""
     df = d["u5"]
@@ -1611,6 +1684,7 @@ areas   = extract_areas(D)
 p_glob  = extract_pilares_global(D)
 ev      = extract_evolucao(D)   # já inclui acum_prev_custos / prev_custos (linhas nativas da planilha)
 ranking = extract_ranking(D)
+unit_panels = extract_unit_panels(D)  # mini-painel "DASHBOARD EXECUTIVO" de cada aba — fonte nativa por unidade
 
 # ── TOGGLE GERAL / BSW ─────────────────────────────────────────────────────────
 st.markdown(f"""<style>
@@ -1691,33 +1765,37 @@ if is_bsw:
 else:
     # A PLANILHA É A FONTE — os 7 KPI cards (big numbers) do modo Geral usam
     # SEMPRE a célula nativa da aba "5 Unidades +" (linha 6), sem nenhum
-    # recálculo por fora. O mesmo vale pra tabela por unidade: Retorno
-    # Previsto, Retorno Validado, Retorno Real e Extra DRE usam as células
-    # nativas por unidade (linhas 23/25/26/28) — são os valores que a própria
-    # planilha calcula, ponto.
-    # ÚNICA exceção, e só porque não existe outro jeito: "Previsto 2026" por
-    # unidade. Não existe célula nativa pra isso na aba "5 Unidades +" — a
-    # linha 24, que era usada aqui antes, é rotulada "PREVISTO (Concluído)"
-    # na própria planilha, uma métrica diferente (não é "Previsto 2026").
-    # Como não dá pra ler algo que não existe, esse ÚNICO campo é calculado
-    # projeto a projeto (Previsto/12 × Qtd.Meses, por projeto, ainda dados
-    # da própria planilha, só que agregados aqui em vez de numa célula
-    # pronta) — e isso fica bem explicado na legenda da tabela, exatamente
-    # como "Valor Potencial" e "Validado Anualizado" já são.
+    # recálculo por fora.
+    # O mesmo vale pra tabela por unidade: Meta, Retorno Previsto (Anual),
+    # Retorno Validado (Anual), Previsto 2026, Validado 2026, Retorno Real e
+    # Extra DRE agora usam o mini-painel "DASHBOARD EXECUTIVO" nativo de CADA
+    # aba de unidade/área (não mais as linhas 22-28 da aba "5 Unidades +",
+    # que têm um pequeno desvio próprio interno da planilha, e nem cálculo
+    # bottom-up por projeto). Esse painel foi achado investigando por que uma
+    # atualização feita direto no Corporativo não aparecia na tabela: cada
+    # aba tem seu PRÓPRIO "PREVISTO 2026" nativo (a "5 Unidades +" não tem —
+    # a linha equivalente lá é rotulada "PREVISTO (Concluído)", outra
+    # métrica). Confirmado: a soma desse painel das 8 abas bate EXATAMENTE
+    # com os 7 KPI cards do topo — por isso a tabela agora fecha 100% com os
+    # big numbers, sem nenhuma discrepância residual pra disclosurear.
     kpis_view    = dict(meta=kpis["meta"], portfolio=kpis["portfolio"], ret_val_ano=kpis.get("ret_val_ano",0.0),
                          prev2026=kpis["prev2026"], validado=kpis["validado"], real=kpis["real"],
                          extra_dre=kpis.get("extra_dre",0.0), pct_ating=kpis["pct_ating"], inic=kpis.get("inic",0))
     ev_view      = ev
     plantas_view = plantas
     areas_view   = areas
-    _p2026_plantas = {it['nome']: it for it in compute_macro_bottom_up(todos_projetos, plantas)}
-    _p2026_areas   = {it['nome']: it for it in compute_macro_bottom_up(todos_projetos, areas)}
     for it in plantas_view:
-        bu = _p2026_plantas.get(it['nome'])
-        if bu: it['prev2026'] = bu['prev2026']
+        pnl = unit_panels.get(it['nome'])
+        if pnl:
+            it['meta']=pnl['meta']; it['prev']=pnl['prev']; it['prev2026']=pnl['prev2026']
+            it['val']=pnl['val']; it['validado_anual']=pnl['validado_anual']
+            it['real']=pnl['real']; it['extra']=pnl['extra']
     for it in areas_view:
-        bu = _p2026_areas.get(it['nome'])
-        if bu: it['prev2026'] = bu['prev2026']
+        pnl = unit_panels.get(it['nome'])
+        if pnl:
+            it['meta']=pnl['meta']; it['prev']=pnl['prev']; it['prev2026']=pnl['prev2026']
+            it['val']=pnl['val']; it['validado_anual']=pnl['validado_anual']
+            it['real']=pnl['real']; it['extra']=pnl['extra']
 
 # ── VALOR POTENCIAL — Saving Validado dos projetos que já têm ganho Real ──────
 # Não existe célula nativa pra isso na planilha — sempre calculado bottom-up,
@@ -1735,11 +1813,13 @@ _pot_areas   = _compute_valor_potencial(projetos_status_view, areas_view)
 for it in plantas_view: it['potencial'] = _pot_plantas.get(it['nome'], 0.0)
 for it in areas_view:   it['potencial'] = _pot_areas.get(it['nome'], 0.0)
 
-# ── VALIDADO ANUALIZADO por unidade — não existe célula nativa por unidade pra
-# isso na planilha (só existe o big number do grupo, "Retorno Validado (Anual)"),
-# então é sempre bottom-up: soma de validado_anual = (Saving Validado/Qtd.Meses)*12
-# por projeto. Mesmo recorte (todos os tipos, não só DRE) que "Retorno Validado
-# 2026" já usa nessas mesmas tabelas.
+# ── VALIDADO ANUALIZADO por unidade ───────────────────────────────────────────
+# No modo Geral esse campo já vem pronto e nativo do mini-painel "DASHBOARD
+# EXECUTIVO" de cada aba (ver acima) — não recalcula aqui. Só no modo BSW,
+# onde não existe painel nativo filtrado por pilar, continua bottom-up: soma
+# de validado_anual = (Saving Validado/Qtd.Meses)*12 por projeto BSW. Mesmo
+# recorte (todos os tipos, não só DRE) que "Retorno Validado 2026" já usa
+# nessas mesmas tabelas.
 def _compute_validado_anual(projetos, lista_unidades):
     res = {}
     for it in lista_unidades:
@@ -1747,10 +1827,11 @@ def _compute_validado_anual(projetos, lista_unidades):
         res[it['nome']] = sum(p.get('validado_anual', 0.0) for p in proj_unidade)
     return res
 
-_va_plantas = _compute_validado_anual(projetos_status_view, plantas_view)
-_va_areas   = _compute_validado_anual(projetos_status_view, areas_view)
-for it in plantas_view: it['validado_anual'] = _va_plantas.get(it['nome'], 0.0)
-for it in areas_view:   it['validado_anual'] = _va_areas.get(it['nome'], 0.0)
+if is_bsw:
+    _va_plantas = _compute_validado_anual(projetos_status_view, plantas_view)
+    _va_areas   = _compute_validado_anual(projetos_status_view, areas_view)
+    for it in plantas_view: it['validado_anual'] = _va_plantas.get(it['nome'], 0.0)
+    for it in areas_view:   it['validado_anual'] = _va_areas.get(it['nome'], 0.0)
 
 meta=kpis_view["meta"]; portfolio=kpis_view["portfolio"]; ret_val_ano=kpis_view["ret_val_ano"]
 prev2026=kpis_view["prev2026"]
@@ -1898,16 +1979,13 @@ if is_resumo:
                              f'(dif. {fmt_mi(abs(dif))})' for nome, tot, card, dif in _gaps)
         _gap_nota = f' Diferenças TOTAL × card nesta planilha: {_itens}.'
     st.markdown(f'<div style="font-size:10px;color:{SILVER};margin-top:6px;">'
-                f'A planilha é a fonte: os 7 cards acima e as colunas Previsto Anualizado / Validado 2026 '
-                f'desta tabela vêm direto das células nativas da aba "5 Unidades +" (linha 6 = cards; '
-                f'linhas 23/25 = por unidade) — nenhum recálculo. Exceção: "Previsto 2026" por unidade não '
-                f'tem célula nativa (a única linha equivalente na planilha, "PREVISTO (Concluído)", é outra '
-                f'métrica) — por isso é calculado projeto a projeto (Previsto/12 × Qtd.Meses), mesma base '
-                f'de "Validado Anualizado", que também nunca teve célula nativa por unidade. % de '
-                f'Atingimento (linha a linha e no TOTAL) = Validado / Meta — nunca média dos %, sempre '
-                f'soma/soma. Verde a partir de 80%. Como o TOTAL é a soma das linhas nativas por unidade e '
-                f'os cards são uma célula agregada à parte na própria planilha, os dois podem divergir '
-                f'ligeiramente — a planilha calcula os dois de formas independentes.{_gap_nota}</div>',
+                f'A planilha é a fonte: os 7 cards acima vêm da célula nativa agregada da aba "5 Unidades +" '
+                f'(linha 6); as colunas desta tabela (Meta, Previsto Anualizado, Validado Anualizado, '
+                f'Previsto 2026, Validado 2026, Real, Extra DRE) vêm do mini-painel "DASHBOARD EXECUTIVO" '
+                f'nativo de cada aba de unidade/área — nenhum recálculo por fora. Esse painel bate '
+                f'exatamente com os cards do topo quando somado nas 8 unidades/áreas. % de Atingimento '
+                f'(linha a linha e no TOTAL) = Validado / Meta — nunca média dos %, sempre soma/soma. '
+                f'Verde a partir de 80%.{_gap_nota}</div>',
                 unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
