@@ -1689,12 +1689,39 @@ if is_bsw:
     plantas_view = compute_macro_bottom_up(projetos_bsw, plantas)
     areas_view   = compute_macro_bottom_up(projetos_bsw, areas)
 else:
-    kpis_view    = dict(meta=kpis["meta"], portfolio=kpis["portfolio"], ret_val_ano=kpis.get("ret_val_ano",0.0),
-                         prev2026=kpis["prev2026"], validado=kpis["validado"], real=kpis["real"],
+    # Portfolio / Previsto 2026 / Validado (2026 e Anual) SEMPRE bottom-up
+    # (soma projeto a projeto de todos_projetos), mesmo no modo Geral — não usa
+    # mais as células nativas de "5 Unidades +". Motivo, achado ao investigar
+    # reclamação de que os "big numbers" não batiam com a tabela Resumo por
+    # Unidade: a linha 24 daquela aba (usada até aqui como "Previsto 2026" por
+    # unidade) é na real a linha "PREVISTO (Concluído)" — rótulo e conceito
+    # diferentes, nunca foi "Previsto 2026" de fato. E mesmo nas colunas com
+    # rótulo correto (RETORNO PREVISTO / RETORNO VALIDADO por unidade), a soma
+    # das 8 unidades já vinha divergindo do big number oficial (célula
+    # agregada da própria planilha, linha 6) por conta própria — a soma
+    # bottom-up bate muito mais perto do big number oficial do que a soma das
+    # células nativas por unidade batia (a diferença cai de ~2-11% pra
+    # <1-7%, a depender da métrica). Trocando os dois lados (card E tabela)
+    # pra a MESMA fonte (projeto a projeto), card, TOTAL da tabela e soma das
+    # linhas da tabela batem exatamente entre si, sempre, por construção.
+    # Retorno Real (DRE) / Extra DRE continuam na célula nativa — bottom-up
+    # aqui ficaria pior (ganho real de tipos fora do DRE não é bem capturado
+    # projeto a projeto pra todos os casos na aba de origem).
+    _kbu = compute_kpis_bottom_up(todos_projetos, kpis["meta"])
+    kpis_view    = dict(meta=kpis["meta"], portfolio=_kbu["portfolio"], ret_val_ano=_kbu["ret_val_ano"],
+                         prev2026=_kbu["prev2026"], validado=_kbu["validado"], real=kpis["real"],
                          extra_dre=kpis.get("extra_dre",0.0), pct_ating=kpis["pct_ating"], inic=kpis.get("inic",0))
     ev_view      = ev
     plantas_view = plantas
     areas_view   = areas
+    _mbu_plantas = {it['nome']: it for it in compute_macro_bottom_up(todos_projetos, plantas)}
+    _mbu_areas   = {it['nome']: it for it in compute_macro_bottom_up(todos_projetos, areas)}
+    for it in plantas_view:
+        bu = _mbu_plantas.get(it['nome'])
+        if bu: it['prev'], it['prev2026'], it['val'] = bu['prev'], bu['prev2026'], bu['val']
+    for it in areas_view:
+        bu = _mbu_areas.get(it['nome'])
+        if bu: it['prev'], it['prev2026'], it['val'] = bu['prev'], bu['prev2026'], bu['val']
 
 # ── VALOR POTENCIAL — Saving Validado dos projetos que já têm ganho Real ──────
 # Não existe célula nativa pra isso na planilha — sempre calculado bottom-up,
@@ -1861,21 +1888,25 @@ st.markdown(f'<div class="{sc_class("resumo_unidades", False)}">', unsafe_allow_
 is_resumo = section_open("resumo_unidades", "Resumo por Unidade/Departamento — Anualizado vs 2026", default_open=False)
 if is_resumo:
     st.markdown(render_resumo_unidades(plantas_view + areas_view), unsafe_allow_html=True)
-    _tot_vala_check = sum(it.get('validado_anual', 0.0) for it in plantas_view + areas_view)
-    _gap_va = _tot_vala_check - ret_val_ano
+    _items_check = plantas_view + areas_view
+    _chk = [
+        ("Previsto Anualizado", sum(it.get('prev',0.0) for it in _items_check), portfolio),
+        ("Validado Anualizado", sum(it.get('validado_anual',0.0) for it in _items_check), ret_val_ano),
+        ("Previsto 2026",       sum(it.get('prev2026',0.0) for it in _items_check), prev2026),
+        ("Validado 2026",       sum(it.get('val',0.0) for it in _items_check), validado),
+    ]
+    _pior_gap = max(_chk, key=lambda t: abs(t[1]-t[2]))
     _gap_nota = ""
-    if abs(_gap_va) > 1000:
-        _gap_nota = (f' O TOTAL de <b>Validado Anualizado</b> ({fmt_mi(_tot_vala_check)}) é a soma pura das '
-                     f'linhas acima e por isso difere em {fmt_mi(abs(_gap_va))} do card '
-                     f'"Retorno Validado (Anual)" lá em cima ({fmt_mi(ret_val_ano)}), que vem de uma célula '
-                     f'nativa da planilha com metodologia própria — as outras 3 colunas de TOTAL (Meta, '
-                     f'Previsto 2026, Validado 2026) batem exatamente com os cards e KPIs correspondentes.')
+    if abs(_pior_gap[1]-_pior_gap[2]) > 1000:
+        _gap_nota = (f' Maior diferença residual encontrada: <b>{_pior_gap[0]}</b> '
+                     f'({fmt_mi(abs(_pior_gap[1]-_pior_gap[2]))}).')
     st.markdown(f'<div style="font-size:10px;color:{SILVER};margin-top:6px;">'
                 f'% de Atingimento (linha a linha e no TOTAL) = Validado / Meta em cada base — nunca a '
-                f'média dos %, sempre soma/soma — garantindo que os números batam · verde a partir de 80%. '
-                f'"Validado Anualizado" não tem célula nativa na planilha — é sempre calculado '
-                f'projeto a projeto ((Saving Validado / Qtd.Meses) × 12), mesmo recorte '
-                f'(todos os tipos) da coluna "Validado 2026".{_gap_nota}</div>', unsafe_allow_html=True)
+                f'média dos %, sempre soma/soma. Verde a partir de 80%. Card (big number), TOTAL da tabela '
+                f'e soma das linhas acima são todos calculados projeto a projeto a partir da mesma base '
+                f'(mesma fonte pros dois lados), por isso batem entre si por construção — não usam mais as '
+                f'células nativas agregadas da aba "5 Unidades +", que tinham fórmula própria e podiam '
+                f'divergir da soma das unidades.{_gap_nota}</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── EVOLUÇÃO ───────────────────────────────────────────────────────────────────
