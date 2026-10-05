@@ -378,7 +378,7 @@ def extract_unit_kpi_panel(df, max_scan=10):
     return []
 
 def parse_unit_kpi_panel(seq):
-    meta = prev = prev2026 = val2026 = valanual = real = extra = 0.0
+    meta = prev = prev2026 = val2026 = valanual = real = extra = pct = 0.0
     prev2026_col = None
     for h, v, c in seq:
         hu = h.upper()
@@ -394,6 +394,8 @@ def parse_unit_kpi_panel(seq):
             extra = safe(v)
         elif "RETORNO REAL" in hu:
             real = safe(v)
+        elif hu.startswith("%") and "ATINGIMENTO" in hu:
+            pct = safe(v)  # "% ATINGIMENTO DA META" nativo da própria aba da unidade
         elif "RETORNO VALIDADO" in hu:
             # duas colunas podem usar o mesmo texto de rótulo — a que vem
             # DEPOIS de "PREVISTO 2026" na ordem da linha é a de 2026; a que
@@ -403,7 +405,7 @@ def parse_unit_kpi_panel(seq):
             else:
                 valanual = safe(v)
     return dict(meta=meta, prev=prev, prev2026=prev2026, val=val2026,
-                validado_anual=valanual, real=real, extra=extra)
+                validado_anual=valanual, real=real, extra=extra, pct=pct)
 
 UNIT_SHEET_KEY = {  # nome (como usado em plantas/areas) -> chave da aba em d[]
     "Diadema": "Diadema", "Ferraz": "Ferraz", "São Leopoldo": "São Leopoldo",
@@ -1789,13 +1791,17 @@ else:
         if pnl:
             it['meta']=pnl['meta']; it['prev']=pnl['prev']; it['prev2026']=pnl['prev2026']
             it['val']=pnl['val']; it['validado_anual']=pnl['validado_anual']
-            it['real']=pnl['real']; it['extra']=pnl['extra']
+            it['real']=pnl['real']; it['extra']=pnl['extra']; it['pct']=pnl['pct']
     for it in areas_view:
         pnl = unit_panels.get(it['nome'])
         if pnl:
             it['meta']=pnl['meta']; it['prev']=pnl['prev']; it['prev2026']=pnl['prev2026']
             it['val']=pnl['val']; it['validado_anual']=pnl['validado_anual']
-            it['real']=pnl['real']; it['extra']=pnl['extra']
+            it['real']=pnl['real']; it['extra']=pnl['extra']; it['pct']=pnl['pct']
+    # "% Meta" também vem da célula nativa "% ATINGIMENTO DA META" da PRÓPRIA aba
+    # da unidade (não mais da aba "5 Unidades +", linha 28). Motivo: lá, a
+    # referência de Vendas aponta pra Vendas!J5 (célula vazia) em vez de
+    # Vendas!L5 (onde está o % de verdade) — por isso Vendas aparecia 0,0%.
 
 # ── VALOR POTENCIAL — Saving Validado dos projetos que já têm ganho Real ──────
 # Não existe célula nativa pra isso na planilha — sempre calculado bottom-up,
