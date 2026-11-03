@@ -1845,9 +1845,11 @@ validado=kpis_view["validado"]; real=kpis_view["real"]; extra_dre=kpis_view["ext
 
 # ── KPI CARDS ──────────────────────────────────────────────────────────────────
 cob  = portfolio/meta*100 if meta>0 else 0
-cova = ret_val_ano/portfolio*100 if portfolio>0 else 0
-pp   = prev2026/portfolio*100 if portfolio>0 else 0
-pv   = validado/prev2026*100 if prev2026>0 else 0
+# Todos os percentuais dos cards comparam com a META ANUAL DO GRUPO (informação-chave)
+cova = ret_val_ano/meta*100 if meta>0 else 0
+pp   = prev2026/meta*100 if meta>0 else 0
+pv   = validado/meta*100 if meta>0 else 0
+pr   = real/meta*100 if meta>0 else 0
 pct_iniciativas_validadas = n_validado/n_total_proj*100 if n_total_proj>0 else 0
 
 def kpi(cls,lbl,vb,sub,det):
@@ -1858,13 +1860,13 @@ def kpi(cls,lbl,vb,sub,det):
 extra_dre_sub = "Ganho fora do DRE acumulado" if not is_bsw else "BSW é 100% DRE — não se aplica"
 st.markdown(f"""<div class="kpi-wrap kpi-7">
   {kpi("","Meta Anual do Grupo (2026)",fmt_mi(meta),"","Objetivo 2026 — 100%")}
-  {kpi("cs","Retorno Previsto (Anual)",fmt_mi(portfolio),"",f"{cob:.1f}% da meta coberta")}
-  {kpi("ct","Retorno Validado (Anual)",fmt_mi(ret_val_ano),"",f"{cova:.1f}% do Retorno Previsto")}
-  {kpi("ca","Previsto 2026",fmt_mi(prev2026),"",f"{pp:.1f}% do Retorno Previsto")}
+  {kpi("cs","Retorno Previsto (Anual)",fmt_mi(portfolio),"",f"{cob:.1f}% da meta")}
+  {kpi("ct","Retorno Validado (Anual)",fmt_mi(ret_val_ano),"",f"{cova:.1f}% da meta")}
+  {kpi("ca","Previsto 2026",fmt_mi(prev2026),"",f"{pp:.1f}% da meta")}
   {kpi("","Validado por Custos (2026)",fmt_mi(validado),
-       f"{pv:.1f}% do Previsto 2026",
+       f"{pv:.1f}% da meta",
        f"{pct_iniciativas_validadas:.1f}% das iniciativas aprovadas")}
-  {kpi("cg","Retorno Real (DRE) (2026)",fmt_mi(real),"",f"{pct_ating*100:.1f}% de atingimento")}
+  {kpi("cg","Retorno Real (DRE) (2026)",fmt_mi(real),"",f"{pr:.1f}% da meta")}
   {kpi("cr","Extra DRE (Até o Momento)",fmt_mi(extra_dre),"",extra_dre_sub)}
 </div>""", unsafe_allow_html=True)
 
