@@ -219,8 +219,15 @@ def fmt_mi(v):
 
 def fmt_brl(v):
     if pd.isna(v) or v is None or float(v)==0: return "—"
-    # Em tabelas o "R$" fica implícito (e quebrava a linha) — só o número, sem centavos: 13.367.000
-    return f"{float(v):,.0f}".replace(",","X").replace(".",",").replace("X",".")
+    return "R$&nbsp;" + f"{float(v):,.0f}".replace(",","X").replace(".",",").replace("X",".")
+
+def fmt_brl_k(v):
+    """R$ em milhares, sem os 3 últimos zeros (R$ 13.367 = R$ 13.367.000). Usado nas
+    tabelas de unidade/área, onde o valor cheio quebrava a linha."""
+    if pd.isna(v) or v is None or float(v)==0: return "—"
+    k = round(float(v)/1000)
+    if k == 0: return "R$&nbsp;&lt;1"
+    return "R$&nbsp;" + f"{k:,.0f}".replace(",",".")
 
 def fmt_date(v):
     if pd.isna(v) or v is None or str(v).strip() in ("nan",""): return "—"
@@ -1460,7 +1467,7 @@ def pilar_resumo_html(projetos):
 
 # Cabeçalho macro-tabela
 # Larguras fixas por coluna — garante alinhamento header/rows/total
-MC_WIDTHS = ["13%","7%","8%","8%","8%","8%","8%","8%","7%","9%","9%","7%"]
+MC_WIDTHS = ["16%","11%","12%","12%","12%","13%","13%","11%"]
 POTENCIAL_COLOR = "#2C5F8A"
 
 def render_macro_table(items, show_expander_fn=None):
@@ -1471,13 +1478,9 @@ def render_macro_table(items, show_expander_fn=None):
     col_names = [
         "Unidade / Área",
         "Meta 2026",
-        "Retorno Previsto (Anualizado)",
         f'<span style="color:{TEAL}">Retorno Validado (Anual)</span>',
-        f'<span style="color:{AMBER}">Previsto 2026</span>',
         f'<span style="color:{TEAL}">Retorno Validado 2026</span>',
         f'<span style="color:{GREEN}">Retorno Real 2026</span>',
-        f'<span style="color:{POTENCIAL_COLOR}">Valor Potencial</span>',
-        f'<span style="color:#9B59B6">Extra DRE</span>',
         "% Meta Anualizado<br><span style=\"font-weight:400;font-size:10px;\">Validado Anual ÷ Meta</span>",
         "% Meta 2026<br><span style=\"font-weight:400;font-size:10px;\">Validado 2026 ÷ Meta</span>",
         "Status"
@@ -1488,20 +1491,16 @@ def render_macro_table(items, show_expander_fn=None):
         f'font-size:11px;font-weight:600;width:{w};text-align:left;">{c}</th>'
         for c,w in zip(col_names, MC_WIDTHS)
     )
-    html = f'<table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px;"><thead><tr>{ths}</tr></thead><tbody>'
+    html = f'<div style="font-size:10px;color:{SILVER};margin:0 0 4px 2px;">Valores em R$ mil</div><table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px;"><thead><tr>{ths}</tr></thead><tbody>'
 
     # Rows
     for it in items:
         html += f"""<tr style="border-bottom:1px solid #EEF0F3;">
           <td style="padding:10px 12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{it['nome']}</td>
-          <td style="padding:10px 12px;">{fmt_brl(it['meta'])}</td>
-          <td style="padding:10px 12px;color:#F39C12;">{fmt_brl(it.get('prev',0))}</td>
-          <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(it.get('validado_anual',0))}</td>
-          <td style="padding:10px 12px;color:{AMBER};">{fmt_brl(it.get('prev2026',0))}</td>
-          <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(it['val'])}</td>
-          <td style="padding:10px 12px;color:{GREEN};font-weight:600;">{fmt_brl(it['real'])}</td>
-          <td style="padding:10px 12px;color:{POTENCIAL_COLOR};font-weight:600;">{fmt_brl(it.get('potencial',0))}</td>
-          <td style="padding:10px 12px;color:#9B59B6;">{fmt_brl(it.get('extra',0))}</td>
+          <td style="padding:10px 12px;">{fmt_brl_k(it['meta'])}</td>
+          <td style="padding:10px 12px;color:{TEAL};">{fmt_brl_k(it.get('validado_anual',0))}</td>
+          <td style="padding:10px 12px;color:{TEAL};">{fmt_brl_k(it['val'])}</td>
+          <td style="padding:10px 12px;color:{GREEN};font-weight:600;">{fmt_brl_k(it['real'])}</td>
           <td style="padding:10px 12px;">{pbar_real(it.get('validado_anual',0)/it['meta'] if it['meta']>0 else 0)}</td>
           <td style="padding:10px 12px;">{pbar_real(it['val']/it['meta'] if it['meta']>0 else 0)}</td>
           <td style="padding:10px 12px;">{bdg_status(it['pct'])}</td>
@@ -1517,14 +1516,10 @@ def render_macro_table(items, show_expander_fn=None):
     pt_2026  = tv/tm if tm>0 else 0
     html += f"""<tr style="background:{LIGHT};border-top:2px solid {NAVY};font-weight:700;">
       <td style="padding:10px 12px;">TOTAL</td>
-      <td style="padding:10px 12px;">{fmt_brl(tm)}</td>
-      <td style="padding:10px 12px;color:#F39C12;">{fmt_brl(tp)}</td>
-      <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(tva)}</td>
-      <td style="padding:10px 12px;color:{AMBER};">{fmt_brl(tp26)}</td>
-      <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(tv)}</td>
-      <td style="padding:10px 12px;color:{GREEN};">{fmt_brl(tr)}</td>
-      <td style="padding:10px 12px;color:{POTENCIAL_COLOR};">{fmt_brl(tpot)}</td>
-      <td style="padding:10px 12px;color:#9B59B6;">{fmt_brl(te)}</td>
+      <td style="padding:10px 12px;">{fmt_brl_k(tm)}</td>
+      <td style="padding:10px 12px;color:{TEAL};">{fmt_brl_k(tva)}</td>
+      <td style="padding:10px 12px;color:{TEAL};">{fmt_brl_k(tv)}</td>
+      <td style="padding:10px 12px;color:{GREEN};">{fmt_brl_k(tr)}</td>
       <td style="padding:10px 12px;">{pbar_real(pt_anual)}</td>
       <td style="padding:10px 12px;">{pbar_real(pt_2026)}</td>
       <td style="padding:10px 12px;"></td>
@@ -1568,12 +1563,12 @@ def render_resumo_unidades(items):
         cell_26 = f'background:{RU_GREEN_BG};color:{GREEN};font-weight:700;' if ok_26 else f'color:{NAVY};font-weight:700;'
         html += f"""<tr style="border-bottom:1px solid #EEF0F3;">
           <td style="padding:10px 12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{it['nome']}</td>
-          <td style="padding:10px 12px;">{fmt_brl(meta_u)}</td>
-          <td style="padding:10px 12px;color:#F39C12;">{fmt_brl(prev_a)}</td>
-          <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(val_a)}</td>
+          <td style="padding:10px 12px;">{fmt_brl_k(meta_u)}</td>
+          <td style="padding:10px 12px;color:#F39C12;">{fmt_brl_k(prev_a)}</td>
+          <td style="padding:10px 12px;color:{TEAL};">{fmt_brl_k(val_a)}</td>
           <td style="padding:10px 12px;text-align:center;{cell_a}">{pct_a:.1f}%</td>
-          <td style="padding:10px 12px;color:{AMBER};">{fmt_brl(prev26)}</td>
-          <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(val26)}</td>
+          <td style="padding:10px 12px;color:{AMBER};">{fmt_brl_k(prev26)}</td>
+          <td style="padding:10px 12px;color:{TEAL};">{fmt_brl_k(val26)}</td>
           <td style="padding:10px 12px;text-align:center;{cell_26}">{pct_26:.1f}%</td>
         </tr>"""
 
@@ -1594,12 +1589,12 @@ def render_resumo_unidades(items):
     tot_cell_26 = f'background:{RU_GREEN_BG};color:{GREEN};font-weight:700;' if tot_ok_26 else f'color:{NAVY};font-weight:700;'
     html += f"""<tr style="background:{LIGHT};border-top:2px solid {NAVY};font-weight:700;">
       <td style="padding:10px 12px;">TOTAL</td>
-      <td style="padding:10px 12px;">{fmt_brl(tot_meta)}</td>
-      <td style="padding:10px 12px;color:#F39C12;">{fmt_brl(tot_preva)}</td>
-      <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(tot_vala)}</td>
+      <td style="padding:10px 12px;">{fmt_brl_k(tot_meta)}</td>
+      <td style="padding:10px 12px;color:#F39C12;">{fmt_brl_k(tot_preva)}</td>
+      <td style="padding:10px 12px;color:{TEAL};">{fmt_brl_k(tot_vala)}</td>
       <td style="padding:10px 12px;text-align:center;{tot_cell_a}">{tot_pct_a:.1f}%</td>
-      <td style="padding:10px 12px;color:{AMBER};">{fmt_brl(tot_p26)}</td>
-      <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(tot_v26)}</td>
+      <td style="padding:10px 12px;color:{AMBER};">{fmt_brl_k(tot_p26)}</td>
+      <td style="padding:10px 12px;color:{TEAL};">{fmt_brl_k(tot_v26)}</td>
       <td style="padding:10px 12px;text-align:center;{tot_cell_26}">{tot_pct_26:.1f}%</td>
     </tr>"""
     html += "</tbody></table>"
@@ -2004,7 +1999,7 @@ if is_resumo:
                              f'(dif. {fmt_mi(abs(dif))})' for nome, tot, card, dif in _gaps)
         _gap_nota = f' Diferenças TOTAL × card nesta planilha: {_itens}.'
     st.markdown(f'<div style="font-size:10px;color:{SILVER};margin-top:6px;">'
-                f'A planilha é a fonte: os 7 cards acima vêm da célula nativa agregada da aba "5 Unidades +" '
+                f'Valores em R$ mil (R$ 13.367 = R$ 13.367.000). A planilha é a fonte: os 7 cards acima vêm da célula nativa agregada da aba "5 Unidades +" '
                 f'(linha 6); as colunas desta tabela (Meta, Previsto Anualizado, Validado Anualizado, '
                 f'Previsto 2026, Validado 2026, Real, Extra DRE) vêm do mini-painel "DASHBOARD EXECUTIVO" '
                 f'nativo de cada aba de unidade/área — nenhum recálculo por fora. Esse painel bate '
