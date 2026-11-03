@@ -242,6 +242,14 @@ def pbar_html(pct, w=72):
             f'<div class="pb-f" style="width:{pc:.0f}%;background:{c};"></div></div>'
             f'<span style="font-size:11px;font-weight:600;">{pc:.1f}%</span></div>')
 
+def pbar_real(pct, w=56):
+    """Barra limitada a 100%, mas o texto mostra o % real (ex.: 131,5%)."""
+    pc = min(float(pct)*100, 100)
+    c = GREEN if pct>=.30 else (AMBER if pct>=.15 else RED)
+    return (f'<div class="pb"><div class="pb-bg" style="width:{w}px;">'
+            f'<div class="pb-f" style="width:{pc:.0f}%;background:{c};"></div></div>'
+            f'<span style="font-size:11px;font-weight:600;">{float(pct)*100:.1f}%</span></div>')
+
 def bdg_status(pct):
     return ('<span class="bdg bg">DESTAQUE ✓</span>' if pct>=.30
             else '<span class="bdg ba">EM EXECUÇÃO</span>')
@@ -1451,7 +1459,7 @@ def pilar_resumo_html(projetos):
 
 # Cabeçalho macro-tabela
 # Larguras fixas por coluna — garante alinhamento header/rows/total
-MC_WIDTHS = ["15%","7%","8%","8%","8%","8%","8%","7%","6%","6%"]
+MC_WIDTHS = ["13%","7%","8%","8%","8%","8%","8%","8%","7%","9%","9%","7%"]
 POTENCIAL_COLOR = "#2C5F8A"
 
 def render_macro_table(items, show_expander_fn=None):
@@ -1463,12 +1471,15 @@ def render_macro_table(items, show_expander_fn=None):
         "Unidade / Área",
         "Meta 2026",
         "Retorno Previsto (Anualizado)",
+        f'<span style="color:{TEAL}">Retorno Validado (Anual)</span>',
         f'<span style="color:{AMBER}">Previsto 2026</span>',
         f'<span style="color:{TEAL}">Retorno Validado 2026</span>',
         f'<span style="color:{GREEN}">Retorno Real 2026</span>',
         f'<span style="color:{POTENCIAL_COLOR}">Valor Potencial</span>',
         f'<span style="color:#9B59B6">Extra DRE</span>',
-        "% Meta","Status"
+        "% Meta Anualizado<br><span style=\"font-weight:400;font-size:10px;\">Validado Anual ÷ Meta</span>",
+        "% Meta 2026<br><span style=\"font-weight:400;font-size:10px;\">Validado 2026 ÷ Meta</span>",
+        "Status"
     ]
     # Header
     ths = "".join(
@@ -1484,32 +1495,37 @@ def render_macro_table(items, show_expander_fn=None):
           <td style="padding:10px 12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{it['nome']}</td>
           <td style="padding:10px 12px;">{fmt_brl(it['meta'])}</td>
           <td style="padding:10px 12px;color:#F39C12;">{fmt_brl(it.get('prev',0))}</td>
+          <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(it.get('validado_anual',0))}</td>
           <td style="padding:10px 12px;color:{AMBER};">{fmt_brl(it.get('prev2026',0))}</td>
           <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(it['val'])}</td>
           <td style="padding:10px 12px;color:{GREEN};font-weight:600;">{fmt_brl(it['real'])}</td>
           <td style="padding:10px 12px;color:{POTENCIAL_COLOR};font-weight:600;">{fmt_brl(it.get('potencial',0))}</td>
           <td style="padding:10px 12px;color:#9B59B6;">{fmt_brl(it.get('extra',0))}</td>
-          <td style="padding:10px 12px;">{pbar_html(it['pct'])}</td>
+          <td style="padding:10px 12px;">{pbar_real(it.get('validado_anual',0)/it['meta'] if it['meta']>0 else 0)}</td>
+          <td style="padding:10px 12px;">{pbar_real(it['val']/it['meta'] if it['meta']>0 else 0)}</td>
           <td style="padding:10px 12px;">{bdg_status(it['pct'])}</td>
         </tr>"""
 
     # Total
-    tm=tp=tp26=tv=tr=tpot=te=0
+    tm=tp=tp26=tv=tr=tpot=te=tva=0
     for it in items:
         tm+=it["meta"];tp+=it.get("prev",0);tp26+=it.get("prev2026",0)
         tv+=it["val"];tr+=it["real"];te+=it.get("extra",0)
-        tpot+=it.get("potencial",0)
-    pt = tr/tm if tm>0 else 0
+        tpot+=it.get("potencial",0);tva+=it.get("validado_anual",0)
+    pt_anual = tva/tm if tm>0 else 0
+    pt_2026  = tv/tm if tm>0 else 0
     html += f"""<tr style="background:{LIGHT};border-top:2px solid {NAVY};font-weight:700;">
       <td style="padding:10px 12px;">TOTAL</td>
       <td style="padding:10px 12px;">{fmt_brl(tm)}</td>
       <td style="padding:10px 12px;color:#F39C12;">{fmt_brl(tp)}</td>
+      <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(tva)}</td>
       <td style="padding:10px 12px;color:{AMBER};">{fmt_brl(tp26)}</td>
       <td style="padding:10px 12px;color:{TEAL};">{fmt_brl(tv)}</td>
       <td style="padding:10px 12px;color:{GREEN};">{fmt_brl(tr)}</td>
       <td style="padding:10px 12px;color:{POTENCIAL_COLOR};">{fmt_brl(tpot)}</td>
       <td style="padding:10px 12px;color:#9B59B6;">{fmt_brl(te)}</td>
-      <td style="padding:10px 12px;">{pbar_html(pt)}</td>
+      <td style="padding:10px 12px;">{pbar_real(pt_anual)}</td>
+      <td style="padding:10px 12px;">{pbar_real(pt_2026)}</td>
       <td style="padding:10px 12px;"></td>
     </tr>"""
     html += "</tbody></table>"
