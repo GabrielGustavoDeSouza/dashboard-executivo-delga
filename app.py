@@ -219,7 +219,8 @@ def fmt_mi(v):
 
 def fmt_brl(v):
     if pd.isna(v) or v is None or float(v)==0: return "—"
-    return "R$ " + f"{float(v):,.0f}".replace(",","X").replace(".",",").replace("X",".")
+    # Em tabelas o "R$" fica implícito (e quebrava a linha) — só o número, sem centavos: 13.367.000
+    return f"{float(v):,.0f}".replace(",","X").replace(".",",").replace("X",".")
 
 def fmt_date(v):
     if pd.isna(v) or v is None or str(v).strip() in ("nan",""): return "—"
